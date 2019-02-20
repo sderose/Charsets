@@ -1,0 +1,307 @@
+#!/usr/bin/env python
+#
+# toHiragana 
+#
+# 2013-03-21: Written by Steven J. DeRose.
+#
+# To do:
+#     Add katakana.
+#
+from __future__ import print_function
+import sys
+import os
+import re
+import argparse
+import string
+import math
+
+#import subprocess
+#import codecs, locale
+
+from sjdUtils import sjdUtils
+from alogging import ALogger
+
+__version__ = "2013-03-21"
+
+
+###############################################################################
+# Process options
+#
+parser = argparse.ArgumentParser(
+    description="A utility by Steven J. DeRose.",
+    epilog="(see also 'perldoc "+sys.argv[0]+"')"
+)
+parser.add_argument(
+    "-loose",            action='store_true',
+    help='Do some extra mappings for other Latin characters.')
+parser.add_argument(
+    "-q",                action='store_true',  dest='quiet',
+    help='Suppress most messages.')
+parser.add_argument(
+    "-verbose",          action='count',       default=0,
+    help='Add more messages (repeatable).')
+parser.add_argument(
+    '-version',          action='version',     version='Version of '+__version__,
+    help='Display version information, then exit.')
+parser.add_argument(   
+    'files',             type=str, 
+    nargs=argparse.REMAINDER,
+    help='Path(s) to input file(s)')
+
+global args, su
+#lg = ALogger()
+args = parser.parse_args()
+
+if (os.environ["PYTHONIOENCODING"] != "utf_8"):
+    print("Warning: PYTHONIOENCODING is not utf_8.")
+
+su = sjdUtils()
+su.setVerbose(args.verbose)
+
+
+hiraganaLetters = {
+    "A":               unichr(0X03042),
+    "I":               unichr(0X03044),
+    "U":               unichr(0X03046),
+    "E":               unichr(0X03048),
+    "O":               unichr(0X0304A),
+    "KA":              unichr(0X0304B),
+    "GA":              unichr(0X0304C),
+    "KI":              unichr(0X0304D),
+    "GI":              unichr(0X0304E),
+    "KU":              unichr(0X0304F),
+    "GU":              unichr(0X03050),
+    "KE":              unichr(0X03051),
+    "GE":              unichr(0X03052),
+    "KO":              unichr(0X03053),
+    "GO":              unichr(0X03054),
+    "SA":              unichr(0X03055),
+    "ZA":              unichr(0X03056),
+    "SI":              unichr(0X03057),
+    "ZI":              unichr(0X03058),
+    "SU":              unichr(0X03059),
+    "ZU":              unichr(0X0305A),
+    "SE":              unichr(0X0305B),
+    "ZE":              unichr(0X0305C),
+    "SO":              unichr(0X0305D),
+    "ZO":              unichr(0X0305E),
+    "TA":              unichr(0X0305F),
+    "DA":              unichr(0X03060),
+    "TI":              unichr(0X03061),
+    "DI":              unichr(0X03062),
+    "TU":              unichr(0X03064),
+    "DU":              unichr(0X03065),
+    "TE":              unichr(0X03066),
+    "DE":              unichr(0X03067),
+    "TO":              unichr(0X03068),
+    "DO":              unichr(0X03069),
+    "NA":              unichr(0X0306A),
+    "NI":              unichr(0X0306B),
+    "NU":              unichr(0X0306C),
+    "NE":              unichr(0X0306D),
+    "NO":              unichr(0X0306E),
+    "HA":              unichr(0X0306F),
+    "BA":              unichr(0X03070),
+    "PA":              unichr(0X03071),
+    "HI":              unichr(0X03072),
+    "BI":              unichr(0X03073),
+    "PI":              unichr(0X03074),
+    "HU":              unichr(0X03075),
+    "BU":              unichr(0X03076),
+    "PU":              unichr(0X03077),
+    "HE":              unichr(0X03078),
+    "BE":              unichr(0X03079),
+    "PE":              unichr(0X0307A),
+    "HO":              unichr(0X0307B),
+    "BO":              unichr(0X0307C),
+    "PO":              unichr(0X0307D),
+    "MA":              unichr(0X0307E),
+    "MI":              unichr(0X0307F),
+    "MU":              unichr(0X03080),
+    "ME":              unichr(0X03081),
+    "MO":              unichr(0X03082),
+    "YA":              unichr(0X03084),
+    "YU":              unichr(0X03086),
+    "YO":              unichr(0X03088),
+    "RA":              unichr(0X03089),
+    "RI":              unichr(0X0308A),
+    "RU":              unichr(0X0308B),
+    "RE":              unichr(0X0308C),
+    "RO":              unichr(0X0308D),
+    "WA":              unichr(0X0308F),
+    "WI":              unichr(0X03090),
+    "WE":              unichr(0X03091),
+    "WO":              unichr(0X03092),
+    "N":               unichr(0X03093),
+    "VU":              unichr(0X03094),
+}
+
+hiraganaSmallLetters = {
+    "A":  unichr(0X03041),
+    "I":  unichr(0X03043),
+    "U":  unichr(0X03045),
+    "E":  unichr(0X03047),
+    "O":  unichr(0X03049),
+    "TU": unichr(0X03063),
+    "YA": unichr(0X03083),
+    "YU": unichr(0X03085),
+    "YO": unichr(0X03087),
+    "WA": unichr(0X0308E),
+    "KA": unichr(0X03095),
+    "KE": unichr(0X03096),
+}
+
+hiraganaOthers = {
+    "COMBINING KATAKANA-VOICED SOUND MARK":             unichr(0X03099),
+    "COMBINING KATAKANA-SEMI-VOICED SOUND MARK":        unichr(0X0309A),
+    "KATAKANA-VOICED SOUND MARK":                       unichr(0X0309B),
+    "KATAKANA-SEMI-VOICED SOUND MARK":                  unichr(0X0309C),
+    "ITERATION MARK":                                   unichr(0X0309D),
+    "VOICED ITERATION MARK":                            unichr(0X0309E),
+    "DIGRAPH YORI":                                     unichr(0X0309F),
+    "KATAKANA-HIRAGANA DOUBLE HYPHEN":                  unichr(0X030A0),
+    "KATAKANA-HIRAGANA PROLONGED SOUND MARK":           unichr(0X030FC),
+    "HALFWIDTH KATAKANA-HIRAGANA PROLONGED SOUND MARK": unichr(0X0FF70),
+    "LETTER ARCHAIC YE":                                unichr(0x01B001),
+    "SQUARE HIRAGANA HOKA":                             unichr(0x01F200),
+}
+
+def hiragana(s):
+    if (args.loose):
+        s = re.sub(r'c([ie])',  's\\1', s)
+        s = re.sub(r'c([aou])', 'k\\1', s)
+        s = re.sub(r'ph|f',     'p',    s)
+        s = re.sub(r'j',        'zh',   s)
+        s = re.sub(r'l',        'r',    s)
+        s = re.sub(r'q',        'kaw',  s)
+        s = re.sub(r'v',        'b',    s)
+        s = re.sub(r'x',        'kas',  s)
+
+    buf = ""
+    for i in (range(0, len(s))):
+        c1 = s[i:i+1].upper()
+        c2 = s[i:i+2].upper()
+        #print("Checking '" + c2 + "'")
+        if (c2 in hiraganaLetters):
+            #print("    got 2")
+            buf += hiraganaLetters[c2]
+            i += 1
+        elif (c1 in hiraganaLetters):
+            #print("    got 1")
+            buf += hiraganaLetters[c1]
+        else:
+            buf += s[i:i+1]
+    return(buf)
+
+
+###############################################################################
+###############################################################################
+#
+def doOneFile(fh):
+    rec = ""
+    recnum = 0
+
+    while (1):
+        rec = fh.readline()
+        if (len(rec) == 0): break
+        recnum += 1
+        print(hiragana(rec))
+    # EOF
+    return(recnum)
+
+
+
+###############################################################################
+###############################################################################
+# Main
+#
+totalRecords = 0
+totalFiles = 0
+
+if (len(args.files) == 0):
+    fh = sys.stdin
+for fnum in (range(len(args.files))):
+    totalFiles += 1
+    f = args.files[fnum]
+    if (os.path.isfile(f)):
+        fh = open(f, "r")
+        totalRecords += doOneFile(fh)
+        fh.close()
+    else:
+        lg.vMsg(0,"Can't find file '" + f + "'.")
+
+if (not args.quiet):
+    lg.vMsg(0,"Done, " + `totalFiles` + " files, " +
+             `totalRecords` + " records.")
+
+sys.exit(0)
+
+
+
+###############################################################################
+###############################################################################
+###############################################################################
+#
+perldoc = """
+
+=pod
+
+=head1 Usage
+
+toHiragana [options]
+
+Transliterate ASCII to (Unicode) hiragana.
+
+This is rudimentary, and works purely from spelling, not pronunciation.
+By default, it leaves [cfjlqvx] and ph along; but see I<--loose>.
+It also doesn't do anything for consonant-clusters and word-final 
+consonants ('splat' will end up unchanged except for the 'a').
+
+
+
+=head1 Options
+
+=over
+
+=item * B<--loose>
+
+Do something about other Latin characters:
+[cfjlqvx] and ph are mapped 
+('c' goes to 's' or 'k' depending on the following vowel).
+I don't know if there's a convention for other English combinations
+such as 'sh', 'ng', etc.
+
+=item * B<--quiet> OR B<-q>
+Suppress most messages.
+
+=item * B<--verbose>
+
+Add more detailed messages (doesn't do much at the moment).
+
+=item * B<--version>
+
+Display version info and exit.
+
+=back
+
+
+
+=head Related Commands
+
+
+
+=head1 Known bugs and limitations
+
+
+
+=head1 Ownership
+
+This work by Steven J. DeRose is licensed under a Creative Commons 
+Attribution-Share Alike 3.0 Unported License. For further information on
+this license, see L<http://creativecommons.org/licenses/by-sa/3.0/>.
+
+For the most recent version, see L<http://www.derose.net/steve/utilities/>.
+
+=cut
+"""
+

@@ -1,0 +1,137 @@
+#!/usr/bin/perl -w
+#
+# changeEncoding: Switch between any of Perl's known character encodings.
+#
+# 2008-10-04: Written by Steven J. DeRose.
+# 2010-09-12, 2012-10-10 sjd: Clean up. Use Encode.
+# 
+# To do:
+#
+use strict;
+use Getopt::Long;
+use Encode;
+
+our $VERSION_DATE = "2012-10-10";
+
+my $from      = "cp1252";
+my $quiet     = 0;
+my $to        = "utf8";
+my $verbose   = 0;
+
+
+###############################################################################
+#
+Getopt::Long::Configure ("ignore_case");
+my $result = GetOptions(
+	"from|iencoding=s"        => \$from,
+    "h|help"                  => sub { system "perldoc $0"; exit; },
+    "help-encodings"          => sub { showEncodings(); exit; },
+    "listEncodings"           => sub {
+        warn "\nEncodings available:\n";
+        my $last = ""; my $buf = "";
+        for my $k (Encode->encodings(":all")) {
+            my $cur = substr($k,0,2);
+            if ($cur ne $last) {
+                warn "$buf\n";
+                $last = $cur; $buf = "";
+            }
+            $buf .= "$k ";
+        }
+        warn "$buf\n";
+        exit;
+    },
+    "q!"                      => \$quiet,
+    "to|oencoding=s"          => \$to,
+    "v+"                      => \$verbose,
+    "version"                 => sub {
+        die "Version of $VERSION_DATE, by Steven J. DeRose.\n";
+    },
+    );
+
+($result) || die "Bad options.\n";
+
+
+###############################################################################
+###############################################################################
+# Main
+#
+($ARGV[0]) || die "No input file specified.\n";
+my $filename = shift;
+open FH, "<:encoding($from)", "$filename" || die
+    "Can't open input file '$filename' with encoding '$from'.\n";
+print "";
+binmode(\*STDOUT, ":encoding($to)") ||	die
+    "Can't set encoding '$to' for STDOUT.\n";
+	
+my $recnum = 0;
+while (my $rec = <FH>) {
+    $recnum++;
+    print $rec;
+}
+
+($quiet) || warn "Done, $recnum lines converted from $from to $to.\n";
+
+exit;
+
+
+
+###############################################################################
+###############################################################################
+###############################################################################
+#
+
+=pod
+
+=head1 Usage
+
+changeEncoding [options] file
+
+Convert a file from one character encoding to another.
+
+
+
+=head1 Options
+
+=over
+
+=item * B<--from> I<enc>
+
+Encoding of input file.
+
+=item * B<--listEncodings>
+
+List all known encodings.
+
+=item * B<--quiet> OR B<-q>
+Suppress most messages.
+
+=item * B<--to> I<encoding>
+
+Encoding to convert to.
+
+=item * B<--verbose> OR B<-v>
+Add more messages, and check integrity frequently.
+
+=item * B<--version>
+
+Show version/license info and exit.
+
+=back
+
+
+    
+=head1 Related commands/information
+
+C<iconv> -- similar.
+
+
+
+=head1 Ownership
+
+This work by Steven J. DeRose is licensed under a Creative Commons 
+Attribution-Share Alike 3.0 Unported License. For further information on
+this license, see http://creativecommons.org/licenses/by-sa/3.0/.
+
+For the most recent version, see http://www.derose.net/steve/utilities/.
+
+=cut

@@ -1,0 +1,87 @@
+Unicode char names
+
+
+script class name mods
+
+CYRILLIC SMALL LETTER KA WITH STROKE
+CYRILLIC CAPITAL LETTER KOMI DE
+LATIN SMALL LETTER TURNED DELTA
+CYRILLIC CAPITAL LETTER BYELORUSSIAN-UKRAINIAN I
+CYRILLIC CAPITAL LETTER SHORT I
+
+
+scripts (as first word)
+  latin
+  arabic
+  cyrillic
+  thai
+  hangul
+  greek
+  georgian
+  tibetan
+  kaeriten
+  'eastern' ???
+  hebrew
+  armenian
+  
+
+classes
+  capital letter
+  small letter
+  letter
+  modifier letter
+  symbol
+  sign
+  mark
+  quotation mark
+  key
+  digit
+  number
+  fraction
+  bracket
+  arrow
+  dash
+  tone
+  vowel
+  
+diacritics
+
+diacritic mods
+
+positions
+  initial
+  medial
+  final
+  isolated form
+
+symbol modifiers
+  circled
+  inverse circled
+  parenthesized
+  squared
+
+font etc
+  serif
+  sans-serif
+  white
+  black
+  double-struck
+  heavy
+  light
+  fullwidth
+  halfwidth
+  spacing
+  non-spacing
+  combining
+  script
+  subscript
+  superscript
+  three-d
+  barred
+  black-letter
+  black-feathered
+  partial
+  notched
+  white-feathered
+  teardrop-barbed
+  squat

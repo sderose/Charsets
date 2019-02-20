@@ -1,0 +1,188 @@
+#!/usr/bin/perl -w
+#
+# whatChars: Show what Unicode characters are in a given charset.
+#
+# 2013-01-03: Written by Steven J. DeRose.
+# 
+# To do:
+#     Run on one character at a time to collect map?
+#     How to tell what characters are defined in a given charset?
+#         iconv utf8 to iencoding? then back?
+#     Catch msg: "iconv: conversion from `x' is not supported"
+#
+use strict;
+use Getopt::Long;
+use Encode;
+use charnames ':full';
+
+use sjdUtils;
+use alogging;
+
+our $VERSION_DATE = "2013-01-03";
+
+my $tmpfile = "/tmp/whatChars.txt";
+my $tmpfile2 = "/tmp/whatChars.utf";
+
+my $iencoding     = "";
+my $quiet         = 0;
+my $verbose       = 0;
+
+
+###############################################################################
+#
+my %getoptHash = (
+    "h|help"                  => sub { system "perldoc $0"; exit; },
+    "iencoding=s"             => \$iencoding,
+    "listEncodings"           => sub {
+        warn "\nEncodings available:\n";
+        my $last = ""; my $buf = "";
+        for my $k (Encode->encodings(":all")) {
+            my $cur = substr($k,0,2);
+            if ($cur ne $last) {
+                warn "$buf\n";
+                $last = $cur; $buf = "";
+            }
+            $buf .= "$k ";
+        }
+        warn "$buf\n";
+        exit;
+    },
+    "q!"                      => \$quiet,
+    "v+"                      => \$verbose,
+    "version"                 => sub {
+        die "Version of $VERSION_DATE, by Steven J. DeRose.\n";
+    },
+    );
+Getopt::Long::Configure ("ignore_case");
+GetOptions(%getoptHash) || die "Bad options.\n";
+
+
+($iencoding) || die "Must specify -iencoding.\n";
+
+
+###############################################################################
+###############################################################################
+# Main
+#
+my $buf = "";
+for (my $i=32; $i<256; $i++) {
+    $buf .= chr($i);
+}
+my $rec = toUTF8($iencoding, $buf);
+my $lost = length($buf) - length($rec);
+
+for (my $i=0; $i<length($rec); $i++) {
+    my $c = substr($rec,$i,1);
+    my $n = ord($c);
+    my $uname = charnames::viacode($n);
+    if (!$uname) { $uname = "(not found)"; }
+    # Note: i-th char may not be code point i, some may have dropped!
+    printf("  %04x: %s\n", $n, $uname);
+}
+print "\n==> $lost $iencoding characters were lost in translation to utf8.\n";
+
+exit;
+
+
+###############################################################################
+###############################################################################
+# Let iconv turn a string from some other encoding to UTF-8.
+#
+sub toUTF8 {
+    my ($enc, $s) = @_;
+    open(T, ">$tmpfile") || die "Can't open '$tmpfile'\n";
+    print T $s; # Should go out as raw bytes
+    close(T);
+
+    my $cmd = "iconv -c -f $enc -t utf8//IGNORE $tmpfile -o $tmpfile2";
+    ($verbose) && warn "Running:\n    $cmd\n";
+    system $cmd || die "iconv failed.\n";
+
+    open(U, "<$tmpfile2") || die "Can't open '$tmpfile2'\n";
+    binmode(U, ":encoding(utf8)");
+    my $rec = <U>;
+    close(U);
+    return($rec);
+}
+
+
+
+###############################################################################
+###############################################################################
+###############################################################################
+#
+
+=pod
+
+=head1 Usage
+
+whatChars [options] file
+
+Extracts the Unicode code points and names equivalent to the characters
+of the input character set. For now, only support 8-bit sets.
+
+Works by generating a file with all characters from 32-255, and using
+C<iconv> to translate it to utf8. Then it reads the utf8 version, and
+prints the equivalents.
+
+
+
+=head1 Options
+
+(prefix 'no' to negate where applicable)
+
+=over 
+
+=item * B<--iencoding> I<e>
+
+Specify character encoding for input.
+
+=item * B<--listEncodings>
+
+Show all available character encodings, then exit.
+=item * B<--quiet> OR B<-q>
+Suppress most messages.
+
+=item * B<--tick> I<n>
+
+Report progress every I<n> records (0 to turn off).
+
+=item * B<--unicode>
+
+Synonym for I<--encoding utf8>.
+
+=item * B<--verbose> OR B<-v>
+Add more messages (repeatable).
+
+=item * B<--version>
+
+Show version info and exit.
+
+=back
+
+
+
+=head1 Known Bugs and Limitations
+
+Simply tries all chars 32-255; whether or not they're in the input charset.
+C<iconv> appears to drop input chars not in the specified input charset.
+
+C<iconv> does not support conversion I<from> all of its known charsets.
+
+This script does not yet report which specific characters can't be translated.
+
+
+=head1 Related commands
+
+C<iconv>
+
+
+=head1 Ownership
+
+This work by Steven J. DeRose is licensed under a Creative Commons 
+Attribution-Share Alike 3.0 Unported License. For further information on
+this license, see L<http://creativecommons.org/licenses/by-sa/3.0/>.
+
+For the most recent version, see L<http://www.derose.net/steve/utilities/>.
+
+=cut

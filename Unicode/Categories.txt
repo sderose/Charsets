@@ -1,0 +1,73 @@
+Categories
+
+categoryAbbr2Name = {
+    'Cc': 'Other, Control',            # Have
+    'Cf': 'Other, Format',             # Have
+    'Cn': 'Other, Not Assigned (no characters in the file have this property)',
+    'Co': 'Other, Private Use',
+    'Cs': 'Other, Surrogate',
+    'LC': 'Letter, Cased',
+    'L':  'Letter (unspecified)',      # Have (not normally in this list)
+    'Ll': 'Letter, Lowercase',
+    'Lm': 'Letter, Modifier',          # Have
+    'Lo': 'Letter, Other',             # Have
+    'Lt': 'Letter, Titlecase',
+    'Lu': 'Letter, Uppercase',
+    'Mc': 'Mark, Spacing Combining',   # Have
+    'Me': 'Mark, Enclosing',           # Have
+    'Mn': 'Mark, Nonspacing',          # Have
+    'Nd': 'Number, Decimal Digit',     # Have
+    'Nl': 'Number, Letter',            # Have
+    'No': 'Number, Other',             # Have
+    'Pc': 'Punctuation, Connector',    # Have
+    'Pd': 'Punctuation, Dash',         # Have
+    'Pe': 'Punctuation, Close',        # Have
+    'Pf': 'Punctuation, Final quote (Ps or Pe depending on usage)',    # Have
+    'Pi': 'Punctuation, Initial quote (Ps or Pe depending on usage)',  # Have
+    'Po': 'Punctuation, Other',        # Have
+    'Ps': 'Punctuation, Open',         # Have
+    'Sc': 'Symbol, Currency',          # Have
+    'Sk': 'Symbol, Modifier',          # Have
+    'Sm': 'Symbol, Math',              # Have
+    'So': 'Symbol, Other',             # Have
+    'Zl': 'Separator, Line',           # Have
+    'Zp': 'Separator, Paragraph',      # Have
+    'Zs': 'Separator, Space'           # Have
+}
+
+Add:
+
+Scripts
+    Alphabet
+    Syllabary
+    Ideographic
+    (each specific script)
+
+Brackets (cf Po/Pc)
+    Open
+    Close
+
+Pd:
+    Single
+    Double
+
+Decoration
+    BoxDraw
+    Dingbat
+    Emo
+    Arrow
+
+Domains
+    Music
+    Games (Mahjong, chess, dominos, cards, dice
+    Cartography
+    Alchemy
+    Religion
+    Politics (flags)
+
+Rendition
+    Math variants
+    OCR
+    Control Pictures
+    Braille
+

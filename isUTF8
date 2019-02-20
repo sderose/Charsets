@@ -1,0 +1,270 @@
+#!/usr/bin/perl -w
+#
+# isUTF8
+#
+# 2012-02-05: Written by Steven J. DeRose.
+# 2015-01-08: Keep a few more stats. Add --lines, --ilineends.
+#
+# To do:
+#     Report actual offsets of bad chars in lines, not just lines.
+#     Finish --ilineends.
+#
+use strict;
+use Getopt::Long;
+
+our $VERSION_DATE = "2015-01-08";
+
+my $ilineends     = 'U';
+my $lines         = 0;
+my $quiet         = 0;
+my $tickInterval  = 10000;
+my $verbose       = 0;
+
+
+###############################################################################
+#
+Getopt::Long::Configure ("ignore_case");
+my $result = GetOptions(
+    "h|help"                  => sub { system "perldoc $0"; exit; },
+    "ilineends=s"             => \$ilineends,
+    "lines!"                  => \$lines,
+    "q|quiet!"                => \$quiet,
+    "tickInterval=i"          => \$tickInterval,
+    "v|verbose+"              => \$verbose,
+    "version"                 => sub {
+        die "Version of $VERSION_DATE, by Steven J. DeRose.\n";
+    },
+    );
+
+($result) || die "Bad options.\n";
+
+$ilineends = uc(substr($ilineends."U",0,1));
+if    ($ilineends eq "M") { $/ = chr(13); }
+elsif ($ilineends eq "D") { $/ = chr(13).chr(10); }
+elsif ($ilineends eq "U") { $/ = chr(10); }
+else { die "Unknown value '$ilineends' for --ilineends option.\n"; }
+
+
+###############################################################################
+#
+my $fh          = undef;
+my $recnum      = 0;
+my $totFiles    = 0;
+my $totRecs     = 0;
+my $badFiles    = 0;
+my $badLines    = 0;
+my $badChars    = 0;
+
+if (!scalar(@ARGV)) {
+    die "No file(s) specified.\n";
+}
+
+while(my $file = shift) {
+    (-f $file) || die "Can't find input file '$file'.\n";
+    open $fh, "<$file" || die "Failed to open input file '$file'.\n";
+    $totFiles++;
+
+    $recnum = 0;
+    my $badInFile = 0;
+    my @lineList = ();
+    while (my $rec = <$fh>) {
+        $recnum++;
+        ($recnum % $tickInterval == 0) && warn "Processed $recnum records.\n";
+        chomp $rec;
+        my @locs = @{findNonUTF8($rec)};
+        if (scalar(@locs)>0) {
+            push(@lineList, $recnum);
+            $badFiles++;
+            if ($quiet) {
+                print "$file:$recnum: Non-UTF-8 sequences found: " .
+                    scalar(@locs) . "\n";
+            }
+            elsif ($lines) {
+                print "$file:$recnum: Non-UTF-8 in line(s): [" .
+                    join(", ",@lineList) . "]\n";
+            }
+            else {
+                print "$file:$recnum: Non-UTF-8 at offset(s): [" .
+                    join(", ",@locs) . "]\n";
+            }
+            $badLines++;
+            $badInFile += scalar(@locs);
+        }
+    }
+    close $fh;
+    $totRecs += $recnum;
+    if ($badInFile) {
+        $badChars += $badInFile;
+        $badFiles++;
+    }
+}
+
+($quiet) || print
+    "\nDone, $totRecs records, $totFiles files, $badFiles files, " .
+    "$badLines lines, $badChars characters not in utf-8.\n";
+
+exit(($badChars) ? 1:0);
+
+
+
+###############################################################################
+###############################################################################
+#
+sub findNonUTF8 {
+    my ($s) = @_;
+    my @offsetList = ();
+    for (my $i=0; $i<length($s); $i++) {
+        my $c = substr($s,$i,1);
+        my $o = ord($c);
+        next unless ($o >= 128);
+        my $codeLength = isUTF8StartByte($o);
+        if ($codeLength <= 0) {
+            push @offsetList, $i;
+            scream($i, $o);
+            next;
+        }
+        if ($codeLength == 1) {
+            next;
+        }
+        for (my $pos=$i+1; $pos<$i+$codeLength; $pos++) {
+            if ($pos>=length($s)) {
+                push @offsetList, $i;
+                scream($i, $o);
+            }
+            my $cc = substr($s, $pos, 1);
+            if (!highBits(ord($cc), 2, 0b10)) {
+                push @offsetList, $i;
+                scream($i, $o);
+            }
+        }
+        $i = $i + $codeLength - 1;
+    }
+    return(\@offsetList);
+} # findNonUTF8
+
+
+sub scream {
+    my ($i, $o) = @_;
+    ($verbose) && warn sprintf(
+        "  Record %6d, Offset %6d: d%06d (x%06x)\n", $recnum, $i, $o, $o);
+}
+
+
+# Return the (total) length for a UTF-8 value starting at this byte.
+#
+sub isUTF8StartByte {
+    my ($o) = @_;
+    if (highBits($o, 1, 0b0))       { return(1); }
+    if (highBits($o, 2, 0b10))      { return(-1); } # ERROR
+    if (highBits($o, 3, 0b110))     { return(2); }
+    if (highBits($o, 4, 0b1110))    { return(3); }
+    if (highBits($o, 5, 0b11110))   { return(4); }
+    if (highBits($o, 6, 0b111110))  { return(5); }
+    if (highBits($o, 7, 0b1111110)) { return(6); }
+}
+
+# Check if the high N bits of a byte match a given value.
+#
+sub highBits {
+    my ($byte, $nBits, $value) = @_;
+    my $highBits = $byte >> (8-$nBits);
+    if ($highBits == $value) { return(1); }
+    return(0);
+}
+
+
+###############################################################################
+###############################################################################
+#
+
+=pod
+
+=head1 Usage
+
+isUTF8 [options] files
+
+Report where files have any byte sequences that are not legit UTF-8.
+By default, absolute byte offsets are reported; but see I<-q>, I<--verbose>,
+and I<--lines> for alternatives.
+
+=head2 UTF-8 rules
+
+  UP to Code   Byte 1   Bytes 2-n
+  U+0000.007F  0xxxxxxx           <--- ASCII
+  U+0000.07FF  110xxxxx 10xxxxxx
+  U+0000.FFFF  1110xxxx 10xxxxxx 10xxxxxx
+  U+001F.FFFF  11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
+  U+03FF.FFFF  111110xx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
+  U+7FFF.FFFF  1111110x 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
+
+All non-ASCII have:
+  first byte with high two bits '11'
+  rest of bytes with high two bits '10'
+
+
+=head1 Options
+
+(prefix 'no' to negate where applicable)
+
+=over
+
+=item * B<--ilineends> I<e>
+
+Assume input file has Mac ("B"), *nix ("U"), or Windows ("W") line-end indicators.
+Default: *nix ("U").
+
+=item * B<--lines>
+
+Report line numbers of occurrences, instead of offsets.
+
+=item * B<-q> or B<--quiet>
+
+Suppress most messages. In particular, only report the number of bad characters
+found in each line, not the list of all offsets. See also I<--lines>.
+
+=item * B<--tickInterval> I<n>
+
+Report progress every I<n> records (0 to turn off).
+
+=item * B<-v> or B<--verbose>
+
+Add more messages (repeatable).
+In particular, show the byte where problems are found, not just
+the record or offset to the byte.
+
+=item * B<--version>
+
+Show version info and exit.
+
+=back
+
+
+=head1 Known Bugs and Limitations
+
+
+=head1 Related commands
+
+C<iconv> -- can translate between many different character encodings.
+For example:
+
+    iconv //TRANSLIT -f utf8 -t ASCII myFile.txt
+
+So you can do a similar test via:
+
+    iconv -f UTF-8 -t UTF-8 [path] > /dev/null || echo "$1 IS NOT UTF-8!"
+
+Add I<-c> to have C<iconv> discard bad characters rather than fail on them.
+
+C<countChars> -- do an inventory of what characters a file contains.
+
+
+=head1 Ownership
+
+This work by Steven J. DeRose is licensed under a Creative Commons
+Attribution-Share Alike 3.0 Unported License. For further information on
+this license, see L<http://creativecommons.org/licenses/by-sa/3.0/>.
+
+For the most recent version, see L<http://www.derose.net/steve/utilities/>.
+
+=cut
+

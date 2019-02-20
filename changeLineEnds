@@ -1,0 +1,193 @@
+#!/usr/bin/perl -w
+#
+# changeLineEnds: Identify/normalize line-ends.
+#
+# 2006-11/29: Written by Steven J. DeRose.
+# 2007-07-10 sjd: Add -outlineends.
+# 2007-07-14 sjd: strict, Getopt, fix backslashes.
+# 2008-05-09 sjd: Implement -inplace, color.
+# 2010-09-12 sjd: Cleanup.
+# 2012-10-23 sjd: Get rid of system calls. Support STDIN. Clean up.
+#
+# To do:
+#    Option to catch mixed types in same file?
+#
+use strict;
+use Getopt::Long;
+
+our $VERSION_DATE = "2012-10-23";
+
+my $colorOption  = ($ENV{USE_COLOR} && -t STDERR) ? 1:0;
+my $justidentify = 0;
+my $olineends    = "U";
+my $quiet        = 0;
+my $verbose      = 0;
+
+# Process options
+#
+Getopt::Long::Configure ("ignore_case");
+my $result = GetOptions(
+    "color!"           => \$colorOption,
+    "h|help|?"         => sub { system "perldoc $0"; exit; },
+    "identify"         => \$justidentify,
+    "olineends=s"      => \$olineends,
+    "quiet!"           => \$quiet,
+    "v|verbose+"       => \$verbose,
+    "version"          => sub {
+       	die "Version of $VERSION_DATE, by Steven J. DeRose.\n";
+	},
+	);
+
+($result) || die "Bad options.\n";
+
+
+###############################################################################
+# Validate and default options
+#
+$olineends = uc(substr($olineends."U",0,1));
+my $nl = "";
+if    ($olineends eq "M") { $nl = "\r"; }
+elsif ($olineends eq "D") { $nl = "\r\n"; }
+elsif ($olineends eq "U") { $nl = "\n"; }
+else {
+	die "Unknown output line-end type '$olineends'.\n";
+}
+
+my $green = my $yellow = my $red = my $clear = "";
+if ($colorOption) {
+    $green  = `colorstring green`;
+    $yellow = `colorstring yellow`;
+    $red    = `colorstring red`;
+    $clear  = `colorstring default`;
+}
+
+
+###############################################################################
+###############################################################################
+# Main
+#
+if (scalar(@ARGV)==0) {
+    push @ARGV, "-";
+    (-t STDIN && !$quiet) && warn "Waiting for STDIN...\n";
+}
+
+my $nFiles = 0;
+foreach my $f (@ARGV) {
+	if (-d $f) {
+		($verbose) && warn "Skipping directory '$f'.\n";
+		next;
+	}
+	if (!(-f $f)) {
+		warn "$f\tNOTFOUND\n";
+		next;
+	}
+    $nFiles++;
+
+	# First, scan to a line-end and identify the type
+    my $leader = "";
+	my $c;
+    my $type = "???";
+	open(IN, "<$f") || warn
+        "Unable to open file '$f'\n";
+	while (read(IN,$c,1) && $type eq "???") {
+		if ($c eq "\n")     { $type = "*NIX"; }
+		if ($c eq "\r") {
+			read(IN,$c,1);
+			if ($c eq "\n") { $type = "DOS"; }
+			else            { $type = "MAC"; }
+		}
+        $leader .= $c;
+	}
+
+	my $msg = sprintf("%-6ss %s",$type, $f);
+	if ($colorOption) {
+	    if ($type eq "*NIX") {
+	        warn "$green$msg$clear\n";
+	    }
+	    elsif ($type eq "MAC") {
+	        warn "$yellow$msg$clear\n";
+	    }
+	    else {
+	        warn "$red$msg$clear\n";
+	    }
+	}
+	else {
+		warn "$msg\n";
+	}
+
+	if (!$justidentify) {
+        print "$leader\n";
+        while (my $rec = <IN>) {
+            $rec =~ s/(\r\n?|\n)$//;
+            print "$rec$nl";
+        }
+    }
+	close IN;
+} # foreach
+
+($quiet) || warn "Done, $nFiles files.\n";
+
+exit;
+
+
+
+###############################################################################
+###############################################################################
+###############################################################################
+#
+
+=pod
+
+=head1 Usage
+
+changeLineEnds [options] [files]
+
+Identifies and/or changes line-end conventions in a file(s).
+
+
+
+=head1 Options
+
+=over
+
+=item * B<--color>
+
+Use color (mainly useful with I<--identify>).
+
+=item * B<--identify>
+
+Just say whether *NIX, DOS, MAC, NOTFOUND, UNKNOWN.
+
+=item * B<--olineends> I<t>
+
+Turn line-ends to M(ac), U(nix - default), or D(os) style.
+
+=item * B<--quiet> OR B<-q>
+Suppress most messages.
+
+=item * B<--verbose> OR B<-v>
+More messages.
+
+=item * B<--version>
+
+Display version info and exit.
+
+=back
+
+
+
+=head1 Known bugs and limitations
+
+Can fix, but will not identify, files with mixed line-end types.
+
+
+
+=head1 Ownership
+
+This work by Steven J. DeRose is licensed under a Creative Commons
+Attribution-Share Alike 3.0 Unported License. For further information on
+this license, see L<http://creativecommons.org/licenses/by-sa/3.0/>.
+
+For the most recent version, see L<http://www.derose.net/steve/utilities/>.
+
+=cut

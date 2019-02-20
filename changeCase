@@ -1,0 +1,234 @@
+#!/usr/bin/perl -w
+#
+# changeCase: Easier than tr, and can do word- and sentence- case.
+#
+# 2009-08-04: Written by Steven J. DeRose.
+# 2010-08-25 sjd: perldoc.
+#
+# To do:
+#
+use strict;
+use Getopt::Long;
+
+our $VERSION_DATE = "2012-09-12";
+
+my $dft_case         = "U";
+my $dft_tickInterval = 50000;
+
+my $case             = $dft_case;
+my $iencoding        = "";
+my $ignoreCase       = 0;
+my $ilineends        = "U";
+my $oencoding        = "";
+my $olineends        = "U";
+my $quiet            = 0;
+my $tickInterval     = $dft_tickInterval;
+my $verbose          = 0;
+
+
+###############################################################################
+Getopt::Long::Configure ("ignore_case");
+my $result = GetOptions(
+    "case=s"                  => \$case,
+    "h|help"                  => sub { system "perldoc $0"; exit; },
+    "iencoding=s"             => \$iencoding,
+    "ignorecase!"             => \$ignoreCase,
+    "ilineends=s"             => \$ilineends,
+    "oencoding=s"             => \$oencoding,
+    "olineends=s"             => \$olineends,
+    "q!"                      => \$quiet,
+    "tick=i"                  => \$tickInterval,
+    "unicode!"                => sub { $iencoding = "utf8"; },
+    "v+"                      => \$verbose,
+    "version"                 => sub { showLicense(); exit; }
+    );
+
+($result) || die "Bad options.\n";
+
+
+###############################################################################
+# Set implied options, validate option values...
+#
+my $file = shift;
+if ($file) {
+    (-f $file) || die "Can't find input file '$file'.\n";
+}
+else {
+    $file = "-";
+}
+my $fh;
+open($fh, "<$file") || die "Unable to open '$file'.\n";
+
+if ($iencoding ne "") {
+    binmode($fh, ":$iencoding");
+}
+if ($oencoding ne "") {
+    print "";
+    binmode(STDOUT, ":$oencoding");
+}
+
+$ilineends = uc(substr($ilineends."U",0,1));
+if    ($ilineends eq "M") { $/ = chr(13); }
+elsif ($ilineends eq "D") { $/ = chr(13).chr(10); }
+else { }
+
+$olineends = uc(substr($olineends."U",0,1));
+if    ($olineends eq "M") { $\ = chr(13); }
+elsif ($olineends eq "D") { $\ = chr(13).chr(10); }
+else { }
+
+$case = uc($case);
+($case =~ m/^[ULWSR]$/) ||
+    die "Unknown value '$case' for -case option, must be [ULWSR].\n";
+
+
+###############################################################################
+# Main
+#
+my $recnum = 0;
+my $lastToken = ""; # For sentence that breaks at record boundary.
+
+while (my $rec = <$fh>) {
+    $recnum++;
+    if ($tickInterval>0 && $recnum % $tickInterval == 0) {
+        warn "At record $recnum.\n";
+    }
+    if ($case eq "U") {
+        print uc($rec);
+    }
+    elsif ($case eq "L") {
+        print lc($rec);
+    }
+    elsif ($case eq "R") {
+        print uc(substr($rec,0,1)) .
+            (length($rec)>1) ? lc(substr($rec,1)):"";
+    }
+    elsif ($case eq "W") {
+        my @tokens = split(/(\s+)/, $rec);
+        my $buf = "";
+        for my $t (@tokens) {
+            $buf .= uc(substr($t,0,1));
+            if (length($t) > 1) {
+                $buf .= lc(substr($t,1));
+            }
+        }
+
+        print $buf;
+    }
+    elsif ($case eq "S") { # Imperfect
+        my @tokens = split(/([.?!]\"?\'?\s+)/, $rec);
+        my $buf = "";
+        for my $t (@tokens) {
+            if ($lastToken eq "" ||
+                $lastToken =~ m/([.?!]\"?\'?\s+)/) {
+               $buf .= uc(substr($t,0,1));
+            }
+            else {
+               $buf .= substr($t,0,1);
+            }
+            if (length($t) > 1) {
+                $buf .= lc(substr($t,1));
+            }
+            $lastToken = $t;
+        }
+        print $buf;
+    }
+    else {
+       die "Unknown -case value '$case'.\n";
+    }
+} # EOF
+
+($quiet) || warn "Done, $recnum records processed.\n";
+
+
+
+###############################################################################
+###############################################################################
+###############################################################################
+#
+
+=pod
+
+=head1 Usage
+
+changeCase [options] file
+
+Force the input to one or another patterns of upper- and lower-case.
+Should support Unicode just fine (uses Perl lc() and uc()).
+
+
+
+=head1 Options
+
+(prefix 'no' to negate where applicable)
+
+=over
+
+=item * B<--case> I<type>
+
+Force to one of [ULWRS]:
+all Upper, all Lower, Words upper,
+Records upper, or Sentences upper (default U). 'Sentence' is approximate.
+
+=item * B<--iencoding> I<t>
+
+Charset to use for input.
+
+=item * B<--ignorecase> I<t>
+
+Disregard upper/lower case distinctions.
+
+=item * B<--ilineends> I<t>
+
+Assume Unix, Dos, or Mac line-breaks for input.
+
+=item * B<--oencoding> I<t>
+
+Charset to use for output.
+
+=item * B<--olineends> I<t>
+
+Write Unix, Dos, or Mac line-breaks for output.
+
+=item * B<--quiet> OR B<-q>
+Suppress most messages.
+
+=item * B<--tick> I<n>
+
+Print a message after every n input records
+(0 to turn off).
+
+=item * B<--unicode>
+
+Assume input is utf-8.
+
+=item * B<--verbose> OR B<-v>
+Add more messages (repeatable).
+
+=item * B<--version>
+
+Show version/license info and exit.
+
+=back
+
+
+=head1 Known Bugs/Limitations
+
+Doesn't know anything about Unicode titleCase.
+
+
+=head1 Related commands
+
+Mine: C<upcase>, C<downcase>. *nix: C<tr>, C<iconv>.
+
+
+
+=head1 Ownership
+
+This work by Steven J. DeRose is licensed under a Creative Commons
+Attribution-Share Alike 3.0 Unported License. For further information on
+this license, see L<http://creativecommons.org/licenses/by-sa/3.0/>.
+
+For the most recent version, see L<http://www.derose.net/steve/utilities/>.
+
+=cut

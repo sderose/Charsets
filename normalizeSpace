@@ -1,0 +1,340 @@
+#!/usr/bin/perl -w
+#
+# normalizeSpace: Normalize whitespace in the input (not including CR/LF)
+#
+# 2007-10-??: Written by Steven J. DeRose.
+# 2012-09-07: bash-->Perl. Unicode support.
+#     Add --control, --dash, --privateUse, --quote, --space.
+# 2015-06-10: Get rid of \p{} in regexes; use actual Unicode char lists.
+#
+# To do:
+#
+use strict;
+use Getopt::Long;
+use Encode;
+
+our $VERSION_DATE = "2015-06-10";
+
+# Pre-compile regexes, esp. for Unicode phenomena
+#
+my $controlToKillString = "\x00-\x1F\x80-\x9F";
+my $controlToKillExpr = qr/([$controlToKillString])/;
+
+my $dashToKillString = "" .
+    "\x{00AD}" .    # "SOFT HYPHEN"
+    "\x{2027}" .    # "HYPHENATION POINT"
+    "";
+my $dashToKillExpr = qr/([$dashToKillString])/;
+
+my $privateToKillString =
+    "\x{E000}-\x{F8FF}\x{F0000}-\x{FFFFD}\x{100000}-\x{10FFFD}";
+my $privateToKillExpr = qr/([$privateToKillString])/;
+
+my $dashString = "" .
+    "\x{002D}" .    # "HYPHEN-MINUS"        ### MUST BE FIRST FOR REGEX
+    "\x{058A}" .    # "ARMENIAN HYPHEN"
+    "\x{1806}" .    # "MONGOLIAN TODO SOFT HYPHEN"
+    "\x{1B60}" .    # "BALINESE PAMENENG (line-breaking hyphen)"
+    "\x{2010}" .    # "HYPHEN"
+    "\x{2011}" .    # "NON-BREAKING HYPHEN"
+    "\x{2012}" .    # "FIGURE DASH"
+    "\x{2013}" .    # "EN DASH"
+    ### NOT THIS ONE! "\x{2014}" .    # "EM DASH"
+    "\x{2043}" .    # "HYPHEN BULLET"
+    "\x{2053}" .    # "SWUNG DASH"
+    # "\x{21E0}" .    # "LEFTWARDS DASHED ARROW"
+    # "\x{21E1}" .    # "UPWARDS DASHED ARROW"
+    # "\x{21E2}" .    # "RIGHTWARDS DASHED ARROW"
+    # "\x{21E3}" .    # "DOWNWARDS DASHED ARROW"
+    "\x{229D}" .    # "CIRCLED DASH"
+    "\x{2448}" .    # "OCR DASH"
+    # "\x{2504}" .    # "BOX DRAWINGS LIGHT TRIPLE DASH HORIZONTAL"
+    # "\x{2505}" .    # "BOX DRAWINGS HEAVY TRIPLE DASH HORIZONTAL"
+    # "\x{2508}" .    # "BOX DRAWINGS LIGHT QUADRUPLE DASH HORIZONTAL"
+    # "\x{2509}" .    # "BOX DRAWINGS HEAVY QUADRUPLE DASH HORIZONTAL"
+    # "\x{254C}" .    # "BOX DRAWINGS LIGHT DOUBLE DASH HORIZONTAL"
+    # "\x{254D}" .    # "BOX DRAWINGS HEAVY DOUBLE DASH HORIZONTAL"
+    "\x{2E17}" .    # "DOUBLE OBLIQUE HYPHEN"
+    "\x{2E1A}" .    # "HYPHEN WITH DIAERESIS"
+    "\x{301C}" .    # "WAVE DASH"
+    "\x{3030}" .    # "WAVY DASH"
+    "\x{30A0}" .    # "KATAKANA-HIRAGANA DOUBLE HYPHEN"
+    "\x{FE49}" .    # "DASHED OVERLINE"
+    "\x{FE4D}" .    # "DASHED LOW LINE"
+    "\x{FE58}" .    # "SMALL EM DASH"
+    "\x{FE63}" .    # "SMALL HYPHEN-MINUS"
+    "\x{FF0D}" .    # "FULLWIDTH HYPHEN-MINUS"
+    "";
+my $dashExpr = qr/([$dashString])/;
+
+my $spaceToKillString = "" .
+    "\x{2009}" .    # THIN SPACE
+    "\x{200A}" .    # HAIR SPACE
+    "\x{200B}" .    # ZERO WIDTH SPACE
+    "\x{202F}" .    # NARROW NO-BREAK SPACE
+    "";
+my $spaceToKillExpr = qr/([$spaceToKillString])/;
+
+my $spaceString = "" .
+    "\x{00A0}" .    # NO-BREAK SPACE
+    "\x{1680}" .    # OGHAM SPACE MARK
+    "\x{2000}" .    # EN QUAD
+    "\x{2001}" .    # EM QUAD
+    "\x{2002}" .    # EN SPACE
+    "\x{2003}" .    # EM SPACE
+    "\x{2004}" .    # THREE-PER-EM SPACE
+    "\x{2005}" .    # FOUR-PER-EM SPACE
+    "\x{2006}" .    # SIX-PER-EM SPACE
+    "\x{2007}" .    # FIGURE SPACE
+    "\x{2008}" .    # PUNCTUATION SPACE
+    "\x{205F}" .    # MEDIUM MATHEMATICAL SPACE
+    #"\x{2420}" .    # SYMBOL FOR SPACE
+    "\x{3000}" .    # IDEOGRAPHIC SPACE
+    "\x{303F}" .    # IDEOGRAPHIC HALF FILL SPACE
+    "";
+my $spaceExpr = qr/([$spaceString])/;
+
+my $quoteString = "'\"";   ### FIX
+
+
+###############################################################################
+# Options
+#
+my $control       = 0;
+my $dash          = 0;
+my $iencoding     = "utf8";
+my $ilineends     = "U";
+my $privateUse    = 0;
+my $quiet         = 0;
+my $quote         = 0;
+my $space         = 1;
+my $verbose       = 0;
+
+my %getoptHash = (
+    "control!"                => \$control,
+    "dash!"                   => \$dash,
+    "h|help"                  => sub { system "perldoc $0"; exit; },
+    "iencoding=s"             => \$iencoding,
+    "ilineends=s"             => \$ilineends,
+    "listEncodings"    => sub {
+        warn "\nEncodings available:\n";
+        for my $k (Encode->encodings(":all")) {
+            warn "    $k\n";
+        }
+        exit;
+    },
+    "privateUse!"             => \$privateUse,
+    "quiet|q!"                => \$quiet,
+    "quote!"                  => \$quote,
+    "space!"                  => \$space,
+    "unicode!"                => sub { $iencoding = "utf8"; },
+    "v+"                      => \$verbose,
+    "version"                 => sub {
+        die "Version of $VERSION_DATE, by Steven J. DeRose.\n";
+    },
+    );
+Getopt::Long::Configure ("ignore_case");
+GetOptions(%getoptHash) || die "Bad options.\n";
+
+$ilineends = uc(substr($ilineends."U",0,1));
+if    ($ilineends eq "M") { $/ = chr(13); }
+elsif ($ilineends eq "D") { $/ = chr(13).chr(10); }
+else { }
+
+if ($iencoding) {
+    print "";
+    warn "\n";
+    binmode(STDOUT, ":encoding($iencoding)");
+    binmode(STDERR, ":encoding($iencoding)");
+}
+
+
+###############################################################################
+###############################################################################
+# Main
+#
+if ($verbose) {
+    warn("Chars for control: " . $controlToKillString . "\n");
+    warn("Chars for private: " . $privateToKillString . "\n");
+    warn("Chars for dash:    " . $dashString . "\n");
+    warn("Chars for space:   " . $spaceString . "\n");
+    warn("Chars for quote:   " . $quoteString . "\n");
+}
+
+if (scalar(@ARGV)<=0) {
+    push @ARGV, "-";
+    if (-t STDIN && !$quiet) { warn "Waiting on STDIN...\n"; }
+}
+while (my $file = shift) {
+    open(my $fh, "<$file") || die "Failed to open input file '$file'.\n";
+    if ($iencoding) {
+        binmode($fh, ":encoding($iencoding)");
+        print "";
+        binmode(STDOUT, ":encoding($iencoding)");
+    }
+
+    my $recnum = 0;
+    while (my $rec = <$fh>) {
+        $recnum++;
+        chomp $rec;
+        if ($control) {
+            $rec =~ s/$controlToKillExpr/ /g;
+        }
+        if ($privateUse) {
+            $rec =~ s/$privateToKillExpr/ /g;
+        }
+        if ($dash) {
+            $rec =~ s/$dashToKillExpr//g;             # soft hyphen
+            $rec =~ s/--/\x{2014}/g;                  # make real em dashes
+            $rec =~ s/$dashExpr/-/g;                  # unify rest of dashes
+        }
+        if ($quote) {
+            $rec =~ s/\p{Initial_Punctuation}/"/g;
+            $rec =~ s/\p{Final_Punctuation}/"/g;
+        }
+        if ($space) {
+            $rec =~ s/$spaceToKillExpr//g;
+            $rec =~ s/$spaceExpr+/ /g;
+            $rec =~ s/\s+/ /g;
+            $rec =~ s/^ //;
+            $rec =~ s/ $//;
+        }
+        print "$rec\n";
+    }
+    close($fh);
+}
+
+#warn "Done, $recnum records processed.\n";
+
+exit;
+
+
+
+###############################################################################
+###############################################################################
+###############################################################################
+#
+
+=pod
+
+=head1 Usage
+
+normalizeSpace [options] file
+
+Reduce runs of whitespace to a single space, and drop leading and trailing
+whitespace. Optionally, also normalize quotes, dashes, controls, etc.
+
+If you specify I<--iencoding utf8>, all Unicode "Separator" characters
+count as spaces. These include regular space, TAB, CR, LF,
+non-breaking space, en, em, thin, and other width spaces (U+20xx), etc.
+
+
+
+=head1 Options
+
+(prefix 'no' to negate where applicable)
+
+=over
+
+=item * B<--control>
+
+Turn each control character (U+0000 to U+001F and U+0080 to U+009F) to
+a space. This happens before I<--space>.
+
+B<Note>: If the "upper" control
+characters are used for graphical characters, as in the Windows "CP1252"
+character set (but not Unicode or most other encodings),
+this option will still turn them to spaces.
+If you have this problem, you can turn off I<--control>,
+translate your data out of CP1252 (e.g., with C<iconv>),
+or specify I<--iencoding cp1252>.
+
+=item * B<--dash>
+
+Turn all dash character sequences to a single hyphen, except for
+soft hyphens (U+00AD) and hyphenation points (U+2027) which are deleted,
+em (clause) dashes (U+2014) which remain;
+and 2 hyphens in a row, which are changed to em dash.
+
+=item * B<--iencoding> I<e>
+
+Specify character encoding for input.
+
+=item * B<--ilineends> I<t>
+
+Assume Unix, Dos, or Mac line-breaks for input.
+
+=item * B<--listEncodings>
+
+Show all available character encodings, then exit.
+
+=item * B<--privateUse>
+
+Turn all Unicode private-use characters to regular spaces.
+Namely: [\x{E000}-\x{F8FF}\x{F0000}-\x{FFFFD}\x{100000}-\x{10FFFD}].
+
+=item * B<--quiet> or B<-q>
+
+Fewer messages.
+
+=item * B<--quote>
+
+Turn each Unicode initial (open) or final (close) quotation mark to '"'.
+Apostrophe and backquote are not changed.
+
+=item * B<--space>
+
+Turn each run of one or more Unicode Separator characters to a single space,
+except for the following, which are deleted because they are
+too narrow to make a visual space:
+    U+2009     THIN SPACE
+    U+200A     HAIR SPACE
+    U+200B     ZERO WIDTH SPACE
+    U+202F     NARROW NO-BREAK SPACE
+
+In addition, delete a leading and/or trailing space that remains after that.
+
+I<--space> is the default behavior; use I<--nospace> to turn it off.
+
+=item * B<--unicode>
+
+Synonym for I<--iencoding utf8>.
+
+=item * B<--verbose> or B<-v>
+
+Add more messages (repeatable).
+
+=item * B<--version>
+
+Show version info and exit.
+
+=back
+
+
+
+=head1 Known Bugs and Limitations
+
+Regex specials like \\p{Dash_Punctuation}, \\p{Initial_Punctuation}, and
+\\p{Final_Punctuation} do not seem to work. Have switched to actual Unicode
+character lists. That also seems to have problems. But it should still work
+for normal \\s spaces.
+
+
+
+=head1 Related commands
+
+The C<Tokenizer.pm> library provides more extensive normalization capabilities.
+
+C<nukeNonXmlChars> does some similar cleanups.
+
+
+
+=head1 Ownership
+
+This work by Steven J. DeRose is licensed under a Creative Commons
+Attribution-Share Alike 3.0 Unported License. For further information on
+this license, see L<http://creativecommons.org/licenses/by-sa/3.0/>.
+
+For the most recent version, see L<http://www.derose.net/steve/utilities/>.
+
+=cut

@@ -1,0 +1,244 @@
+#!/usr/bin/perl -w
+#
+# getCharsByScript
+#
+# 2013-01-15: Written by Steven J. DeRose.
+#
+# To do:
+#     Option to treat script as contiguous even if unknowns intervene?
+#     Save the long stretch of unknowns:
+#         From="U+02fa1e" To="U+0e0000" N="722403"
+#     File unknowns under block name (e.g. for math)
+#     Option to display block name containing each range (ever >1?)
+#     Extend to do by block, by class (LC_LETTER, etc),....
+#
+use strict;
+use Getopt::Long;
+use Encode;
+use Unicode::UCD 'charscript';    # Unicode property access
+use Unicode::UCD 'charblock';     # Unicode property access
+
+our $VERSION_DATE = "2013-01-15";
+
+# General options
+#
+my $color           = ($ENV{"USE_COLOR"} && -t STDERR) ? 1:0;
+my $max             = 0x10FFFF;
+my $min             = 0;
+my $nil             = 0;
+my $quiet           = 0;
+my $script          = "";
+my $verbose         = 0;
+
+
+###############################################################################
+# Process options
+#
+my %getoptHash = (
+    "color!"               => \$color,
+    "help"                 => sub { system "perldoc $0"; exit; },
+    "max=o"                => \$max,
+    "min=o"                => \$min,
+    "nil!"                 => \$nil,
+    "q|quiet!"             => \$quiet,
+    "script=s"             => \$script,
+    "v|verbose+"           => \$verbose,
+    "version"              => sub {
+        die "Version of $VERSION_DATE, by Steven J. DeRose.";
+    },
+    );
+
+Getopt::Long::Configure ("ignore_case");
+GetOptions(%getoptHash) || die("Bad options.");
+
+
+###############################################################################
+###############################################################################
+# Main
+#
+no warnings "utf8";
+
+my %byScript       = (); # Who's from each Unicode Script?
+my %byBlock        = (); # Who's from each Unicode Block?
+my $nonUnicode     = 0;
+my $badScript      = 0;
+my $unkScript      = 0;
+my $nRanges        = 0;
+my $maxRangeSize   = 0;
+my %rangesByScript = ();
+my %charsByScript  = ();
+
+print "<Xsv>\n<Head Script=\"\" From=\"\" To=\"\" N=\"\">\n";
+
+# Gather the raw data
+#
+my $lastScript = "";
+my $curScript = "";
+my $start = -1;
+my $run = 0;
+for (my $i=$min; $i<=$max; $i++) {
+    my $c = chr($i);
+    if (!defined $c) {
+        $nonUnicode++;
+        next;
+    }
+
+    my $curScript = charscript(sprintf("U+%04x", $i));
+    if (!$curScript) {
+        $badScript++;
+        $curScript = "???";
+    }
+    elsif ($curScript eq "Unknown") {
+        $unkScript++;
+    }
+
+    if ($curScript eq $lastScript) {
+        $run++;
+    }
+    else {
+        $nRanges++;
+        my $rangeSize = $i-$start;
+        $rangesByScript{$lastScript}++;
+        $charsByScript{$lastScript} += $rangeSize;
+
+        my $printIt = 1;
+        if ($lastScript eq "") { $printIt = 0; }
+        if ($lastScript eq "Unknown" && !$nil) { $printIt = 0; }
+        if ($lastScript eq "???"     && !$nil) { $printIt = 0; }
+        if ($script && $lastScript !~ m/$script/i) { $printIt = 0; }
+        if ($printIt) {
+            print sprintf(
+                "<Rec Script=%-24s " .
+                "From=\"U+%06x\" To=\"U+%06x\" N=\"%5d\" />\n",
+                '"'.$lastScript.'"', $start, $i-1, $rangeSize);
+            if ($rangeSize > $maxRangeSize) { $maxRangeSize = $rangeSize; }
+        }
+
+        $start = $i;
+        $run = 1;
+        $lastScript = $curScript;
+    }
+} # for
+
+print "</Head>\n</Xsv>\n";
+
+msgLine("Summary");
+msgLine("Total code points checked", $max-$min+1);
+msgLine("Non-Unicode characters",    $nonUnicode);
+msgLine("Chars in no script",        $badScript);
+msgLine("Chars in unknown script",   $unkScript);
+msgLine("Number of ranges",          $nRanges);
+msgLine("Longest range",             $maxRangeSize);
+msgLine("Ranges per script");
+msgLine("    Script                NRanges   NChars");
+for my $s (sort keys %rangesByScript) {
+    warn sprintf("    %-24s %4d   %6d\n",
+                 $s, $rangesByScript{$s}, $charsByScript{$s});
+}
+
+exit;
+
+
+###############################################################################
+###############################################################################
+#
+sub msgLine {
+    my ($label, $num) = @_;
+    if (not defined $num) {
+        warn "\n$label:\n";
+    }
+    else {
+        warn sprintf("%-30s  %8d\n", $label, $num);
+    }
+}
+
+
+
+###############################################################################
+###############################################################################
+###############################################################################
+#
+
+=pod
+
+=head1 Usage
+
+getCharsByScript
+
+Run through a range of Unicode code points,
+and gather them into groups by script.
+Then provides a list of the range(s) covered by each script, in XSV (qv).
+See I<--script> to select only a certain script(s).
+
+Not all legit characters are in a script -- consider math symbols.
+
+B<Note>: There's not much after U+2FA1D:
+
+    Script="Han"        From="U+02f800" To="U+02fa1d" N="  542"
+    Script="???"        From="U+02fa1e" To="U+0e0000" N="722403"
+    Script="Common"     From="U+0e0001" To="U+0e0001" N="    1"
+    Script="???"        From="U+0e0002" To="U+0e001f" N="   30"
+    Script="Common"     From="U+0e0020" To="U+0e007f" N="   96"
+    Script="???"        From="U+0e0080" To="U+0e00ff" N="  128"
+    Script="Inherited"  From="U+0e0100" To="U+0e01ef" N="  240"
+
+You can C<sort> the output naively to get each script's ranges together.
+
+
+
+=head1 Options
+
+=over
+
+=item * B<--max> I<n>
+
+End with code point I<n> (can be decimal, octal, or hex).
+
+=item * B<--min> I<n>
+
+Start with code point I<n> (can be decimal, octal, or hex).
+
+=item * B<--nil>
+
+Include entries for characters in I<no> script.
+
+=item * B<--quiet> OR B<-q>
+Suppress most messages.
+
+=item * B<--script> I<regex>
+
+Only report the ranges for scripts that match I<regex>
+(ignoring case).
+It's a regex mainly so you can avoid spelling details....
+
+=item * B<--verbose> OR B<-v>
+Add more detailed messages (repeatable).
+
+=item * B<--version>
+
+Show version information and exit.
+
+=back
+
+
+
+=head1 Related commands
+
+
+
+=head1 Known bugs and limitations
+
+
+
+=head1 Ownership
+
+This script was formerly known as 'nonascii'.
+
+This work by Steven J. DeRose is licensed under a Creative Commons
+Attribution-Share Alike 3.0 Unported License. For further information on
+this license, see L<http://creativecommons.org/licenses/by-sa/3.0/>.
+
+For the most recent version, see L<http://www.derose.net/steve/utilities/>.
+
+=cut
+

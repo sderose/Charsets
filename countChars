@@ -1,0 +1,1382 @@
+#!/usr/bin/env perl -w
+#
+# countChars: Find and report certain characters in a file.
+#
+# Written by Steven J. DeRose, 2006-04-27, as 'nonascii'.
+# 2007-09-xx sjd: fix table reporting bug.
+# 2008-04-24 sjd: Fix for BSD.
+# 2008-05-13 sjd: Report total % found.
+# 2009-05-05 sjd: Fix % reporting.
+# 2009-08-05 sjd: Add --g1names, --cp1252, --cpmac mnemonics, --unicode.
+# 2010-03-23 sjd: Add --tickInterval, perldoc. Bug w/ html entities.
+#     Clean up logic. Support U'xxxx, Javascript, and CSS. Add --all.
+#     Report character counts by escape type. Nicer names in report.
+# 2011-06-30 sjd: Start integrating HTML::Entities and TabularFormats.
+#     Refactor a little. Catch literal chars, duh.
+# 2011-07-14 sjd: Add --rank. Start merging countChars features.
+#     Rename to countChars.
+# 2011-08-03 sjd:  Implement --iencoding, --oencoding, --olineends.
+#     Suppress invalid utf8 warnings, add --fixBadUTF8 option. Localize $c.
+#     Rename --minCode and --maxCode, in favor of --ascii. Drop --cpmac.
+#     Make --cp1252 force --iencoding.
+# 2011-08-04 sjd:  --justCount -> --instances. Add --literals. Fix --ents.
+#     Fix --fcol/--lcol to --columns x-y. Add %byScript, %byBlock. Fix \f, \v.
+# 2012-03-07 sjd: Add --color.
+# 2012-07-02 sjd: Redo options for TF.
+# 2012-09-14 sjd: Fix so doesn't default to counting NO fields. Report speed.
+#     Add $expandingAnything, and save subr call if not in effect. Ditch --ascii.
+# 2012-09-19 sjd: Report % for representation form, Script, and Block.
+#     Profile. Most time spend in Unicode::UCD::_search, so made --ustats option.
+# 2012-11-08 sjd: Check chars>127 for utf8 and count, display both ways?
+# 2012-11-30 sjd: Look up unicode scripts/blocks only once per code point.
+# 2012-12-13 sjd: Heading before each Unicode block in alpha list. Add U+XXXX.
+#     More work on handling invalid utf8.
+# 2013-01-14 sjd: Colorize headings. Sort --ustats output. Use eval(decode).
+#     Make STDIN work.
+# 2014-09-01ff: Only issue 'waiting' msg if -t STDIN. --. Latin1 totals. TF optional.
+#     Add -r option to deal with OANC-type files. Fix heading before new U. block.
+#     Add --strip, --stripIgnoreCase.
+# 2018-08-06: Add --useBinmode.
+#
+# To do:
+#     Identify HTML named entities
+#     Profile
+#     Option to insert literal (or entity or \x) in output chart.
+#     Catch and complain about undetected UTF8, unicode coding errors (done?).
+#     Colorizing headings isn't working right.
+#     Color hyph/space/dash/quote green; non-word-chars outside ascii
+#     --first appears to be broken.
+#     --noascii appears to be broken.
+#     Lose local escaping and entities tables.
+#     Support colorizing in --instances reporting.
+#     Trap SIGINT and report partial results.
+#     Offer commentary on how far off from typical language norms.
+#     Port to Python and use powerWalk.py (esp. for --exclude option).
+#
+use strict;
+use Getopt::Long;
+use Encode;
+use charnames ':full';
+use Unicode::UCD 'charscript';    # Unicode property access
+use Unicode::UCD 'charblock';     # Unicode property access
+#use Devel::DProf; # add '-d' above, view results with dprofpp.
+
+use sjdUtils;
+use alogging;
+
+our $VERSION_DATE = "2014-11-12";
+
+my $badUTFsubstitute = "?";       # See -fixBadUTF8 option
+
+# Kinds of representations to catch
+#
+my $css             = 0;    # Catch CSS-escaped characters
+my $ents            = 0;    # Catch HTML named entities?
+my $javascript      = 0;    # Catch JavaScript-escaped characters
+my $literals        = 1;    # Detect literal characters?
+my $perl            = 0;    # Catch Perl/C/etc backslashes
+my $upop            = 0;    # Catch Unicode U'xxxx notation
+my $uri             = 0;    # Catch URI %-escapes?
+my $xml             = 0;    # Catch XML numeric character references?
+
+# General options
+#
+my $includeG0         = 1;       # Include ASCII printable chars in report.
+my $blankLines        = 0;       # Put separator lines in table?
+my $color             = ($ENV{"USE_COLOR"} && -t STDERR) ? 1:0;
+my @columns           = ();      # What columns to check?
+my $context           = 30;
+my $controls          = 0;       # Count C0 control chars are odd?
+my $count             = 1;       # Show a table of char frequencies?
+my $cp1252            = 0;       # Windows char set
+my @fieldsToSearch    = ();      # Where to look among fields of a CSV
+my $filesOnly         = 0;       # Don't allow reading stdin
+my $filesWithMatches  = 0;
+my $first             = 0;       # Report just first occurrences of chars
+my $fixBadUTF8        = 0;       # Filter out invalid UTF-8 chars
+my $g1names           = 1;
+my $ignoreCase        = 0;
+my $iencoding         = "utf-8"; # Char set for input?
+my $ilineends         = "U";     #
+my @instances         = ();      # Report char instances with context
+my $maxFreq           = 0;       # Report chars at most this frequent
+my $minFreq           = 0;       # Report chars at least this frequent
+my $oencoding         = "utf8";
+my $olineends         = "U";
+my $quiet             = 0;
+my $rank              = 0;       # Sort reports by descending frequency
+my $recursive         = 0;       # Handle whole input dirs.
+my $showhex           = 0;       # Show context in hex (else just as chars)
+my $showUTF8          = 0;       # Show character's UTF-8 encoding
+my $strip             = "";      # Regex to remove from input before counting.
+my $stripIgnoreCase   = 0;       # Ignore case with --strip.
+my $tickInterval      = 25000;
+my $useBinmode        = 1;       # Use binmode vs. Encode::decode().
+my $ustats            = 1;       # Count chars by Unicode script and block
+my $verbose           = 0;
+my $width             = 3;       # Columns to leave for control-char names
+my $widthReport       = 30;      # Columns in big final report
+
+
+###############################################################################
+# Process options
+#
+my %getoptHash = (
+    # Kinds of character representations to catch
+    "css!"                 => \$css,
+    "ents!"                => \$ents,
+    "javascript!"          => \$javascript,
+    "literals!"            => \$literals,
+    "perl!"                => \$perl,
+    "upop!"                => \$upop,
+    "xml!"                 => \$xml,
+
+    # General options
+    "includeG0!"           => \$includeG0,
+    "all!"                 => sub {
+        $css=$javascript=$xml=$count=$controls=$uri=$upop=
+            $literals=$ents = 1;
+    },
+    "blank!"               => \$blankLines,
+    "color!"               => \$color,
+    "columns=s"            => \@columns,
+    "context=i"            => \$context,
+    "controls!"            => \$controls,
+    "count!"               => \$count,
+    "cp1252"               => sub {
+        $cp1252 = 1; $iencoding = "cp1252";
+    },
+    "fieldsToSearch=i"     => \@fieldsToSearch,
+    "first!"               => \$first,
+    "fixBadUTF8!"          => \$fixBadUTF8,
+    "g1names!"             => \$g1names,
+    "h|help|?"             => sub { system "perldoc $0"; exit; },
+    "i|ignoreCase!"        => \$ignoreCase,
+    "iencoding=s"          => \$iencoding,
+    "ilineends=s"          => \$ilineends,
+    "instances=s"          => \@instances,
+    "l|files-with-matches" => \$filesWithMatches,
+    "listEncodings"    => sub {
+        warn "\nEncodings available:\n";
+        my $last = ""; my $buf = "";
+        for my $k (Encode->encodings(":all")) {
+            my $cur = substr($k,0,2);
+            if ($cur ne $last) {
+                warn "$buf\n";
+                $last = $cur; $buf = "";
+            }
+            $buf .= "$k ";
+        }
+        warn "$buf\n";
+        exit;
+    },
+    "maxFreq=i"            => \$maxFreq,
+    "minFreq=i"            => \$minFreq,
+    "oencoding=s"          => \$oencoding,
+    "olineends=s"          => \$olineends,
+    "q|quiet!"             => \$quiet,
+    "rank!"                => \$rank,
+    "r|recursive!"         => \$recursive,
+    "showhex|hex!"         => \$showhex,
+    "showUTF8!"            => \$showUTF8,
+    "strip=s"              => \$strip,
+    "stripIgnoreCase|sic!" => \$stripIgnoreCase,
+    "tickInterval=i"       => \$tickInterval,
+    "unicode!"             => sub { $iencoding = "utf8"; },
+    "uri!"                 => \$uri,
+    "useBinmode!"          => \$useBinmode,
+    "ustats!"              => \$ustats,
+    "v|verbose+"           => \$verbose,
+    "version"              => sub {
+        die "Version of $VERSION_DATE, by Steven J. DeRose.";
+    },
+    );
+
+# Set up TabularFormats. If successful, add all of its options to getOptionsHash.
+# It makes getOptions() store them via $tfmt->setOption().
+#
+my $TFloaded = 0;
+my $tfmt;
+if (try_module("TabularFormats")) {
+    $TFloaded = 1;
+    ($tfmt = new TabularFormats("CSV")) ||
+        dieCleanly("Could not construct TabularFormats instance.");
+    $tfmt->addOptionsToGetoptLongArg(\%getoptHash);
+}
+else {
+    warn "TabularFormats package not installed, so some options are unavailable.\n";
+}
+
+Getopt::Long::Configure ("ignore_case");
+GetOptions(%getoptHash) || die("Bad options.");
+
+sjdUtils::setVerbose($verbose);
+sjdUtils::setColors($color);
+
+
+###############################################################################
+# Validate and default options
+#
+if ($ents) {
+    try_module("TabularFormats") ||
+        die "HTML::Entities package not installed.\n";
+}
+
+my $cred = my $coff = "";
+if ($color) {
+    sjdUtils::setColors(1);
+    $cred = sjdUtils::getColorString("red");
+    $coff = sjdUtils::getColorString("off");
+    alogging::vMsg(1, "color set up");
+}
+
+my $cstrip = "";
+if ($strip) {
+    $cstrip = qr/cstrip/;
+}
+
+my @colStarts = my @colEnds = ();
+for my $cols (@columns) {
+    $cols =~ m/^\s*(\d+)\s*-\s*(\d+)\s*$/;
+    (defined $1 && defined $2) || die
+        "Bad value for -columns option: '$cols'.\n";
+    my $s = $1; my $e = $2;
+    $s = oct($s) if $s =~ m/^0/;
+    $e = oct($e) if $e =~ m/^0/;
+    ($s>0 && $e>=$s) || die
+        "Bad column range d$s - d$e in -columns $cols\n";
+    push @colStarts, $s;
+    push @colEnds, $e;
+}
+
+my @instStarts = my @instEnds = ();
+for my $inst (@instances) {
+    $inst =~ m/^\s*(\d+)\s*-\s*(\d+)\s*$/;
+    (defined $1 && defined $2) || die
+        "Bad value for -instances option: '$inst'.\n";
+    my $s = $1; my $e = $2;
+    $s = oct($s) if $s =~ m/^0/;
+    $e = oct($e) if $e =~ m/^0/;
+    ($s>0 && $e>=$s) || die
+        "Bad code-point range d$s - d$e in -instances $inst\n";
+    push @instStarts, $s;
+    push @instEnds, $e;
+}
+alogging::vMsg(1,"instStart/instEnds entries: " . scalar(@instStarts));
+
+($fixBadUTF8 && $iencoding ne "utf8") && die
+    "Can't use -fixBadUTF8 without also using -iencoding utf8.\n";
+
+# Default context length depends on output format
+#
+($context >= 0) || die "-context value too small.\n";
+if ($showhex) { $context /= 4; }
+my $pad = (" " x $context);
+
+($minFreq < 0) && die "-minFreq value too small.\n";
+($minFreq > $maxFreq) && die "-minFreq greater than -maxFreq.\n";
+
+if ($cp1252 || $g1names) { $width = 7; }
+
+$ilineends = uc(substr($ilineends."U",0,1));
+if    ($ilineends eq "M") { $/ = chr(13); }
+elsif ($ilineends eq "D") { $/ = chr(13).chr(10); }
+else { }
+
+if ($oencoding) {
+    print "";
+    binmode(STDOUT, ":encoding($oencoding)");
+    binmode(STDERR, ":encoding($oencoding)");
+}
+if ($olineends) {
+    $olineends = uc(substr($olineends."U",0,1));
+    if    ($olineends eq "M") { $\ = chr(13); }
+    elsif ($olineends eq "D") { $\ = chr(13).chr(10); }
+}
+
+
+###############################################################################
+# Create an array of short names for the C0 and C1 control characters
+# PAD, HOP, and SGCI are listed as "XXX" in Unicode (acc. Wikipedia).
+#
+my @C0names = (
+          "NUL", "SOH", "STX", "ETX", "EOT", "ENQ", "ACK", "BEL",
+          "BS ", "HT ", "LF ", "VT ", "FF ", "CR ", "SO ", "SI ",
+          "DLE", "DC1", "DC2", "DC3", "DC4", "NAK", "SYN", "ETB",
+          "CAN", "EM ", "SUB", "ESC", "FS ", "GS ", "RS ", "US ",
+          "SP ");
+
+my @C1names = (
+    "PAD", "HOP",  "BPH", "NBH", "IND", "NEL", "SSA", "ESA", # x80-
+    "HTS", "HTJ",  "VTS", "PLD", "PLU", "RI ", "SS2", "SS3", # x88-
+    "DCS", "PU1",  "PU2", "STS", "CCH", "MW ", "SPA", "EPA", # x90-
+    "SOS", "SGCI", "SCI", "CSI", "ST ", "OSC", "PM ", "APC", # x98-
+    "NBS");
+
+# Microsoft "code page 1252" (HTML entity names where handy)
+#
+my @C1names1252 = (
+    "Euro",   "-?-",    "low9",   "Fhook",      # x80-
+    "low99",  "hellip", "dagger", "ddag",       # x84-
+    "circ",   "permil", "Scaron", "laquo",      # x88-
+    "OElig",  "-?-",    "Zcaron", "-?-",        # x8C-
+    "-?-",    "lquo",   "rquo",   "llquo",      # x90-
+    "rrquo",  "bull",   "ndash",  "mdash",      # x94-
+    "stilde", "trade",  "scaron", "raquo",      # x98-
+    "oelig",  "-?-",    "zcaron", "ydiaer",     # x9C-
+    "NBS");
+
+# Apple code page (pre-OS-X; OS X uses UTF-8) -- UNUSED for now
+#
+my @C1namesMac = (
+    "Auml",   "Aring",  "Ccedil", "Eacute",     # x80-
+    "Ntilde", "Ouml",   "Uuml",   "aacute",     # x84-
+    "agrace", "acarat", "auml",   "atilde",     # x88-
+    "aring",  "ccedil", "eacute", "egrave",     # x8C-
+    "ecarat", "euml",   "iacute", "igrave",     # x90-
+    "icarat", "iuml",   "ntilde", "oacute",     # x94-
+    "ograve", "ocarat", "ouml",   "otilde",     # x98-
+    "uacute", "ugrave", "ucarat", "uuml",       # x9C-
+    "ddag");
+
+my %htmlEntityHash = ();
+setupHtmlEntities();
+
+my @htmlNames = ();
+if ($g1names) { # invert the hash so we can convert num to name
+    for my $name (keys %htmlEntityHash) {
+        $htmlNames[$htmlEntityHash{$name}] = $name;
+    }
+}
+
+my %bsTable = ();
+setupBackslashingTable();
+
+
+###############################################################################
+###############################################################################
+# Keep some stats
+#
+my $fileCount        = 0;     # Total files attempted
+my $badFileCount     = 0;     # Files we couldn't open
+my $rawCharCount     = 0;     # Total chars read (before --strip)
+my $charCount        = 0;     # Total chars processed (after --strip)
+my $badUTFcount      = 0;     # How many invalid UTF8 codes
+my $linenum          = 0;     # Current line of input source
+
+my %byFormat         = ();    # How many of each kind of escape?
+
+my @freqs            = ();    # Table of char frequencies (just first page)
+for (my $i=0; $i<256; $i++) { $freqs[$i] = 0; }
+my %namedEnts        = ();    # Any named entities noticed
+my %unknownNamedEnts = ();    # Any unrecognized named entities noticed
+my $totalNamedEnts   = 0;     # And how many of them
+my @haveSeenChar     = ();    # To support --first.
+
+
+###############################################################################
+# Main
+#
+my $fh;                    # Currently-open input file
+my $rec;                   # Current input line
+my $expandingAnything =
+    ($xml || $ents || $uri || $perl || $javascript ||
+     $css || $controls || $upop);
+vMsg(1, "expandingAnything flag: $expandingAnything.");
+
+no warnings "utf8";
+
+my $startTime = time();
+
+if (!$ARGV[0]) {
+    if (-t STDIN) { vMsg(0, "Waiting for STDIN..."); }
+    push @ARGV, "-";
+}
+
+while (my $path = shift) {
+    doOneItem($path);
+}
+
+report();
+
+exit;
+
+
+###############################################################################
+###############################################################################
+#
+sub doOneItem {
+    my ($path) = @_;
+    if (-d $path) {
+        if (!$recursive) {
+            alogging::vMsg(0, "Skipping directory '$path'.");
+            return;
+        }
+        opendir(my $dh, $path);
+        if (!$dh) {
+            alogging::vMsg(0, "Cannot open directory '$path'.");
+        }
+        else {
+            hMsg(1, "Starting directory '$path'");
+            while (my $child = readdir($dh)) {
+                if ($child eq '.' || $child eq '..') { next; }
+                doOneItem("$path/$child");
+            }
+            closedir($dh);
+        }
+    }
+    else {
+        open(my $fh, "<$path");
+        # --iencoding is handled manually in doOneFile().
+        if (!$fh) {
+            alogging::eMsg(0,"Can't open '$path'.");
+            $badFileCount++;
+            return;
+        }
+        else {
+            hMsg(2, "Starting file '$path'");
+            doOneFile($path, $fh);
+            close($fh);
+        }
+    }
+}
+
+sub doOneFile {
+    my ($path, $fh) = @_;
+    $fileCount++;
+    if ($useBinmode && $iencoding) {
+        alogging::vMsg(1, "*** Set encoding '$iencoding'.");
+        binmode($fh, $iencoding);
+    }
+    while ($rec = <$fh>) {
+        $linenum++;
+        if ($tickInterval>0 && ($linenum % $tickInterval) == 0) {
+            vMsg(0,"At record " . sjdUtils::lpadc($linenum, 10) .
+                            ", character " . sjdUtils::lpadc($charCount, 12));
+        }
+        # Don't use binmode(), because we want to trap errors!
+        if ($iencoding && !$useBinmode) {
+            my $rec2 = eval('Encode::decode($iencoding, $rec)');
+            if ($@) {
+                vMsg(0, sprintf("%s:%6d: bad '%s' detected\n    (%s)",
+                    $path, $linenum, $iencoding, $@));
+                $badUTFcount++;
+                next;
+            }
+            $rec = $rec2
+        }
+
+        alogging::vMsg(3, sprintf("Rec %6d: %s", $linenum, $rec));
+        $rawCharCount += length($rec);
+        if ($strip) {
+            if ($stripIgnoreCase) { $rec =~ s/$cstrip//gi; }
+            else { $rec =~ s/$cstrip//g; }
+        }
+        $charCount += length($rec);
+
+        #hMsg(1,"Line $linenum: ",$rec);
+
+        # For unknown reasons, following line results in
+        # 'utf8 does not map to Unicode' warnings.
+        #
+        # no warnings "utf8"; # no effect either
+        if (defined $tfmt && scalar(@fieldsToSearch)>0) {
+            my @fields = @{$tfmt->parseRecord($rec)};
+            for my $i (@fieldsToSearch) {
+                my $f = $fields[$i];
+                my @fchars = split(//, $f);
+                for (my $theCol=0; $theCol<length($f); $theCol++) {
+                    my $c = $fchars[1];
+                    if ($expandingAnything) {
+                        tryOtherForms($c,$theCol,$f,\@fchars,$path);
+                    }
+                    else {
+                        checkAndScream($c,"Literal character",$theCol,$path);
+                    }
+                }
+            } # for
+        }
+        elsif (scalar(@colStarts)) {
+            my @fchars = split(//, $rec);
+            my $lastCol = length($rec);
+            for (my $i=0; $i<scalar(@colStarts); $i++) {
+                for (my $theCol=$colStarts[$i]-1;
+                     $theCol<$colEnds[$i]; $theCol++) {
+                    my $c = $fchars[$theCol];
+                    if ($expandingAnything) {
+                        tryOtherForms($c,$theCol,$rec,\@fchars, $path);
+                    }
+                    else {
+                        checkAndScream($c,"Literal character",$theCol,$path);
+                    }
+                }
+            } # $i
+        }
+        else {
+            my @fchars = split(//, $rec);
+            my $lastCol = length($rec);
+            for (my $theCol=0; $theCol<$lastCol; $theCol++) {
+                my $c = $fchars[$theCol];
+                if ($expandingAnything) {
+                    tryOtherForms($c,$theCol,$rec,\@fchars,$path);
+                }
+                else {
+                    checkAndScream($c,"Literal character",$theCol,$path);
+                }
+            } # for
+        }
+    } # while not EOF
+} # doOneFile
+
+
+###############################################################################
+# Uses globals: remainder(r/w)
+#
+sub tryOtherForms {
+    my ($c,                   # Character itself
+        $theCol,              # What column we're at
+        $context,             # The record or field or whatever
+        $contextCharsRef,     # context as char array (speed!)
+        $path,                # Which file we're on
+        ) = @_;
+
+    if ($controls) {                                 # CONTROLS
+        my $n = ord($c);
+        if ($n<32 && $n!=9 && $n!=10 && $n!=13) {
+            checkAndScream($c,"Control character",$theCol,$path);
+        }
+    }
+
+    if (($ents || $xml) && $c eq "&") {              # XML
+        my $remainder = substr($context, $theCol);
+        if ($remainder =~ m/&\#(x?)([0-9a-f]+);/i) {            # Numeric
+            my $base = $1;
+            my $val = $2;
+            if (uc($base) eq "X") {
+                checkAndScream(chr(hex($val)), "XML hex entity",$theCol,$path);
+            }
+            else {
+                checkAndScream(chr($val-9),"XML decimal entity",$theCol,$path);
+            }
+            $theCol += length("&\#$base$val;")-1;
+        }
+        elsif ($remainder =~ m/&(\w[-_:.\w\d]+);/) {            # Named
+            my $n = $htmlEntityHash{$1} || 0;
+            if ($n) {
+                if ($ents) {
+                    checkAndScream(chr($n), "XML named entity",$theCol,$path);
+                }
+                $theCol += length("&\#$1;")-1;
+            }
+            else {
+                $unknownNamedEnts{$1}++;
+            }
+            $namedEnts{$1}++;
+            $totalNamedEnts++;
+        }
+    } # XML
+
+    if ($uri && $c eq "%") {                                # URI
+        my $remainder = substr($context, $theCol);
+        if ($remainder =~ m/\%([[:xdigit:]][[:xdigit:]])/) {
+            checkAndScream(chr(hex($1)), "URI escape",$theCol,$path);
+            $theCol += length($1);
+        }
+    }
+
+    if (($perl || $javascript) && $c eq "\\") {             # Backslashes
+        my $remainder = substr($context, $theCol);
+        if ($remainder =~ m/\\d(\d\d\d)/) {                       # Decimal
+            checkAndScream(chr($1), "\\d",$theCol,$path);
+            $theCol += length($1)+1;
+        }
+        elsif ($remainder =~ m/\\x([[:xdigit:]][[:xdigit:]])/) {  # Hex
+            checkAndScream(chr(hex($1)), "\\x",$theCol,$path);
+            $theCol += length($1)+1;
+        }
+        elsif ($remainder =~ m/\\u([[:xdigit:]]{4})/) {           # Unicode
+            checkAndScream(chr(hex($1)), "\\u",$theCol,$path);
+            $theCol += length($1)+1;
+        }
+        else {                                                    # Specials
+            my $c2 = (length($remainder)>1) ? substr($remainder,1,1):undef;
+            if ($c2) {
+                my $n = convertBackslashCode($c2);
+                if ($n) {
+                    checkAndScream(chr($n), "Backslash escape",$theCol,$path);
+                    $theCol += 2;
+                }
+            }
+        }
+    } # perl || javascript
+
+    if ($css && $c eq "\\") {                               # CSS
+        my $remainder = substr($context, $theCol);
+        if ($remainder =~ m/\\([[:xdigit:]]{1,6})/) {
+            checkAndScream(chr(hex($1)), "CSS hex escape",$theCol,$path);
+            $theCol += length($1);
+        }
+    }
+
+    if ($upop && $c eq "U") {                               # U'xxxx
+        my $remainder = substr($context, $theCol);
+        if ($remainder =~ m/U['+]([[:xdigit:]]{4})/) {
+            checkAndScream(chr(hex($1)), "Unicode U'",$theCol,$path);
+            $theCol += length($1)+1;
+        }
+    }
+} # tryOtherForms
+
+
+
+###############################################################################
+# If needed, extract some context and print it. Also record the event.
+#
+sub checkAndScream {
+    my ($c,              # Literal character
+        $whichForm,      # String naming how it was expressed
+        $col,            # Column it occured at (for messages)
+        $path            # What file we're in (for messages)
+        ) = @_;
+
+    # Count the character
+    #
+    my $n = ($ignoreCase) ? ord(lc($c)) : ord($c);
+    if ($n < 0) {
+        eMsg(0, sprintf("Negative char U+%04x found in %s.\n", $n, $path));
+        return;
+    }
+    if ($n > 255) {
+        ($n > 0xFFF0) && return;
+        #vMsg(1, sprintf("Non-Latin-1: U+%04x in %s", $n, $path));
+    }
+    my $cDisp = ($n <= 0) ? sprintf("0x%4x", $n) : chr($n);
+    if (!defined $freqs[$n]) { $freqs[$n] = 0; }
+    if ($freqs[$n] == 0) {
+        if ($first) {
+            my $msg = sprintf(
+                "First instance of U+%04x (d%4d) at line %4d, column %3d.",
+                $n, $n, $linenum, $col);
+            if ($n>31 && $n<128) { $msg .= " [" . $cDisp . "]"; }
+            if ($n>127) { $msg = sjdUtils::colorize('blue', $msg); }
+            print($msg . "\n");
+        }
+    }
+    ($n>=0) || warn("Negative char found in $path.\n");
+    $freqs[$n] = $freqs[$n] + 1;
+    $byFormat{$whichForm}++;
+
+    # See if it's a char we're tracking instances of
+    #
+    if (scalar(@instStarts)==0) {
+        # scream($c,$n,$whichForm,$col, $path);
+    }
+    else {
+        for (my $i=0; $i<scalar(@instStarts); $i++) {
+            if ($n>=$instStarts[$i] && $n<=$instEnds[$i]) {
+                if ($first && $haveSeenChar[$n]) { next; }
+                scream($c,$n,$whichForm,$col, $path);
+                $haveSeenChar[$n] = 1;
+                last;
+            }
+        }
+    }
+} # checkAndScream
+
+sub scream {
+    my ($c, $n, $whichForm, $col, $path) = @_;
+
+    my $tline = $pad . $rec . $pad;
+    my $forms = sprintf("(0%o, d%d, x%X)", $n, $n, $n);
+    my $cname = sjdUtils::colorize("red", charnames::viacode($n) || "?????");
+    print "Character $forms: '$cname'\n    at line $linenum, column $col of $path:\n";
+    if ($showhex) {
+        my $asc = my $hex = "";
+        for (my $c=$col; $c<$col+$context*2+1; $c++) {
+            my $curChar = substr($tline,$c,1);
+            my $curNum = do { no warnings "utf8"; ord($curChar); };
+            $asc .= ascdisplay($curNum,$width);
+            $hex .= hexdisplay($curNum,$width);
+            if ($c == $col + $context) { # hilight the bad char
+                $asc .= "**";
+                $hex .= "**";
+            }
+        }
+        print "$asc\n$hex\n\n";
+    }
+    else {
+        my $buf = substr($tline,$col,2*$context+1);
+        $buf =~ s/\s+$//;
+        print "$buf\n";
+        my $shortpad = (" " x ($context-2));
+        print "$shortpad--^--\n";
+    }
+} # sub scream
+
+
+
+###############################################################################
+###############################################################################
+# Show report
+#
+sub report {
+    if ($filesWithMatches) { return; }
+
+    if (defined $freqs[128] && $freqs[128] > 0 && $iencoding ne "utf8") {
+	    print "*** d128 encountered, consider '--iencoding' option?\n";
+    }
+    if ($totalNamedEnts > 0) {
+        print "$totalNamedEnts named SGML/HTML/XML entities found:\n";
+        for my $k (sort keys %namedEnts) {
+            print sprintf("%8d: %s", $namedEnts{$k}, $k);
+            if (defined $htmlEntityHash{k} && $htmlEntityHash{$k} > 0) {
+                printf "\t (=0%03o, 0d%03d, 0x%02x)",
+                $htmlEntityHash{$k}, $htmlEntityHash{$k}, $htmlEntityHash{$k};
+            }
+            print "\n";
+        }
+    }
+
+    if ($charCount<=0) {
+        print "No characters counted.\n";
+    }
+    elsif ($count) {
+        if (!$quiet) {
+            reportHeading();
+        }
+        if (!$rank) {
+            for (my $i=0; $i < scalar @freqs; $i++) {
+                reportOneChar($i);
+            }
+        }
+        else { # sort by descending frequency
+            my %fHash = ();
+            for (my $i=0; $i < scalar @freqs; $i++) {
+                if (defined $freqs[$i]) { $fHash{$i} = $freqs[$i]; }
+            }
+            for my $ind (sort byRank keys %fHash) {
+                reportOneChar($ind);
+            }
+        }
+        print "\n";
+    } # count && charcount
+
+    print "Invalid encoding sequences found (iencoding '$iencoding'): $badUTFcount\n";
+    printf("    Decoding method: %s\n",
+        ($useBinmode ? "binmode" : "Encode::decode"));
+
+    head("Representation forms seen (for detected/escaped characters):");
+    for my $f (sort keys %byFormat) {
+        percentLine($f, $byFormat{$f}, $charCount);
+    }
+
+    if ($ustats) {
+        my %byScript = (); # How many from each Unicode Script?
+        my %byBlock  = (); # How many from each Unicode Block?
+        for (my $i=0; $i < scalar @freqs; $i++) {
+            next unless (defined $freqs[$i]);
+            $byScript{charscript($i) || "???"} += $freqs[$i];
+            $byBlock{charblock($i) || "???"}   += $freqs[$i];
+        }
+
+        if (1) {
+            my $c0 = my $g0 = my $c1 = my $g1 = 0;
+            for (my $i=0; $i < 255; $i++) {
+                (defined $freqs[$i]) || next;
+                if    ($i <  32) { $c0 += $freqs[$i]; }
+                elsif ($i < 128) { $g0 += $freqs[$i]; }
+                elsif ($i < 160) { $c1 += $freqs[$i]; }
+                else             { $g1 += $freqs[$i]; }
+            }
+            my $ns = $c0-$freqs[9]-$freqs[10]-$freqs[11]-$freqs[12]-$freqs[13];
+            head("One-byte characters by Latin-1 range:");
+            percentLine("C0 controls", $c0, $charCount);
+            percentLine("  non-space", $ns, $charCount);
+            percentLine("G0 graphics", $g0, $charCount);
+            percentLine("C1 controls", $c1, $charCount);
+            if ($c1>0 && !$cp1252) {
+                print "    ***** SHOULD NOT BE HERE *****\n";
+                alogging::eMsg(0,
+                    "Warning: $c1 characters found in range 128-159! Not Unicode!");
+            }
+            percentLine("G1 graphics", $g1, $charCount);
+        }
+
+        if ($rank) {
+            head("Number of characters by Unicode 'Script':");
+            for my $f (sort { -($byScript{$a}<=>$byScript{$b}) || ($a cmp $b); }
+                       keys %byScript) {
+                percentLine($f, $byScript{$f}, $charCount);
+            }
+            head("Number of characters by Unicode 'Block':");
+            for my $f (sort { -($byBlock{$a}<=>$byBlock{$b}) || ($a cmp $b); }
+                       keys %byBlock) {
+                percentLine($f, $byBlock{$f}, $charCount);
+            }
+        }
+        else {
+            head("Number of characters by Unicode 'Script':");
+            for my $f (sort keys %byScript) {
+                percentLine($f, $byScript{$f}, $charCount);
+            }
+            head("Number of characters by Unicode 'Block':");
+            for my $f (sort keys %byBlock) {
+                percentLine($f, $byBlock{$f}, $charCount);
+            }
+        }
+    } # ustats
+
+    if ($badFileCount) {
+        print "\n$badFileCount files failed to open.\n";
+    }
+
+    head("Done, $fileCount files, " .
+        sjdUtils::lpadc($rawCharCount) ." characters read, " .
+        sjdUtils::lpadc($charCount) ." characters processed.");
+    my $elap = (time()-$startTime) || 1;
+    printf("Elapsed time: %s, %5.2f K/sec.\n",
+           sjdUtils::elapsedTime($startTime), $charCount/1024/$elap);
+} # report
+
+sub head {
+    my ($msg) = @_;
+    print "\n" . sjdUtils::colorize("magenta", $msg) . "\n";
+}
+
+sub percentLine {
+    my ($label, $num, $denom) = @_;
+    my $pct = ($denom) ? (100.0*$num/$denom) : 0;
+    printf("  %-40s %10d  %12.7f%%\n", $label, $num, $pct);
+}
+
+sub byRank {
+    if ($freqs[$a] < $freqs[$b]) { return( 1); }
+    if ($freqs[$a] > $freqs[$b]) { return(-1); }
+    return($a cmp $b);
+}
+
+BEGIN {
+    my $last = 0;
+    my $lastBlock = "";
+
+    sub reportHeading {
+        print "\n";
+        my $head = "   Hex   Decimal       Freq     Percent   Character";
+        if ($showUTF8) { $head .= (" " x ($widthReport-2)) . "UTF-8"; }
+        if ($color) {
+            $head = sjdUtils::colorize("magenta", $head);
+        }
+        print "$head\n";
+    }
+
+    sub reportOneChar {
+        my ($i) = @_;
+
+        return unless (defined $freqs[$i] && $freqs[$i] > 0);
+        return if (!$includeG0 && $i>=32 && $i<127);
+        return if ($minFreq && $freqs[$i] < $minFreq);
+        return if ($maxFreq && $freqs[$i] > $maxFreq);
+
+        my $pct = ($freqs[$i] * 100.0) / ($charCount-0.0);
+        my $disp = sprintf(
+            "x%05X d%08d %10d %10.6f%%  %s",
+            $i, $i, $freqs[$i], $pct, ascdisplay($i,$widthReport));
+        if ($showUTF8) {
+            $disp .= " " . sjdUtils::getUTF8($i, "");
+        }
+        if ($color) {
+            if (($i<32) ||
+                ($i>127 && $i<160)) {
+                $disp = sjdUtils::colorize("red", $disp);
+            }
+        }
+
+        # Insert blank line once in a while
+        if (($i % 16) == 0) {
+            ($blankLines) && print "\n";
+        }
+        if (!$rank) {
+            my $newBlock = charblock($i) || "???";
+            if ($newBlock ne $lastBlock) {
+                print sjdUtils::colorize("magenta",
+                    "\n*** New Unicode Block: '$newBlock'") . "\n";
+                reportHeading();
+                $lastBlock = $newBlock;
+            }
+        }
+        if ($color && $i>=128 && $i<=159) {
+            $disp =~ s/\s+$//;
+            $disp = $cred . $disp . " (CP1252: " . getCP1252name($i) . ")" . $coff;
+        }
+        print "$disp\n";
+        $last = $i;
+    }
+} # END
+
+
+###############################################################################
+# Always return $width columns (plus one leading space), so things line up.
+#
+sub ascdisplay {
+    my ($n, $width) = @_;
+    my $rc;
+    if ($n < 33)    { $rc = $C0names[$n]; }           # C0
+    elsif ($n<127)  { $rc = chr($n); }                # G0
+    elsif ($n==127) { $rc = "DEL"; }
+    elsif ($n<160)  {                                 # C1
+	    if ($cp1252)  { $rc = $C1names1252[$n-128]; }
+		else          { $rc = $C1names[$n-128]; }
+    }
+    elsif ($n<256)  {                                 # G1
+	    if ($g1names && defined $htmlNames[$n])
+					  { $rc = $htmlNames[$n]; }
+		else          { $rc = "-?-"; }
+    }
+    else {                                            # On beyond zebra
+	    $rc = charnames::viacode($n);
+        if (!$rc) { $rc = "???"; }
+	    # $rc = "-?-";
+    }
+    my $paddingNeeded = $width - length(" $rc");
+    if ($paddingNeeded < 0) { $paddingNeeded = 0; }
+    return(" $rc" . (" " x $paddingNeeded));
+}
+
+sub hexdisplay {
+    my ($n) = @_;
+    return(sprintf("%".$width."x",$n));
+}
+
+
+###############################################################################
+# We don't currently distinguish the set of backslash codes supported by
+# C vs. Perl vs. whatever.
+#
+# ### Use sjdUtils instead.
+#
+sub setupBackslashingTable {
+    %bsTable = (
+        "\'" => 0x27, # apostrophe
+        "\\" => 0x5c, # backslash
+        "\"" => 0x22, # quote
+        "a" => 0x07,  # bell
+        "b" => 0x08,  # backspace
+        "t" => 0x09,  # tab
+        "n" => 0x0a,  # newline
+        "v" => 0x0b,  # vertical tab
+        "f" => 0x0c,  # formfeed
+        "r" => 0x0d,  # carriage return
+        "e" => 0x1b,  # escape
+        "0" => 0x00,  # null
+        );
+}
+sub convertBackslashCode { # returns the ord, not the character itself.
+    my ($charAfterBS) = @_;
+    my $result = $bsTable{$charAfterBS};
+    if ($result) { return($result); }
+    return(undef);
+}
+
+
+# Make a hash of the standard HTML entity names, mapping each to its code point.
+# Although we don't handle named entities in general, we do catch these.
+# (also could do $s = decode_entities($s);)
+#
+sub setupHtmlEntities {
+    my %e2c = %HTML::Entities::entity2char;
+    for my $entRef (sort keys %HTML::Entities::entity2char) {
+        my $char = $e2c{$entRef};
+        my $name = $entRef;
+        $name =~ s/&//;
+        $name =~ s/;//;
+        $htmlEntityHash{$name} = ord($char);
+    }
+} # setupHtmlEntities
+
+BEGIN {
+    my @cp1252Names = ();
+    $cp1252Names[0x80] = "EURO SIGN";
+    # 0x81 unassigned
+    $cp1252Names[0x82] = "SINGLE LOW-9 QUOTATION MARK";
+    $cp1252Names[0x83] = "LATIN SMALL LETTER F WITH HOOK";
+    $cp1252Names[0x84] = "DOUBLE LOW-9 QUOTATION MARK";
+    $cp1252Names[0x85] = "HORIZONTAL ELLIPSIS";
+    $cp1252Names[0x86] = "DAGGER";
+    $cp1252Names[0x87] = "DOUBLE DAGGER";
+    $cp1252Names[0x88] = "MODIFIER LETTER CIRCUMFLEX ACCENT";
+    $cp1252Names[0x89] = "PER MILLE SIGN";
+    $cp1252Names[0x8A] = "LATIN CAPITAL LETTER S WITH CARON";
+    $cp1252Names[0x8B] = "SINGLE LEFT-POINTING ANGLE QUOTATION MARK";
+    $cp1252Names[0x8C] = "LATIN CAPITAL LIGATURE OE";
+    # 0x8D unassigned
+    $cp1252Names[0x8E] = "LATIN CAPITAL LETTER Z WITH CARON";
+    # 0x8F unassigned
+    # 0x90 unassigned
+    $cp1252Names[0x91] = "LEFT SINGLE QUOTATION MARK";
+    $cp1252Names[0x92] = "RIGHT SINGLE QUOTATION MARK";
+    $cp1252Names[0x93] = "LEFT DOUBLE QUOTATION MARK";
+    $cp1252Names[0x94] = "RIGHT DOUBLE QUOTATION MARK";
+    $cp1252Names[0x95] = "BULLET";
+    $cp1252Names[0x96] = "EN DASH";
+    $cp1252Names[0x97] = "EM DASH";
+    $cp1252Names[0x98] = "SMALL TILDE";
+    $cp1252Names[0x99] = "TRADE MARK SIGN";
+    $cp1252Names[0x9A] = "LATIN SMALL LETTER S WITH CARON";
+    $cp1252Names[0x9B] = "SINGLE RIGHT-POINTING ANGLE QUOTATION MARK";
+    $cp1252Names[0x9C] = "LATIN SMALL LIGATURE OE";
+    # 0x9D unassigned
+    $cp1252Names[0x9E] = "LATIN SMALL LETTER Z WITH CARON";
+    $cp1252Names[0x9F] = "LATIN CAPITAL LETTER Y WITH DIAERESIS";
+
+
+    sub getCP1252name {
+        my ($n) = @_;
+        return($cp1252Names[$n] || "???");
+    }
+} # END
+
+
+
+###############################################################################
+###############################################################################
+###############################################################################
+#
+
+=pod
+
+=head1 Usage
+
+countChars [options] [files]
+
+Finds and reports on what characters occur in I<files> (or STDIN), and
+how often. It can handle many encodings, and many "escaped" representations
+such as \n, &#65;, \uBEEF, etc.
+
+By default (see I<--count>), reports the total number of occurrences of
+all characters, and the number of character instances for
+each Unicode "Script" and "Block". To sort by number of occurrences (rank)
+instead of character code point frequency, use I<--rank>.
+
+B<Note>: Be sure to set the character encoding if applicable,
+using I<--unicode>, I<--cp1252>, or I<--iencoding> (see also I<--listEncodings>).
+If you don't specify an encoding, it will make the best of things,
+which basically means use bytes raw.
+
+For example, to run this over the merged OANC corpus:
+
+    countChars -r -strip '<[^>]+>' written_* >charCounts.txt
+
+By default, this script only detects literal characters (see I<--literals>).
+However, there are options for catching many alternate representations
+(see next section).
+
+Can also report each individual instance of characters in a given range or
+ranges (see I<--instances>).
+
+To restrict processing to certain parts of each record,
+see I<--strip>, I<--columns>, and L<Options for TabularFormats> below).
+Column or field selection requires installation of the C<TabularFormats> module.
+
+
+
+=head1 Options for characters and types of representations to catch
+
+=over
+
+=item * B<--all>
+
+Try to catch characters represented in all of the known forms.
+
+=item * B<--controls>
+
+Catch any control chars except \\n\\r\\t.
+
+=item * B<--css>
+
+Catch CSS \\-escapes.
+
+=item * B<--ents>
+
+Catch HTML named entities.
+
+=item * B<--javascript> or B<--perl>
+
+Catch various \\-escapes as used in many programming and scripting languages.
+
+=item * B<--literals>
+
+Catch literal instances of the character (default).
+
+=item * B<--upop>
+
+Catch Unicode U'xxxx escapes.
+
+=item * B<--uri>
+
+Catch URI %xx-escapes.
+
+=item * B<--xml>
+
+Catch XML C<&#ddd;> and C<&#Xxxxx;> numeric character references.
+This script cannot identify named character references specifically,
+but counts how many there are, at least.
+
+=back
+
+
+
+=head1 Other options
+
+(use '-no...' to negate where applicable)
+
+=over
+
+=item * B<--blank>
+
+With I<--count>, add blank lines for readability (default).
+
+=item * B<--color>
+
+Colorize the output for readability. In particular, color headings
+and the frequency-report lines for control characters.
+Defaults to on if environment variable C<USE_COLOR> is set and
+STDERR is going to a terminal.
+
+=item * B<--cols> I<f-l>
+
+Look only in columns I<f> through I<l> (counting from 1, not 0!).
+Columns can be specified in decimal, octal, or hexadecimal. Repeatable.
+
+=item * B<--context> I<n>
+
+How many chars to show to each side (only makes sense with I<--instances>).
+
+=item * B<--count>
+
+Show a table of how many times each char was found (see also I<--rank>).
+(default: on).
+
+=item * B<--cp1252>
+
+Synonym for I<--iencoding encoding(cp1252)>, and also
+shows mnemonics for MS code page 1252 x80-x9F chars (these code points
+are not assigned to graphical characters in most other character sets).
+
+=item * B<--fields> I<f>
+
+Look only in field I<f> (counting from 1, not 0!) of each line.
+Repeatable. Default: all fields.
+See also L<Options for TabularFormats> below).
+
+=item * B<--files-only>
+
+Only allow file arguments, not stdin.
+
+=item * B<--files-with-matches> OR B<-l>
+
+Just report the filename if any reportable chars were found (see I<--instances>).
+
+=item * B<--first>
+
+Report where the first occurrence of each distinct character (code point)
+appeared (this is good for finding characters you didn't want).
+
+=item * B<fixBadUTF8>
+
+Requires I<--iencoding utf8> (or the synonymous I<--unicode>).
+Makes a pre-pass over every record, to turn any byte sequences that are not
+valid UTF8, into a substitute character (default "?").
+
+=item * B<--g1names>
+
+Show names for G1 characters (xA0-xFF).
+
+=item * B<--hex>
+
+Synonym for I<--showHex>.
+
+=item * B<--iencoding> I<e>
+
+Assume the input data is in character encoding I<e>.
+
+=item * B<--ignoreCase> or B<-i>
+
+Disregard upper/lower case distinctions.
+
+=item * B<--includeG0>
+
+Include ASCII G0 characters (d32 to d127) in detection and reporting (default).
+If you turn this off, only characters outside the G0 range are reported.
+
+=item * B<--ilineends> I<type>
+
+Input data has Unix, Dos, or Mac line-ends.
+
+=item * B<--instances> I<from-to>
+
+Report individual occurrences of characters whose code points are
+at least I<from> and at most I<to> (can be specified
+in decimal, octal, or hex). Repeatable.
+
+=item * B<--listEncodings>
+
+Show all the encodings supported by I<--iencoding>, and exit.
+
+=item * B<--maxFreq> I<n>
+
+Only report for code points that occur <= I<n> times. Default: 0 (all).
+
+=item * B<--minFreq> I<n>
+
+Only report for code points that occur >= I<n> times. Default: 0 (all).
+
+=item * B<--names>
+
+In the report, show the (Unicode) name for each character.
+
+=item * B<--oencoding> I<e>
+
+Specify character encoding for output.
+
+=item * B<--olineends> I<t>
+
+Write Unix, Dos, or Mac line-breaks for output.
+
+=item * B<--perl>
+
+Detect Perl/C/etc backslash-codes (see I<man perlrebackslash>),
+such as \\, \n, \r, \000, \x{FFFF}, \uFFFFF, etc.
+However, \N{unicode-name} is not yet supported.
+(unfinished)
+
+=item * B<--quiet> OR B<-q>
+Suppress most messages, and line-by-line reporting.
+
+=item * B<--rank>
+
+Sort the I<--count> and I<--stats> output by frequency rather than code point.
+
+=item * B<--showHex>
+
+Display context of found chars in hexadecimal rather than literally
+(see I<--instances>).
+
+=item * B<--showUTF8>
+
+In the report, show the UTF-8 encoding for characters.
+
+=item * B<--strip> I<regex>
+
+Before counting, remove all matches of I<regex> from each input record.
+This can be use to remove punctuation, comments, markup, etc.
+Each match is confined to a single line; thus, this is not completely adequate
+for stripping XML markup if tags are broken across lines.
+See also I<--stripIgnoreCase>.
+
+=item * B<--stripIgnoreCase> OR I<sic>
+
+When matching a I<--strip> regex, ignore case. Not to be confused with
+I<--ignoreCase>.
+
+=item * B<--tickInterval> I<n>
+
+Report progress every I<n> records. Default: 2000.
+Expect a few tens of K characters per second.
+
+=item * B<--unicode>
+
+Synonym for I<--iencoding utf8>.  See also I<--useBinmode>.
+
+=item * B<--useBinmode>
+
+When using I<--iencoding>, do the decoding by applying C<binmode>() to the
+file handle, rather than Perl's B<Decode::encode()>. Default.
+
+=item * B<--ustats>
+
+Report the number of characters instances found, that are from
+each specific Unicode "Script" and "Block". Default: on.
+
+=item * B<--verbose> OR B<-v>
+
+Add more detailed messages (repeatable).
+
+=item * B<--version>
+
+Show version information and exit.
+
+=back
+
+
+
+=head2 Options for TabularFormats
+
+By default, whole records are examined. The options of C<TabularFormats.pm>
+can be used to parse a variety of input data (JSON, SEXP, CSV,...)
+into fields, and then examine only certain selected fields (see I<--columns>,
+above).
+
+See C<TabularFormats.pm> for information on its options.
+For CSV-ish files, the most significant options are I<fieldSep>.
+
+
+=head1 Related Files
+
+F<DATA/UnicodeSamples/utf8sampler.txt> -- a sample of UTF-8 with a wide variety
+of blocks represented.
+
+=head1 Related commands
+
+=over
+
+=item * C<dumpx> Nice display of data in whatever bases
+(like I<od> but better).
+
+=item * C<showNumberInBases>
+Convert a number to multiple bases, and to ASCII or utf-8.
+
+=item * C<chr> and C<ord> convert between code point numbers and characters.
+
+=item * C<iconv> Convert text from one encoding to another.
+Also use C<iconv -f utf8 [file]> to check for invalid utf-8.
+
+=item * L<http://people.w3.org/rishida/scripts/uniview/conversion> has a nice
+gadget to convert between many possible representations of unicode.
+
+=item * C<makeUnicodeData> can generate a file in various forms that includes
+examples of all the characters in a given range and their properties.
+
+=item * C<TabularFormats.pm> provides support for the I<--fields> option.
+This is included if the package is available, but only gives a warning otherwise,
+so C<countChars> can continue to run, just without the relevant options.
+
+=back
+
+
+
+=head1 Known bugs and limitations
+
+Produces excessive warnings on invalid utf-8.
+Use I<iconv> first if needed, to detect/fix invalid utf-8 values.
+
+Cannot count characters above U+FF00, for unknown reasons. It should skip them
+safely.
+
+Counts the components of an escape, entity reference, etc. as literal
+characters, too. That should become optional.
+
+Total chars/block fails to print after last block, and resets just too late.
+
+
+=head1 Ownership
+
+This script was formerly known as 'nonascii'.
+
+This work by Steven J. DeRose is licensed under a Creative Commons
+Attribution-Share Alike 3.0 Unported License. For further information on
+this license, see L<http://creativecommons.org/licenses/by-sa/3.0/>.
+
+For the most recent version, see L<http://www.derose.net/steve/utilities/>.
+
+=cut
+

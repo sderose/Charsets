@@ -1,0 +1,154 @@
+Adlam
+Ahom
+Anatolian Hieroglyphs
+Arabic
+Armenian
+Avestan
+Balinese
+Bamum
+Bassa Vah
+Batak
+Bengali
+Bhaiksuki
+Bopomofo
+Brahmi
+Braille (patterns)
+Buginese
+Buhid
+Canadian Syllabics
+Carian
+Caucasian Albanian
+Chakma
+Cham
+Cherokee
+Coptic
+Cypriot
+Cyrillic
+Deseret
+Devanagari
+Duployan (shorthand)
+Egyptian Hieroglyphs
+Elbasan
+Ethiopic
+Georgian
+Glagolitic
+Gothic
+Grantha
+Greek
+Gujarati
+Gurmukhi
+Han
+Hangul
+Hanunóo
+Hatran
+Hebrew
+Hiragana
+Imperial Aramaic
+Inscriptional Pahlavi
+Inscriptional Parthian
+Javanese
+Kaithi
+Kannada
+Katakana
+Kayah Li
+Kharoshthi
+Khmer
+Khojki
+Khudawadi
+Lao
+Latin
+Lepcha
+Limbu
+Linear A
+Linear B
+Lisu
+Lycian
+Lydian
+Mahajani
+Malayalam
+Mandaic
+Manichaean
+Marchen
+Masaram Gondi
+Meetei Mayek
+Mende Kikakui
+Meroitic Cursive
+Meroitic Hieroglyphs
+Miao
+Modi
+Mongolian
+Mro
+Multani
+Myanmar
+N'Ko
+Nabataean
+New Tai Lue
+Newa
+Nushu
+Ogham
+Ol Chiki
+Old Hungarian
+Old Italic
+Old North Arabian
+Old Permic
+Old Persian Cuneiform
+Old South Arabian
+Old Turkic
+Oriya
+Osage
+Osmanya
+Pahawh Hmong
+Palmyrene
+Pau Cin Hau
+Phags-pa
+Phoenician
+Psalter Pahlavi
+Rejang
+Runic
+Samaritan
+Saurashtra
+Sharada
+Shavian
+Siddham
+Sinhala
+Sora Sompeng
+Soyombo
+Sumero-Akkadian Cuneiform
+Sundanese
+Sutton SignWriting
+Syloti Nagri
+Syriac
+Tagalog
+Tagbanwa
+Tai Le
+Tai Tham
+Tai Viet
+Takri
+Tamil
+Tangut
+Telugu
+Thaana
+Thai
+Tibetan
+Tifinagh
+Tirhuta
+Ugaritic
+Vai
+Warang Citi
+Yi
+Zanabazar Square
+***Arrows, Blocks, Box Drawing Forms, and Geometric Shapes
+***Dingbats
+***Emoji: For details, see Emoji Versions
+***Game Symbols
+***General Diacritics
+***General Punctuation
+***General Symbols
+***Kangxi Radicals
+***Mathematical Symbols (Western and Arabic)
+***Miscellaneous Symbols
+***Musical Symbols (Western, Byzantine, and Ancient Greek)
+***Numbers
+***Presentation Forms
+***Technical Symbols
+(and private use areas)

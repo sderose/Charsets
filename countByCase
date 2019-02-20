@@ -1,0 +1,307 @@
+#!/usr/bin/perl -w
+#
+# countByCase
+#
+# 2010-12-19: Written by Steven J. DeRose.
+# 2012-04-10 sjd: Clean up. Add -listEncodings.
+#
+# To do:
+#     Just move into mergeWordLists?
+#
+use strict;
+use Getopt::Long;
+use Encode;
+
+use sjdUtils;
+use alogging;
+
+our $VERSION_DATE = "2012-04-10";
+
+my $csv           = 0;
+my $full          = 0;
+my $iencoding     = "";
+my $ilineends     = "U";
+my $oencoding     = "";
+my $olineends     = "U";
+my $quiet         = 0;
+my $verbose       = 0;
+
+
+###############################################################################
+#
+Getopt::Long::Configure ("ignore_case");
+my $result = GetOptions(
+    "csv!"                    => \$csv,
+    "full!"                   => \$full,
+    "h|help"                  => sub { system "perldoc $0"; exit; },
+    "iencoding=s"             => \$iencoding,
+    "ilineends=s"             => \$ilineends,
+    "listEncodings"    => sub {
+        warn "\nEncodings available:\n";
+        for my $k (Encode->encodings(":all")) {
+            warn "    $k\n";
+        }
+        exit;
+    },
+    "oencoding=s"             => \$oencoding,
+    "olineends=s"             => \$olineends,
+    "q!"                      => \$quiet,
+    "unicode!"                => sub { $iencoding = "utf8"; },
+    "v|verbose+"              => \$verbose,
+    "version"                 => sub {
+        die "Version of $VERSION_DATE, by Steven J. DeRose.\n";
+    }
+    );
+
+($result) || die "Bad options.\n";
+
+
+###############################################################################
+# Set implied options, validate option values...
+#
+my $fh;
+my $file = shift;
+if ($file) {
+    (-f $file) || die "Can't find input file '$file'.\n";
+}
+else {
+	($quiet) || warn "Reading from stdin...\n";
+    $file = "-";
+}
+
+open($fh, "<$file") || die "Failed to open input file '$file'.\n";
+if ($iencoding) {
+    binmode($fh, ":encoding($iencoding)");
+}
+$ilineends = uc(substr($ilineends."U",0,1));
+if    ($ilineends eq "M") { $/ = chr(13); }
+elsif ($ilineends eq "D") { $/ = chr(13).chr(10); }
+else { }
+
+if ($oencoding) {
+    print "";
+    binmode(STDOUT, ":encoding($oencoding)");
+}
+$olineends = uc(substr($olineends."U",0,1));
+if    ($olineends eq "M") { $\ = chr(13); }
+elsif ($olineends eq "D") { $\ = chr(13).chr(10); }
+else { }
+
+
+###############################################################################
+#
+my $lcTypes = my $ucTypes = my $tcTypes = my $mcTypes = 0;
+my $lcTokens = my $ucTokens = my $tcTokens = my $mcTokens = 0;
+my $skippedTokens = 0;
+
+if ($full) {
+    printf("%-25s %7s%15s %15s %15s %15s\n",
+           "Word type", "Tokens",
+           "Upper   %", "Lower   %", "Title   %", "Mixed   %");
+}
+my $recnum = 0;
+while (my $rec = <$fh>) {
+    $recnum++;
+    chomp $rec;
+    $rec =~ s/^.*: //g;
+    my $u = my $rec = my $t = my $m = 0;
+    my $key = my $count = undef;
+    for my $form (split(/\s+/, $rec)) {
+        ($key, $count) = parseLine($form);
+        if (!defined $key) {
+            $skippedTokens++;
+            next;
+        }
+        my $car = substr($key,0,1);
+        my $cdr = (length($key)>1) ? substr($key,1):"";
+
+        if ($key eq uc($key)) {
+            $ucTypes++;
+            $ucTokens += $count;
+            $u += $count;
+        }
+        elsif ($key eq lc($key)) {
+            $lcTypes++;
+            $lcTokens += $count;
+            $rec += $count;
+        }
+        elsif ($cdr ne "" &&
+               $car eq uc($car) &&
+               $cdr eq lc($cdr)) {
+            $tcTypes++;
+            $tcTokens += $count;
+            $t += $count;
+        }
+        else {
+            $mcTypes++;
+            $mcTokens += $count;
+            $m += $count;
+        }
+    } # form
+    if ($full) {
+        my $tot = $u + $rec + $t + $m;
+        printf("%-25s %7d %7d %6.3f %7d %6.3f %7d %6.3f %7d %6.3f\n",
+               lc($key),$tot, $u,100*$u/$tot, $rec,100*$rec/$tot,
+               $t,100*$t/$tot, 100*$m,$m/$tot);
+    }
+    elsif ($csv) {
+        my $tot = $u + $rec + $t + $m;
+        printf("\"%s\",%d,%d,%f,%d,%f,%d,%f,%d,%f\n",
+               lc($key), $tot, $u, 100*$u/$tot, $rec, 100*$rec/$tot,
+               $t, 100*$t/$tot, $m, 100*$m/$tot);
+    }
+} # record
+
+my $totTypes  = $lcTypes  + $ucTypes  + $tcTypes  + $mcTypes;
+my $totTokens = $lcTokens + $ucTokens + $tcTokens + $mcTokens;
+
+report();
+
+($quiet) || warn "Done, $recnum records processed.\n";
+
+exit;
+
+
+
+###############################################################################
+###############################################################################
+#
+# Knows specifics of mergeWordLists output format: just count tokens
+# that have [nnn] suffixed; else return undef.
+#
+sub parseLine {
+    my ($s) = @_;
+    $s =~ m/(.*)\[(\d+)\]/;
+    if (!$2) {
+        return(undef);
+    }
+    my $key = $1;
+    my $count = $2;
+    if (sjdUtils::isNumeric($count) == 0) {
+        alogging::eMsg(0, "Bad number-suffix '$count' in '$s'");
+        return(undef);
+    }
+    return($key, $count);
+}
+
+
+sub report {
+    print "\n";
+    fline("Upper", $ucTypes,  $ucTokens);
+    fline("lower", $lcTypes,  $lcTokens);
+    fline("Title", $tcTypes,  $tcTokens);
+    fline("MiXed", $mcTypes,  $mcTokens);
+    fline("Total", $totTypes, $totTokens);
+}
+
+sub fline {
+    my ($label, $ty, $to) = @_;
+    printf("%5s:   Types %7d (%7.3f%%), tokens %7d (%7.3f%%).\n",
+           $label,
+           $ty, ($totTypes)  ? (100.0*$ty/$totTypes)  : 0,
+           $to, ($totTokens) ? (100.0*$to/$totTokens) : 0);
+}
+
+
+
+###############################################################################
+###############################################################################
+###############################################################################
+#
+
+=pod
+
+=head1 Usage
+
+countByCase [options] file
+
+Parse up the output from I<mergeWordLists -trackCase> (see sample below), and
+get totals for different capitalization patterns.
+
+Only tokens with a suffixed C<[number]> are counted.
+
+
+=head2 Example of input format
+
+ abbey            96 (3 variants): abbey[13]  ABBEY[1]    Abbey[82]
+ abbie            15 (2 variants): Abbie[13]  abbie[2]
+ abbot            11 (2 variants): abbot[1]   Abbot[10]
+ abby             75 (3 variants): ABBY[1]    Abby[65]    abby[9]
+ abdul           123 (3 variants): abdul[5]   ABDUL[1]    Abdul[117]
+
+
+
+=head1 Options
+
+(prefix 'no' to negate where applicable)
+
+=over
+
+=item * B<--csv>
+
+Show count by upper, lower, title, and mixed,
+for each (case-ignored) key, packed and comma-separated.
+
+=item * B<--full>
+
+Show count by upper, lower, title, and mixed,
+for each (case-ignored) key, aligned for readability.
+
+=item * B<--iencoding> I<e>
+
+Specify character encoding for input.
+
+=item * B<--ilineends> I<t>
+
+Assume Unix, Dos, or Mac line-breaks for input.
+
+=item * B<--listEncodings>
+
+Show all the encodings supported by I<--iencoding> and I<--oencoding>, and exit.
+
+=item * B<--oencoding> I<e>
+
+Specify character encoding for output.
+
+=item * B<--olineends> I<t>
+
+Write Unix, Dos, or Mac line-breaks for output.
+
+=item * B<--quiet> OR B<-q>
+Suppress most messages.
+
+=item * B<--unicode>
+
+Synonym for I<--encoding utf8>.
+
+=item * B<--verbose> OR B<-v>
+Add more messages (repeatable).
+
+=item * B<--version>
+
+Show version info and exit.
+
+=back
+
+
+
+=head1 Known Bugs and Limitations
+
+
+
+=head1 Related commands
+
+C<vocab> -- counts vocabulary with a variety of features; the I<--trackCase>
+option provides similar results to those of this script.
+
+
+
+=head1 Ownership
+
+This work by Steven J. DeRose is licensed under a Creative Commons
+Attribution-Share Alike 3.0 Unported License. For further information on
+this license, see L<http://creativecommons.org/licenses/by-sa/3.0/>.
+
+For the most recent version, see L<http://www.derose.net/steve/utilities/>.
+
+=cut
