@@ -1,0 +1,80 @@
+Utilities and data for working with Unicode and other character sets.
+
+See also CharDisplay.py, in my PYTHONLIBS repo.
+
+As with all my utilities, use "-h" to get help.
+
+
+
+Unicode/ -- mostly lists of characters in various important categories, such
+as whitespace, dashes, quotation marks, currency, brackets, etc. .py ones are
+generally declarations of Python lists, with one entry per code point, whose
+value is at least the character name.
+
+UnicodeSamples/ -- A few samples for testing Unicode support.
+
+changeCase -- a *nix filter to modify case.
+
+changeEncoding -- convert form one encoding to another. "iconv" is
+better overall, this is an older Perl module.
+
+changeLineEnds -- convert between Mac, Windows, and *nix style line boundaries.
+
+chr -- show a bunch of information about Unicode characters, which can be
+chosen by name, octal/hex/decimal code point, entity name, etc.
+
+countByCase -- count characters in the input by what case they are.
+
+countChars -- count what characters occur in the input, and produce a frequency
+table, as well as totals by Unicode script and block, etc. A nice way to catch
+data that someone told you was Unicode, but really isn't. It's especially vigilant
+about catching and reporting CP1252 characters.
+
+getCharsByScript -- pull out the Unicode characters of a given script.
+
+isUTF8 -- report whether the file is legit utf-8 or not.
+
+makeCharChart.py -- Create a nice HTML chart showing information about chosen
+characters. You may also find the "Unisearcher" at http://www.isthisthingon.org/unicode/index.php
+very useful.
+
+normalizeSpace -- normalize whitespace in the input, as defined for XML. Knows
+about Unicode and many other encodings, and also provides options to
+normalize dashes, control characters, quotes, and private-use characters.
+
+normalizeUnicode -- perform Unicode normalization (there are 4 types) on
+the input.
+
+ord -- the opposite of "chr": given a literal character, show a lot of inormation
+about it (example below). It can accept characters specified in lots of way,
+including the ones that "chr" accepts, *nix jargon, HTML entity names, etc.
+A -f option ("find") lets you identify all characters whose Unicode names match
+a given expression.
+
+    %ord SPLAT
+    Unicode Name:    NUMBER SIGN
+    Unicode Script:  Common
+    Unicode Block:   Basic Latin
+    Unicode Plane:   0: Basic Multilingual
+    Literal:         #
+    Bases:           o0043 d0035 x0023
+    Unicode:         U+0023, utf8 \x23, URI %23
+    Entities:        &#35; &#x23; #
+    Unix jargon:     Common: number sign; pound; pound sign; hash; sharp; crunch; hex; mesh. Rare: grid; cross-hatch; octothorpe; flash; pig-pen; tic-tac-toe; scratchmark; thud; thump; splat
+
+showInvisibles -- convert control, non-ASCII, and/or whitespace characters to
+visible forms. You have your choice of representations, from Unicode "control pictures"
+(tiny mnemonics for control characters, at U+2400 and following); backslash codes;
+URI escaping (so you can use this to URI-escape the input), and colorizing.
+This is the Perl version, a Python version is also available, as "showInvisibles.py"
+
+showInvisibles.py -- Python version of "showInvisibles" (q.v.)
+
+showUnicodeCharsInClass.py
+
+toHiragana -- a toy that transliterates Latin orthography approximately to Hiragana.
+I wrote this to help me learn Hiragana even though I don't know Japanese.
+
+transliterate -- convert once-popular transliterations of Greek, to Unicode.
+This mainly handles Betacode and CCAT text (always be careful because the
+conventional transliteration differs between Classicists and Theologians).
