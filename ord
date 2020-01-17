@@ -28,6 +28,7 @@
 # 2016-08-30: Get rid of sjdUtils.pm dependencies.
 # 2016-09-05: Add --iconv option.
 # 2018-01-19: Add --pairs.
+# 2020-01-03: Add --minU.
 #
 # To do:
 #     Port to Python, using CharDisplay.
@@ -83,6 +84,7 @@ my $literal     = 1;
 my $long        = 1;
 my $math        = 0;
 my $maxU        = 65535;
+my $minU        = 1;
 my $octal       = 1;
 my $pairs       = 0;
 my $quiet       = 0;
@@ -118,6 +120,7 @@ my $result = GetOptions(
     "long!"               => \$long,
     "math!"               => \$math,
     "maxU=o"              => \$maxU,
+    "minU=o"              => \$minU,
     "octal!"              => \$octal,
     "pairs!"              => \$pairs,
     "q|quiet!"            => \$quiet,
@@ -143,6 +146,9 @@ if ($iconv) {
     $iconvConverter = Text::Iconv->new("utf8", "ascii//TRANSLIT");
 }
 $listFormat = uc($listFormat);
+
+($minU < $maxU) || die
+    "--minU must be less than --maxU.\n";
 
 binmode(STDOUT, ":encoding(utf8)");
 if ($ENV{"LANG"} !~ m/UTF-?8/i) {
@@ -278,7 +284,7 @@ if ($pairs) {
     my $nCandidates = 0;
     my @candidates = ();
     my %candidateIndex = ();
-    for (my $i=1; $i<=$maxU; $i++) {
+    for (my $i=$minU; $i<=$maxU; $i++) {
         if (exists $lame{$i}) { next; }
         if (!$quiet && ($i % 0x10000)==0) {
             warn sprintf("...starting Unicode plane at 0x%05x...\n", $i);
@@ -531,7 +537,7 @@ sub getBinary {
 sub getMatchingUnicodeNames {
     my ($name) = @_;
     my $nfound = 0;
-    for (my $i=0; $i<=$maxU; $i++) {
+    for (my $i=$minU; $i<=$maxU; $i++) {
         if (!$quiet && ($i % 0x10000)==0) {
             warn sprintf("...starting Unicode plane at 0x%05x...\n", $i);
         }

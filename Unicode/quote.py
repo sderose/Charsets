@@ -41,6 +41,33 @@
         0x2E21:  "RIGHT VERTICAL BAR WITH QUILL",
     }
 
+    qPairs = [
+        [ "'",    "'" ],     # Apostrophe / single quotation mark
+        [ '"',    '"' ],     # Double quotation mark
+        # [ 0x0FF02, 0x0FF02 ],  # Fullwidth Quotation Mark
+        # [ 0x301E, 0x301E ],  # "DOUBLE PRIME QUOTATION MARK",
+        [ 0x00AB, 0x00BB ],  # "LEFT-POINTING DOUBLE ANGLE QUOTATION MARK *",
+        [ 0x2018, 0x2019 ],  # "LEFT SINGLE QUOTATION MARK",
+        [ 0x201A, 0x201B ],  # "SINGLE LOW-9 QUOTATION MARK",
+        [ 0x201C, 0x201D ],  # "LEFT DOUBLE QUOTATION MARK",
+        [ 0x201E, 0x201F ],  # "DOUBLE LOW-9 QUOTATION MARK",
+        [ 0x2039, 0x203A ],  # "SINGLE LEFT-POINTING ANGLE QUOTATION MARK",
+        [ 0x2E02, 0x2E03 ],  # "LEFT SUBSTITUTION BRACKET",
+        [ 0x2E04, 0x2E05 ],  # "LEFT DOTTED SUBSTITUTION BRACKET",
+        [ 0x2E09, 0x2E0A ],  # "LEFT TRANSPOSITION BRACKET",
+        [ 0x2E0C, 0x2E0D ],  # "LEFT RAISED OMISSION BRACKET",
+        [ 0x2E1C, 0x2E1D ],  # "LEFT LOW PARAPHRASE BRACKET",
+        [ 0x2E20, 0x2E21 ],  # "LEFT VERTICAL BAR WITH QUILL",
+        [ 0x301D, 0x301F ],  # "REVERSED DOUBLE PRIME QUOTATION MARK",
+        [ 0x2032, 0x2035 ],  # "PRIME", "REVERSED PRIME",
+        [ 0x2034, 0x2037 ],  # "TRIPLE PRIME", "REVERSED TRIPLE PRIME",
+        [ 0x2057, 0x301D ],  # "QUADRUPLE PRIME", "REVERSED DOUBLE PRIME QUOTATION MARK",
+        [ 0x0275B, 0x0275C ],  # Heavy Single Turned Comma Quotation Mark Ornament
+        [ 0x0275D, 0x0275E ],  # Heavy Double Turned Comma Quotation Mark Ornament
+        [ 0x0276E, 0x0276F ],  # Heavy Left-pointing Angle Quotation Mark Ornament
+        [ 0x1F677, 0x1F678 ],  # Sans-serif Heavy Double Comma Quotation Mark Ornament
+    ]
+
 
 # Not in:  "the Unicode categories, but perhaps relevant:
     UOtherQuotes = {
@@ -58,14 +85,12 @@
 
         0x2032:  "PRIME",
         0x2035:  "REVERSED PRIME",
-        0x2037:  "REVERSED TRIPLE PRIME",
         0x2034:  "TRIPLE PRIME",
+        0x2037:  "REVERSED TRIPLE PRIME",
         0x2057:  "QUADRUPLE PRIME",
         0x301D:  "REVERSED DOUBLE PRIME QUOTATION MARK",
         0x301E:  "DOUBLE PRIME QUOTATION MARK",
         0x301F:  "LOW DOUBLE PRIME QUOTATION MARK",
-
-
 
         0x0027:  "APOSTROPHE",
         0x0149:  "LATIN SMALL LETTER N PRECEDED BY APOSTROPHE",

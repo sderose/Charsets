@@ -13,6 +13,7 @@
 # 2013-06-21: Add --color, --whichColor.
 # 2014-09-01: Add --iencoding. Multifile. Fix --color.
 # 2015-09-11: Drop -s, add --spaceAs OK, fix code points. --lfAs likewise.
+# 2019-11-16: Update color use.
 #
 # To do:
 #     Option to color-code white-space? see colorizeWhiteSpace(), below.
@@ -23,7 +24,7 @@ use Getopt::Long;
 use sjdUtils;
 use alogging;
 
-our $VERSION_DATE = "2015-09-11";
+our $VERSION_DATE = "2019-11-16";
 
 my $backslash     = 0;
 my $color         = 0;
@@ -34,7 +35,7 @@ my $quiet         = 0;
 my $spaceAs       = "OK";
 my $uri           = 0;
 my $verbose       = 0;
-my $whichColor    = "bg_yellow";
+my $whichColor    = "/yellow";
 
 ###############################################################################
 # Process options
@@ -237,7 +238,8 @@ Display version info and exit.
 
 =item * B<--whichColor> I<name>
 
-Choose the color to use with I<--color>. See C<sjdUtils.pm> for details.
+Choose the color to use with I<--color>. See C<colorManager.pm> for details and
+a list of the names, of the form C<[effect]/[fg]/[bg]>.
 
 =back
 
@@ -247,7 +249,7 @@ Choose the color to use with I<--color>. See C<sjdUtils.pm> for details.
 
 C<sjdUtils.pm> provides functions to do the transformations.
 
-
+C<colorManager.pm> provides
 
 =head1 Known bugs and limitations
 

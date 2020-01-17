@@ -10,6 +10,28 @@
         0x0133: 'ij',   #'LATIN SMALL LIGATURE IJ',
         0x0152: 'OE',   #'LATIN CAPITAL LIGATURE OE',
         0x0153: 'oe',   #'LATIN SMALL LIGATURE OE',
+
+        # These are not named 'ligature', but sure look like it....
+        #
+        0x01c4: 'Ǆ',  #LATIN CAPITAL LETTER DZ WITH CARON
+        0x01c5: 'ǅ',  #LATIN CAPITAL LETTER D WITH SMALL LETTER Z WITH CARON
+        0x01c6: 'ǆ',  #LATIN SMALL LETTER DZ WITH CARON
+        0x01c7: 'Ǉ',  #LATIN CAPITAL LETTER LJ
+        0x01c8: 'ǈ',  #LATIN CAPITAL LETTER L WITH SMALL LETTER J
+        0x01c9: 'ǉ',  #LATIN SMALL LETTER LJ
+        0x01ca: 'Ǌ',  #LATIN CAPITAL LETTER NJ
+        0x01cb: 'ǋ',  #LATIN CAPITAL LETTER N WITH SMALL LETTER J
+        0x01cc: 'ǌ',  #LATIN SMALL LETTER NJ
+        0x01e2: 'Ǣ',  #LATIN CAPITAL LETTER AE WITH MACRON
+        0x01e3: 'ǣ',  #LATIN SMALL LETTER AE WITH MACRON
+        0x01ee: 'Ǯ',  #LATIN CAPITAL LETTER EZH WITH CARON
+        0x01ef: 'ǯ',  #LATIN SMALL LETTER EZH WITH CARON
+        0x01f1: 'Ǳ',  #LATIN CAPITAL LETTER DZ
+        0x01f2: 'ǲ',  #LATIN CAPITAL LETTER D WITH SMALL LETTER Z
+        0x01f3: 'ǳ',  #LATIN SMALL LETTER DZ
+        0x01fc: 'Ǽ',  #LATIN CAPITAL LETTER AE WITH ACUTE
+        0x01fd: 'ǽ',  #LATIN SMALL LETTER AE WITH ACUTE
+
         0xa7f9: 'oe',   #'MODIFIER LETTER SMALL LIGATURE OE',
         0xfb00: 'ff',   #'LATIN SMALL LIGATURE FF',
         0xfb01: 'fi',   #'LATIN SMALL LIGATURE FI',
@@ -18,6 +40,49 @@
         0xfb04: 'ffl',  #'LATIN SMALL LIGATURE FFL',
         0xfb05: 'st',   #'LATIN SMALL LIGATURE LONG S T',
         0xfb06: 'st',   #'LATIN SMALL LIGATURE ST',
+
+        # There are quite a few combination letters in, for example,
+        # Latin Extended D, U+A728 and following.
+        #
+        0xa732: 'Ꜳ',  #LATIN CAPITAL LETTER AA
+        0xa733: 'ꜳ',  #LATIN SMALL LETTER AA
+        0xa734: 'Ꜵ',  #LATIN CAPITAL LETTER AO
+        0xa735: 'ꜵ',  #LATIN SMALL LETTER AO
+        0xa736: 'Ꜷ',  #LATIN CAPITAL LETTER AU
+        0xa737: 'ꜷ',  #LATIN SMALL LETTER AU
+        0xa738: 'Ꜹ',  #LATIN CAPITAL LETTER AV
+        0xa739: 'ꜹ',  #LATIN SMALL LETTER AV
+        0xa73a: 'Ꜻ',  #LATIN CAPITAL LETTER AV WITH HORIZONTAL BAR
+        0xa73b: 'ꜻ',  #LATIN SMALL LETTER AV WITH HORIZONTAL BAR
+        0xa73c: 'Ꜽ',  #LATIN CAPITAL LETTER AY
+        0xa73d: 'ꜽ',  #LATIN SMALL LETTER AY
+        0xa74d: 'ꝍ',  #LATIN SMALL LETTER O WITH LOOP
+        0xa74e: 'Ꝏ',  #LATIN CAPITAL LETTER OO
+        0xa74f: 'ꝏ',  #LATIN SMALL LETTER OO
+        0xa75c: 'Ꝝ',  #LATIN CAPITAL LETTER RUM ROTUNDA
+        0xa75d: 'ꝝ',  #LATIN SMALL LETTER RUM ROTUNDA
+        0xa75e: 'Ꝟ',  #LATIN CAPITAL LETTER V WITH DIAGONAL STROKE
+        0xa75f: 'ꝟ',  #LATIN SMALL LETTER V WITH DIAGONAL STROKE
+        0xa760: 'Ꝡ',  #LATIN CAPITAL LETTER VY
+        0xa761: 'ꝡ',  #LATIN SMALL LETTER VY
+        0xa768: 'Ꝩ',  #LATIN CAPITAL LETTER VEND
+        0xa769: 'ꝩ',  #LATIN SMALL LETTER VEND
+        0xa76a: 'Ꝫ',  #LATIN CAPITAL LETTER ET
+        0xa76b: 'ꝫ',  #LATIN SMALL LETTER ET
+        0xa76c: 'Ꝭ',  #LATIN CAPITAL LETTER IS
+        0xa76d: 'ꝭ',  #LATIN SMALL LETTER IS
+        0xa76e: 'Ꝯ',  #LATIN CAPITAL LETTER CON
+        0xa76f: 'ꝯ',  #LATIN SMALL LETTER CON
+        0xa771: 'ꝱ',  #LATIN SMALL LETTER DUM
+        0xa772: 'ꝲ',  #LATIN SMALL LETTER LUM
+        0xa773: 'ꝳ',  #LATIN SMALL LETTER MUM
+        0xa774: 'ꝴ',  #LATIN SMALL LETTER NUM
+        0xa775: 'ꝵ',  #LATIN SMALL LETTER RUM
+        0xa776: 'ꝶ',  #LATIN LETTER SMALL CAPITAL RUM
+        0xa777: 'ꝷ',  #LATIN SMALL LETTER TUM
+        0xa778: 'ꝸ',  #LATIN SMALL LETTER UM
+
+        # NON-LATIN
 
         0x04a4: 'CYRILLIC CAPITAL LIGATURE EN GHE',
         0x04a5: 'CYRILLIC SMALL LIGATURE EN GHE',
