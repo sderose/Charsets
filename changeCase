@@ -4,20 +4,120 @@
 #
 # 2009-08-04: Written by Steven J. DeRose.
 # 2010-08-25 sjd: perldoc.
+# 2012-09-12: ?
+# 2020-01-18: Drop --ignoreCase.
 #
 # To do:
 #
 use strict;
 use Getopt::Long;
 
-our $VERSION_DATE = "2012-09-12";
+our %metadata = (
+    'title'        => "changeCase",
+    'rightsHolder' => "Steven J. DeRose",
+    'creator'      => "http://viaf.org/viaf/50334488",
+    'type'         => "http://purl.org/dc/dcmitype/Software",
+    'language'     => "Perl 5.18",
+    'created'      => "2009-08-04",
+    'modified'     => "2020-01-18",
+    'publisher'    => "http://github.com/sderose",
+    'license'      => "https://creativecommons.org/licenses/by-sa/3.0/"
+);
+our $VERSION_DATE = $metadata{'modified'};
 
+
+###############################################################################
+#
+
+=pod
+
+=head1 Usage
+
+changeCase [options] file
+
+Force the input to one or another patterns of upper- and lower-case.
+Should support Unicode just fine (uses Perl lc() and uc()).
+
+
+=head1 Options
+
+(prefix 'no' to negate where applicable)
+
+=over
+
+=item * B<--case> I<type>
+
+Force to one of [ULWRS]:
+all Upper, all Lower, Words upper,
+Records upper, or Sentences upper (default U). 'Sentence' is approximate.
+
+=item * B<--iencoding> I<t>
+
+Charset to use for input.
+
+=item * B<--ilineends> I<t>
+
+Assume Unix, Dos, or Mac line-breaks for input.
+
+=item * B<--oencoding> I<t>
+
+Charset to use for output.
+
+=item * B<--olineends> I<t>
+
+Write Unix, Dos, or Mac line-breaks for output.
+
+=item * B<--quiet> OR B<-q>
+Suppress most messages.
+
+=item * B<--tick> I<n>
+
+Print a message after every n input records
+(0 to turn off).
+
+=item * B<--unicode>
+
+Assume input is utf-8.
+
+=item * B<--verbose> OR B<-v>
+Add more messages (repeatable).
+
+=item * B<--version>
+
+Show version/license info and exit.
+
+=back
+
+
+=head1 Known Bugs/Limitations
+
+Doesn't know anything about Unicode titleCase.
+
+
+=head1 Related commands
+
+Mine: C<upcase>, C<downcase>. *nix: C<tr>, C<iconv>.
+
+
+=head1 Ownership
+
+This work by Steven J. DeRose is licensed under a Creative Commons
+Attribution-Share Alike 3.0 Unported License. For further information on
+this license, see L<http://creativecommons.org/licenses/by-sa/3.0/>.
+
+For the most recent version, see L<http://www.derose.net/steve/utilities/>
+or L<http://github.com/sderose>.
+
+=cut
+
+
+###############################################################################
+#
 my $dft_case         = "U";
 my $dft_tickInterval = 50000;
 
 my $case             = $dft_case;
 my $iencoding        = "";
-my $ignoreCase       = 0;
 my $ilineends        = "U";
 my $oencoding        = "";
 my $olineends        = "U";
@@ -25,14 +125,11 @@ my $quiet            = 0;
 my $tickInterval     = $dft_tickInterval;
 my $verbose          = 0;
 
-
-###############################################################################
 Getopt::Long::Configure ("ignore_case");
 my $result = GetOptions(
     "case=s"                  => \$case,
     "h|help"                  => sub { system "perldoc $0"; exit; },
     "iencoding=s"             => \$iencoding,
-    "ignorecase!"             => \$ignoreCase,
     "ilineends=s"             => \$ilineends,
     "oencoding=s"             => \$oencoding,
     "olineends=s"             => \$olineends,
@@ -140,95 +237,3 @@ while (my $rec = <$fh>) {
 
 ($quiet) || warn "Done, $recnum records processed.\n";
 
-
-
-###############################################################################
-###############################################################################
-###############################################################################
-#
-
-=pod
-
-=head1 Usage
-
-changeCase [options] file
-
-Force the input to one or another patterns of upper- and lower-case.
-Should support Unicode just fine (uses Perl lc() and uc()).
-
-
-
-=head1 Options
-
-(prefix 'no' to negate where applicable)
-
-=over
-
-=item * B<--case> I<type>
-
-Force to one of [ULWRS]:
-all Upper, all Lower, Words upper,
-Records upper, or Sentences upper (default U). 'Sentence' is approximate.
-
-=item * B<--iencoding> I<t>
-
-Charset to use for input.
-
-=item * B<--ignorecase> I<t>
-
-Disregard upper/lower case distinctions.
-
-=item * B<--ilineends> I<t>
-
-Assume Unix, Dos, or Mac line-breaks for input.
-
-=item * B<--oencoding> I<t>
-
-Charset to use for output.
-
-=item * B<--olineends> I<t>
-
-Write Unix, Dos, or Mac line-breaks for output.
-
-=item * B<--quiet> OR B<-q>
-Suppress most messages.
-
-=item * B<--tick> I<n>
-
-Print a message after every n input records
-(0 to turn off).
-
-=item * B<--unicode>
-
-Assume input is utf-8.
-
-=item * B<--verbose> OR B<-v>
-Add more messages (repeatable).
-
-=item * B<--version>
-
-Show version/license info and exit.
-
-=back
-
-
-=head1 Known Bugs/Limitations
-
-Doesn't know anything about Unicode titleCase.
-
-
-=head1 Related commands
-
-Mine: C<upcase>, C<downcase>. *nix: C<tr>, C<iconv>.
-
-
-
-=head1 Ownership
-
-This work by Steven J. DeRose is licensed under a Creative Commons
-Attribution-Share Alike 3.0 Unported License. For further information on
-this license, see L<http://creativecommons.org/licenses/by-sa/3.0/>.
-
-For the most recent version, see L<http://www.derose.net/steve/utilities/>.
-
-=cut

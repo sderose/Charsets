@@ -197,7 +197,7 @@ while (my $arg = shift) {
         print "$arg:\n";
         doOneChar($norm);
     }
-    elsif ($arg =~ m/^(0x[\da-f]+|\d+)$/i) {
+    elsif ($arg =~ m/^(0x[\da-f]+|\d+)$/i) {          # Hex
         my $h1 = hex(substr($arg,2,2));
         my $norm = $arg;
         $norm = oct($norm) if ($norm =~ m/^0/);
@@ -207,8 +207,8 @@ while (my $arg = shift) {
         }
         doOneChar($norm);
     }
-    elsif (my $n = lookupAbbr($arg)) {
-        pline("Control character:",  $arg . getBases($n));
+    elsif (my $n = lookupAbbr($arg)) {                # Control
+        pline("Control char:",  $arg);  # . ' ' . getBases($n));
         doOneChar($n);
     }
     elsif (length($arg) == 1) {
@@ -231,10 +231,29 @@ sub doOneChar {
 	my ($n, $u) = @_;
     $n = oct $n if ($n =~ m/^0/);
     if (!defined $u) { $u = chr($n); }
+
+    showUnicodeInfo($n);
+    showLiteral($n, $u);
     if (!$quiet) {
         pline("Bases:", getBases($n));
     }
 
+    # URI escaping
+    pline("URI form:", sjdUtils::getUTF8($n));
+
+    my $entName = HTML::Entities::encode_entities($u);
+    if ($entName =~ m/^&#/) { $entName = "-NO HTML NAMED ENTITY-"; }
+    my $xform = (sjdUtils::isXmlChar($u)) ?
+        sprintf("&#%d; &#x%x; %s\n", $n, $n, $entName) :
+        "Not an XML character";
+    if (!$quiet) { pline("XML forms:", $xform); }
+} # doOneChar
+
+# Display the literal character if it's printable. Otherwise, describe
+# what it is, such as a control character, non legit Unicoe, etc.
+#
+sub showLiteral {
+    my ($n, $u) = @_;
     if ($n < 32) {
         my $hex = sprintf("%02X",$n);
         ($verbose) && pline("C0 control character");
@@ -265,19 +284,7 @@ sub doOneChar {
         ($verbose) && pline("G1 graphic character");
         pline("  G1 literal:", $u);
     }
-
-    showUnicodeInfo($n);
-    # URI escaping
-    pline("URI form:", sjdUtils::getUTF8($n));
-
-    my $entName = HTML::Entities::encode_entities($u);
-    if ($entName =~ m/^&#/) { $entName = "-NO HTML NAMED ENTITY-"; }
-    my $xform = (sjdUtils::isXmlChar($u)) ?
-        sprintf("&#%d; &#x%x; %s\n", $n, $n, $entName) :
-        "Not an XML character";
-    if (!$quiet) { pline("XML forms:", $xform); }
-} # doOneChar
-
+}
 
 sub showUnicodeInfo {
     my ($n) = @_;
