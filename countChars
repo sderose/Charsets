@@ -2,57 +2,439 @@
 #
 # countChars: Find and report certain characters in a file.
 #
-# Written by Steven J. DeRose, 2006-04-27, as 'nonascii'.
-# 2007-09-xx sjd: fix table reporting bug.
-# 2008-04-24 sjd: Fix for BSD.
-# 2008-05-13 sjd: Report total % found.
-# 2009-05-05 sjd: Fix % reporting.
-# 2009-08-05 sjd: Add --g1names, --cp1252, --cpmac mnemonics, --unicode.
-# 2010-03-23 sjd: Add --tickInterval, perldoc. Bug w/ html entities.
-#     Clean up logic. Support U'xxxx, Javascript, and CSS. Add --all.
-#     Report character counts by escape type. Nicer names in report.
-# 2011-06-30 sjd: Start integrating HTML::Entities and TabularFormats.
-#     Refactor a little. Catch literal chars, duh.
-# 2011-07-14 sjd: Add --rank. Start merging countChars features.
-#     Rename to countChars.
-# 2011-08-03 sjd:  Implement --iencoding, --oencoding, --olineends.
-#     Suppress invalid utf8 warnings, add --fixBadUTF8 option. Localize $c.
-#     Rename --minCode and --maxCode, in favor of --ascii. Drop --cpmac.
-#     Make --cp1252 force --iencoding.
-# 2011-08-04 sjd:  --justCount -> --instances. Add --literals. Fix --ents.
-#     Fix --fcol/--lcol to --columns x-y. Add %byScript, %byBlock. Fix \f, \v.
-# 2012-03-07 sjd: Add --color.
-# 2012-07-02 sjd: Redo options for TF.
-# 2012-09-14 sjd: Fix so doesn't default to counting NO fields. Report speed.
-#     Add $expandingAnything, and save subr call if not in effect. Ditch --ascii.
-# 2012-09-19 sjd: Report % for representation form, Script, and Block.
-#     Profile. Most time spend in Unicode::UCD::_search, so made --ustats option.
-# 2012-11-08 sjd: Check chars>127 for utf8 and count, display both ways?
-# 2012-11-30 sjd: Look up unicode scripts/blocks only once per code point.
-# 2012-12-13 sjd: Heading before each Unicode block in alpha list. Add U+XXXX.
-#     More work on handling invalid utf8.
-# 2013-01-14 sjd: Colorize headings. Sort --ustats output. Use eval(decode).
-#     Make STDIN work.
-# 2014-09-01ff: Only issue 'waiting' msg if -t STDIN. --. Latin1 totals. TF optional.
-#     Add -r option to deal with OANC-type files. Fix heading before new U. block.
-#     Add --strip, --stripIgnoreCase.
-# 2018-08-06: Add --useBinmode.
-#
-# To do:
-#     Identify HTML named entities
-#     Profile
-#     Option to insert literal (or entity or \x) in output chart.
-#     Catch and complain about undetected UTF8, unicode coding errors (done?).
-#     Colorizing headings isn't working right.
-#     Color hyph/space/dash/quote green; non-word-chars outside ascii
-#     --first appears to be broken.
-#     --noascii appears to be broken.
-#     Lose local escaping and entities tables.
-#     Support colorizing in --instances reporting.
-#     Trap SIGINT and report partial results.
-#     Offer commentary on how far off from typical language norms.
-#     Port to Python and use powerWalk.py (esp. for --exclude option).
-#
+
+our %metadata = (
+    'title'        => "countChars",
+    'rightsHolder' => "Steven J. DeRose",
+    'creator'      => "http=//viaf.org/viaf/50334488",
+    'type'         => "http://purl.org/dc/dcmitype/Software",
+    'language'     => "Perl 5",
+    'created'      => "2006-04-27",
+    'modified'     => "2020-01-28",
+    'publisher'    => "http://github.com/sderose",
+    'license'      => "https://creativecommons.org/licenses/by-sa/3.0/"
+);
+our $VERSION_DATE = $metadata{'modified'};
+
+=pod
+
+=head1 Usage
+
+countChars [options] [files]
+
+Finds and reports on what characters occur in I<files> (or STDIN), and
+how often. It can handle many encodings, and many "escaped" representations
+such as \n, &#65;, \uBEEF, etc.
+
+By default (see I<--count>), reports the total number of occurrences of
+all characters, and the number of character instances for
+each Unicode "Script" and "Block". To sort by number of occurrences (rank)
+instead of character code point frequency, use I<--rank>.
+
+B<Note>: Be sure to set the character encoding if applicable,
+using I<--unicode>, I<--cp1252>, or I<--iencoding> (see also I<--listEncodings>).
+If you don't specify an encoding, it will make the best of things,
+which basically means use bytes raw.
+
+For example, to run this over the merged OANC corpus:
+
+    countChars -r -strip '<[^>]+>' written_* >charCounts.txt
+
+By default, this script only detects literal characters (see I<--literals>).
+However, there are options for catching many alternate representations
+(see next section).
+
+Can also report each individual instance of characters in a given range or
+ranges (see I<--instances>).
+
+To restrict processing to certain parts of each record,
+see I<--strip>, I<--columns>, and L<Options for TabularFormats> below).
+Column or field selection requires installation of the C<TabularFormats> module.
+
+
+=head1 Options for characters and types of representations to catch
+
+=over
+
+=item * B<--all>
+
+Try to catch characters represented in all of the known forms.
+
+=item * B<--controls>
+
+Catch any control chars except \\n\\r\\t.
+
+=item * B<--css>
+
+Catch CSS \\-escapes.
+
+=item * B<--ents>
+
+Catch HTML named entities.
+
+=item * B<--javascript> or B<--perl>
+
+Catch various \\-escapes as used in many programming and scripting languages.
+
+=item * B<--literals>
+
+Catch literal instances of the character (default).
+
+=item * B<--showLiteral>
+
+Include the Unicode character itself in summary lines.
+
+=item * B<--upop>
+
+Catch Unicode U'xxxx escapes.
+
+=item * B<--uri>
+
+Catch URI %xx-escapes.
+
+=item * B<--xml>
+
+Catch XML C<&#ddd;> and C<&#Xxxxx;> numeric character references.
+This script cannot identify named character references specifically,
+but counts how many there are, at least.
+
+=back
+
+
+=head1 Other options
+
+(use '-no...' to negate where applicable)
+
+=over
+
+=item * B<--blank>
+
+With I<--count>, add blank lines for readability (default).
+
+=item * B<--color>
+
+Colorize the output for readability. In particular, color headings
+and the frequency-report lines for control characters.
+Defaults to on if environment variable C<USE_COLOR> is set and
+STDERR is going to a terminal.
+
+=item * B<--cols> I<f-l>
+
+Look only in columns I<f> through I<l> (counting from 1, not 0!).
+Columns can be specified in decimal, octal, or hexadecimal. Repeatable.
+
+=item * B<--context> I<n>
+
+How many chars to show to each side (only makes sense with I<--instances>).
+
+=item * B<--count>
+
+Show a table of how many times each char was found (see also I<--rank>).
+(default: on).
+
+=item * B<--cp1252>
+
+Synonym for I<--iencoding encoding(cp1252)>, and also
+shows mnemonics for MS code page 1252 x80-x9F chars (these code points
+are not assigned to graphical characters in most other character sets).
+
+=item * B<--fields> I<f>
+
+Look only in field I<f> (counting from 1, not 0!) of each line.
+Repeatable. Default: all fields.
+See also L<Options for TabularFormats> below).
+
+=item * B<--files-only>
+
+Only allow file arguments, not stdin.
+
+=item * B<--files-with-matches> OR B<-l>
+
+Just report the filename if any reportable chars were found (see I<--instances>).
+
+=item * B<--first>
+
+Report where the first occurrence of each distinct character (code point)
+appeared (this is good for finding characters you didn't want).
+
+=item * B<fixBadUTF8>
+
+Requires I<--iencoding utf8> (or the synonymous I<--unicode>).
+Makes a pre-pass over every record, to turn any byte sequences that are not
+valid UTF8, into a substitute character (default "?").
+
+=item * B<--g1names>
+
+Show names for G1 characters (xA0-xFF).
+
+=item * B<--hex>
+
+Synonym for I<--showHex>.
+
+=item * B<--iencoding> I<e>
+
+Assume the input data is in character encoding I<e>.
+
+=item * B<--ignoreCase> or B<-i>
+
+Disregard upper/lower case distinctions.
+
+=item * B<--includeG0>
+
+Include ASCII G0 characters (d32 to d127) in detection and reporting (default).
+If you turn this off, only characters outside the G0 range are reported.
+
+=item * B<--ilineends> I<type>
+
+Input data has Unix, Dos, or Mac line-ends.
+
+=item * B<--instances> I<from-to>
+
+Report individual occurrences of characters whose code points are
+at least I<from> and at most I<to> (can be specified
+in decimal, octal, or hex). Repeatable.
+
+=item * B<--listEncodings>
+
+Show all the encodings supported by I<--iencoding>, and exit.
+
+=item * B<--maxFreq> I<n>
+
+Only report for code points that occur <= I<n> times. Default: 0 (all).
+
+=item * B<--minFreq> I<n>
+
+Only report for code points that occur >= I<n> times. Default: 0 (all).
+
+=item * B<--names>
+
+Synonym for I<--showNames>.
+
+=item * B<--oencoding> I<e>
+
+Specify character encoding for output.
+
+=item * B<--olineends> I<t>
+
+Write Unix, Dos, or Mac line-breaks for output.
+
+=item * B<--perl>
+
+Detect Perl/C/etc backslash-codes (see I<man perlrebackslash>),
+such as \\, \n, \r, \000, \x{FFFF}, \uFFFFF, etc.
+However, \N{unicode-name} is not yet supported.
+(unfinished)
+
+=item * B<--quiet> OR B<-q>
+Suppress most messages, and line-by-line reporting.
+
+=item * B<--rank>
+
+Sort the I<--count> and I<--stats> output by frequency rather than code point.
+
+=item * B<--showHex>
+
+Display context of found chars in hexadecimal rather than literally
+(see I<--instances>). Default: off.
+
+=item * B<--showNames>
+
+In the report, show the (Unicode) name for each character. Default: on.
+
+=item * B<--showLiteral>
+
+Include the character itself in summary lines. Default: on.
+
+=item * B<--showOctal>
+
+Include the octal expression of the code point in summary lines. Default: off.
+
+=item * B<--showUTF8>
+
+In the report, show the UTF-8 encoding for characters.
+
+=item * B<--strip> I<regex>
+
+Before counting, remove all matches of I<regex> from each input record.
+This can be use to remove punctuation, comments, markup, etc.
+Each match is confined to a single line; thus, this is not completely adequate
+for stripping XML markup if tags are broken across lines.
+See also I<--stripIgnoreCase>.
+
+=item * B<--stripIgnoreCase> OR I<sic>
+
+When matching a I<--strip> regex, ignore case. Not to be confused with
+I<--ignoreCase>.
+
+=item * B<--tickInterval> I<n>
+
+Report progress every I<n> records. Default: 2000.
+Expect a few tens of K characters per second.
+
+=item * B<--unicode>
+
+Synonym for I<--iencoding utf8>.  See also I<--useBinmode>.
+
+=item * B<--useBinmode>
+
+When using I<--iencoding>, do the decoding by applying C<binmode>() to the
+file handle, rather than Perl's B<Decode::encode()>. Default.
+
+=item * B<--ustats>
+
+Report the number of characters instances found, that are from
+each specific Unicode "Script" and "Block". Default: on.
+
+=item * B<--verbose> OR B<-v>
+
+Add more detailed messages (repeatable).
+
+=item * B<--version>
+
+Show version information and exit.
+
+=back
+
+
+=head2 Options for TabularFormats
+
+By default, whole records are examined. The options of C<TabularFormats.pm>
+can be used to parse a variety of input data (JSON, SEXP, CSV,...)
+into fields, and then examine only certain selected fields (see I<--columns>,
+above).
+
+See C<TabularFormats.pm> for information on its options.
+For CSV-ish files, the most significant options are I<fieldSep>.
+
+
+=head1 Related Files
+
+F<DATA/UnicodeSamples/utf8sampler.txt> -- a sample of UTF-8 with a wide variety
+of blocks represented.
+
+=head1 Related commands
+
+=over
+
+=item * C<dumpx> Nice display of data in whatever bases
+(like I<od> but better).
+
+=item * C<showNumberInBases>
+Convert a number to multiple bases, and to ASCII or utf-8.
+
+=item * C<chr> and C<ord> convert between code point numbers and characters.
+
+=item * C<iconv> Convert text from one encoding to another.
+Also use C<iconv -f utf8 [file]> to check for invalid utf-8.
+
+=item * L<http://people.w3.org/rishida/scripts/uniview/conversion> has a nice
+gadget to convert between many possible representations of unicode.
+
+=item * C<makeUnicodeData> can generate a file in various forms that includes
+examples of all the characters in a given range and their properties.
+
+=item * C<TabularFormats.pm> provides support for the I<--fields> option.
+This is included if the package is available, but only gives a warning otherwise,
+so C<countChars> can continue to run, just without the relevant options.
+
+=back
+
+
+=head1 Known bugs and limitations
+
+Produces excessive warnings on invalid utf-8.
+Use I<iconv> first if needed, to detect/fix invalid utf-8 values.
+
+Cannot count characters above U+FF00, for unknown reasons. It should skip them
+safely.
+
+Counts the components of an escape, entity reference, etc. as literal
+characters, too. That should become optional.
+
+Total chars/block fails to print after last block, and resets just too late.
+
+With I<--showNames>, ASCII printables are just displayed literally. This
+is probably preferable as a default, but there should be an option to get the
+full names, like "LATIN CAPITAL LETTER A".
+
+=head1 Ownership
+
+This script was formerly known as 'nonascii'.
+
+Copyright 2006-2020, Steven J. DeRose.
+This work is licensed under a Creative Commons
+Attribution-Share Alike 3.0 Unported License. For further information on
+this license, see L<http://creativecommons.org/licenses/by-sa/3.0/>.
+
+For the most recent version, see L<http://www.derose.net/steve/utilities/> or
+L<http://github/com/sderose>.
+
+=head1 History
+
+=over
+
+=item * Written by Steven J. DeRose, 2006-04-27, as 'nonascii'.
+=item * 2007-09-xx sjd: fix table reporting bug.
+=item * 2008-04-24 sjd: Fix for BSD.
+=item * 2008-05-13 sjd: Report total % found.
+=item * 2009-05-05 sjd: Fix % reporting.
+=item * 2009-08-05 sjd: Add --g1names, --cp1252, --cpmac mnemonics, --unicode.
+=item * 2010-03-23 sjd: Add --tickInterval, perldoc. Bug w/ html entities.
+Clean up logic. Support U'xxxx, Javascript, and CSS. Add --all.
+Report character counts by escape type. Nicer names in report.
+=item * 2011-06-30 sjd: Start integrating HTML::Entities and TabularFormats.
+Refactor a little. Catch literal chars, duh.
+=item * 2011-07-14 sjd: Add --rank. Start merging countChars features.
+Rename to countChars.
+=item * 2011-08-03 sjd:  Implement --iencoding, --oencoding, --olineends.
+Suppress invalid utf8 warnings, add --fixBadUTF8 option. Localize $c.
+Rename --minCode and --maxCode, in favor of --ascii. Drop --cpmac.
+Make --cp1252 force --iencoding.
+=item * 2011-08-04 sjd:  --justCount -> --instances. Add --literals. Fix --ents.
+Fix --fcol/--lcol to --columns x-y. Add %byScript, %byBlock. Fix \f, \v.
+=item * 2012-03-07 sjd: Add --color.
+=item * 2012-07-02 sjd: Redo options for TF.
+=item * 2012-09-14 sjd: Fix so doesn't default to counting NO fields. Report speed.
+Add $expandingAnything, and save subr call if not in effect. Ditch --ascii.
+=item * 2012-09-19 sjd: Report % for representation form, Script, and Block.
+    Profile. Most time spend in Unicode::UCD::_search, so made --ustats option.
+=item * 2012-11-08 sjd: Check chars>127 for utf8 and count, display both ways?
+=item * 2012-11-30 sjd: Look up unicode scripts/blocks only once per code point.
+=item * 2012-12-13 sjd: Heading before each Unicode block in alpha list. Add U+XXXX.
+More work on handling invalid utf8.
+=item * 2013-01-14 sjd: Colorize headings. Sort --ustats output. Use eval(decode).
+Make STDIN work.
+=item * 2014-09-01ff: Only issue 'waiting' msg if -t STDIN. --. Latin1 totals. TF optional.
+Add -r option to deal with OANC-type files. Fix heading before new U. block.
+Add --strip, --stripIgnoreCase.
+=item * 2018-08-06: Add --useBinmode.
+=item * 2020-01-28: Fix display of some Unicode char names. Standardize doc.
+Add some display options.
+
+=back
+
+
+=head1 To do
+
+=over
+
+=item *     Identify HTML named entities
+=item *     Option to insert literal (or entity or \x) in output chart.
+=item *     Catch and complain about undetected UTF8, unicode coding errors (done?).
+=item *     Colorizing headings isn't working right.
+=item *     Color hyph/space/dash/quote green; non-word-chars outside ascii
+=item *     --first appears to be broken.
+=item *     --noascii appears to be broken.
+=item *     Lose local escaping and entities tables.
+=item *     Support colorizing in --instances reporting.
+=item *     Trap SIGINT and report partial results.
+=item *     Offer commentary on how far off from typical language norms.
+=item *     Port to Python and use powerWalk.py (esp. for --exclude option).
+
+=back
+
+=cut
+
 use strict;
 use Getopt::Long;
 use Encode;
@@ -63,8 +445,6 @@ use Unicode::UCD 'charblock';     # Unicode property access
 
 use sjdUtils;
 use alogging;
-
-our $VERSION_DATE = "2014-11-12";
 
 my $badUTFsubstitute = "?";       # See -fixBadUTF8 option
 
@@ -106,7 +486,10 @@ my $olineends         = "U";
 my $quiet             = 0;
 my $rank              = 0;       # Sort reports by descending frequency
 my $recursive         = 0;       # Handle whole input dirs.
-my $showhex           = 0;       # Show context in hex (else just as chars)
+my $showHex           = 0;       # Show context in hex (else just as chars)
+my $showLiteral       = 0;       # Show literal character in summary
+my $showNames         = 1;       # Show character names in summary
+my $showOctal         = 0;       # Show code point also in octal
 my $showUTF8          = 0;       # Show character's UTF-8 encoding
 my $strip             = "";      # Regex to remove from input before counting.
 my $stripIgnoreCase   = 0;       # Ignore case with --strip.
@@ -177,7 +560,10 @@ my %getoptHash = (
     "q|quiet!"             => \$quiet,
     "rank!"                => \$rank,
     "r|recursive!"         => \$recursive,
-    "showhex|hex!"         => \$showhex,
+    "showHex|hex!"         => \$showHex,
+    "showLiteral!"         => \$showLiteral,
+    "showNames!"           => \$showNames,
+    "showOctal!"           => \$showOctal,
     "showUTF8!"            => \$showUTF8,
     "strip=s"              => \$strip,
     "stripIgnoreCase|sic!" => \$stripIgnoreCase,
@@ -218,7 +604,7 @@ sjdUtils::setColors($color);
 # Validate and default options
 #
 if ($ents) {
-    try_module("TabularFormats") ||
+    try_module("HTML::Entities") ||
         die "HTML::Entities package not installed.\n";
 }
 
@@ -270,7 +656,7 @@ alogging::vMsg(1,"instStart/instEnds entries: " . scalar(@instStarts));
 # Default context length depends on output format
 #
 ($context >= 0) || die "-context value too small.\n";
-if ($showhex) { $context /= 4; }
+if ($showHex) { $context /= 4; }
 my $pad = (" " x $context);
 
 ($minFreq < 0) && die "-minFreq value too small.\n";
@@ -299,6 +685,8 @@ if ($olineends) {
 # Create an array of short names for the C0 and C1 control characters
 # PAD, HOP, and SGCI are listed as "XXX" in Unicode (acc. Wikipedia).
 #
+my $UNK = "-?";
+
 my @C0names = (
           "NUL", "SOH", "STX", "ETX", "EOT", "ENQ", "ACK", "BEL",
           "BS ", "HT ", "LF ", "VT ", "FF ", "CR ", "SO ", "SI ",
@@ -316,14 +704,14 @@ my @C1names = (
 # Microsoft "code page 1252" (HTML entity names where handy)
 #
 my @C1names1252 = (
-    "Euro",   "-?-",    "low9",   "Fhook",      # x80-
+    "Euro",    $UNK,    "low9",   "Fhook",      # x80-
     "low99",  "hellip", "dagger", "ddag",       # x84-
     "circ",   "permil", "Scaron", "laquo",      # x88-
-    "OElig",  "-?-",    "Zcaron", "-?-",        # x8C-
-    "-?-",    "lquo",   "rquo",   "llquo",      # x90-
+    "OElig",   $UNK,    "Zcaron",  $UNK,        # x8C-
+     $UNK,    "lquo",   "rquo",   "llquo",      # x90-
     "rrquo",  "bull",   "ndash",  "mdash",      # x94-
     "stilde", "trade",  "scaron", "raquo",      # x98-
-    "oelig",  "-?-",    "zcaron", "ydiaer",     # x9C-
+    "oelig",   $UNK,    "zcaron", "ydiaer",     # x9C-
     "NBS");
 
 # Apple code page (pre-OS-X; OS X uses UTF-8) -- UNUSED for now
@@ -690,7 +1078,7 @@ sub scream {
     my $forms = sprintf("(0%o, d%d, x%X)", $n, $n, $n);
     my $cname = sjdUtils::colorize("red", charnames::viacode($n) || "?????");
     print "Character $forms: '$cname'\n    at line $linenum, column $col of $path:\n";
-    if ($showhex) {
+    if ($showHex) {
         my $asc = my $hex = "";
         for (my $c=$col; $c<$col+$context*2+1; $c++) {
             my $curChar = substr($tline,$c,1);
@@ -855,14 +1243,32 @@ sub byRank {
     return($a cmp $b);
 }
 
+
+###############################################################################
+# Print a one-line summary about one code point and its usage.
+#
 BEGIN {
     my $last = 0;
     my $lastBlock = "";
 
     sub reportHeading {
         print "\n";
-        my $head = "   Hex   Decimal       Freq     Percent   Character";
-        if ($showUTF8) { $head .= (" " x ($widthReport-2)) . "UTF-8"; }
+        my $head = sprintf(" %5s", "Hex");
+        $head .= sprintf("  %8s", "Decimal");
+        if ($showOctal) {
+            $head .= sprintf(" %10s", "Octal");
+        }
+        if ($showLiteral) {
+            $head .= sprintf(" %3s", "Lit");
+        }
+        if ($showUTF8) {
+            $head .= $head .= (" " x ($widthReport-2)) . "UTF-8";
+        }
+        $head .= sprintf(" %10s %10s ", "Freq", "Percent");
+        if ($showNames) {
+            $head .= sprintf(" %s", " Unicode Name");
+        }
+
         if ($color) {
             $head = sjdUtils::colorize("magenta", $head);
         }
@@ -878,16 +1284,25 @@ BEGIN {
         return if ($maxFreq && $freqs[$i] > $maxFreq);
 
         my $pct = ($freqs[$i] * 100.0) / ($charCount-0.0);
-        my $disp = sprintf(
-            "x%05X d%08d %10d %10.6f%%  %s",
-            $i, $i, $freqs[$i], $pct, ascdisplay($i,$widthReport));
-        if ($showUTF8) {
-            $disp .= " " . sjdUtils::getUTF8($i, "");
+        my $toPrint = sprintf("x%05X d%08d", $i, $i);
+        if ($showOctal) {
+            $toPrint .= sprintf(" %10o", $i);
         }
+        if ($showLiteral) {
+            $toPrint .= sprintf(" '%c'", chr($i));
+        }
+        if ($showUTF8) {
+            $toPrint .= " " . sjdUtils::getUTF8($i, "");
+        }
+        $toPrint .= sprintf(" %10d %10.6f%%", $freqs[$i], $pct);
+        if ($showNames) {
+            $toPrint .= sprintf(" %s", ascdisplay($i, 0));
+        }
+
         if ($color) {
             if (($i<32) ||
                 ($i>127 && $i<160)) {
-                $disp = sjdUtils::colorize("red", $disp);
+                $toPrint = sjdUtils::colorize("red", $toPrint);
             }
         }
 
@@ -905,16 +1320,17 @@ BEGIN {
             }
         }
         if ($color && $i>=128 && $i<=159) {
-            $disp =~ s/\s+$//;
-            $disp = $cred . $disp . " (CP1252: " . getCP1252name($i) . ")" . $coff;
+            $toPrint =~ s/\s+$//;
+            $toPrint = $cred . $toPrint . " (CP1252: " . getCP1252name($i) . ")" . $coff;
         }
-        print "$disp\n";
+        print "$toPrint\n";
         $last = $i;
     }
 } # END
 
 
 ###############################################################################
+# Generate a printable ASCII name/description/mnemonic for a code point.
 # Always return $width columns (plus one leading space), so things line up.
 #
 sub ascdisplay {
@@ -929,13 +1345,15 @@ sub ascdisplay {
     }
     elsif ($n<256)  {                                 # G1
 	    if ($g1names && defined $htmlNames[$n])
-					  { $rc = $htmlNames[$n]; }
-		else          { $rc = "-?-"; }
+			{ $rc = $htmlNames[$n]; }
+		else {
+            $rc = charnames::viacode($n);
+            if (!$rc) { $rc = $UNK; }
+        }
     }
     else {                                            # On beyond zebra
 	    $rc = charnames::viacode($n);
-        if (!$rc) { $rc = "???"; }
-	    # $rc = "-?-";
+        if (!$rc) { $rc = $UNK; }
     }
     my $paddingNeeded = $width - length(" $rc");
     if ($paddingNeeded < 0) { $paddingNeeded = 0; }
@@ -1034,349 +1452,4 @@ BEGIN {
         return($cp1252Names[$n] || "???");
     }
 } # END
-
-
-
-###############################################################################
-###############################################################################
-###############################################################################
-#
-
-=pod
-
-=head1 Usage
-
-countChars [options] [files]
-
-Finds and reports on what characters occur in I<files> (or STDIN), and
-how often. It can handle many encodings, and many "escaped" representations
-such as \n, &#65;, \uBEEF, etc.
-
-By default (see I<--count>), reports the total number of occurrences of
-all characters, and the number of character instances for
-each Unicode "Script" and "Block". To sort by number of occurrences (rank)
-instead of character code point frequency, use I<--rank>.
-
-B<Note>: Be sure to set the character encoding if applicable,
-using I<--unicode>, I<--cp1252>, or I<--iencoding> (see also I<--listEncodings>).
-If you don't specify an encoding, it will make the best of things,
-which basically means use bytes raw.
-
-For example, to run this over the merged OANC corpus:
-
-    countChars -r -strip '<[^>]+>' written_* >charCounts.txt
-
-By default, this script only detects literal characters (see I<--literals>).
-However, there are options for catching many alternate representations
-(see next section).
-
-Can also report each individual instance of characters in a given range or
-ranges (see I<--instances>).
-
-To restrict processing to certain parts of each record,
-see I<--strip>, I<--columns>, and L<Options for TabularFormats> below).
-Column or field selection requires installation of the C<TabularFormats> module.
-
-
-
-=head1 Options for characters and types of representations to catch
-
-=over
-
-=item * B<--all>
-
-Try to catch characters represented in all of the known forms.
-
-=item * B<--controls>
-
-Catch any control chars except \\n\\r\\t.
-
-=item * B<--css>
-
-Catch CSS \\-escapes.
-
-=item * B<--ents>
-
-Catch HTML named entities.
-
-=item * B<--javascript> or B<--perl>
-
-Catch various \\-escapes as used in many programming and scripting languages.
-
-=item * B<--literals>
-
-Catch literal instances of the character (default).
-
-=item * B<--upop>
-
-Catch Unicode U'xxxx escapes.
-
-=item * B<--uri>
-
-Catch URI %xx-escapes.
-
-=item * B<--xml>
-
-Catch XML C<&#ddd;> and C<&#Xxxxx;> numeric character references.
-This script cannot identify named character references specifically,
-but counts how many there are, at least.
-
-=back
-
-
-
-=head1 Other options
-
-(use '-no...' to negate where applicable)
-
-=over
-
-=item * B<--blank>
-
-With I<--count>, add blank lines for readability (default).
-
-=item * B<--color>
-
-Colorize the output for readability. In particular, color headings
-and the frequency-report lines for control characters.
-Defaults to on if environment variable C<USE_COLOR> is set and
-STDERR is going to a terminal.
-
-=item * B<--cols> I<f-l>
-
-Look only in columns I<f> through I<l> (counting from 1, not 0!).
-Columns can be specified in decimal, octal, or hexadecimal. Repeatable.
-
-=item * B<--context> I<n>
-
-How many chars to show to each side (only makes sense with I<--instances>).
-
-=item * B<--count>
-
-Show a table of how many times each char was found (see also I<--rank>).
-(default: on).
-
-=item * B<--cp1252>
-
-Synonym for I<--iencoding encoding(cp1252)>, and also
-shows mnemonics for MS code page 1252 x80-x9F chars (these code points
-are not assigned to graphical characters in most other character sets).
-
-=item * B<--fields> I<f>
-
-Look only in field I<f> (counting from 1, not 0!) of each line.
-Repeatable. Default: all fields.
-See also L<Options for TabularFormats> below).
-
-=item * B<--files-only>
-
-Only allow file arguments, not stdin.
-
-=item * B<--files-with-matches> OR B<-l>
-
-Just report the filename if any reportable chars were found (see I<--instances>).
-
-=item * B<--first>
-
-Report where the first occurrence of each distinct character (code point)
-appeared (this is good for finding characters you didn't want).
-
-=item * B<fixBadUTF8>
-
-Requires I<--iencoding utf8> (or the synonymous I<--unicode>).
-Makes a pre-pass over every record, to turn any byte sequences that are not
-valid UTF8, into a substitute character (default "?").
-
-=item * B<--g1names>
-
-Show names for G1 characters (xA0-xFF).
-
-=item * B<--hex>
-
-Synonym for I<--showHex>.
-
-=item * B<--iencoding> I<e>
-
-Assume the input data is in character encoding I<e>.
-
-=item * B<--ignoreCase> or B<-i>
-
-Disregard upper/lower case distinctions.
-
-=item * B<--includeG0>
-
-Include ASCII G0 characters (d32 to d127) in detection and reporting (default).
-If you turn this off, only characters outside the G0 range are reported.
-
-=item * B<--ilineends> I<type>
-
-Input data has Unix, Dos, or Mac line-ends.
-
-=item * B<--instances> I<from-to>
-
-Report individual occurrences of characters whose code points are
-at least I<from> and at most I<to> (can be specified
-in decimal, octal, or hex). Repeatable.
-
-=item * B<--listEncodings>
-
-Show all the encodings supported by I<--iencoding>, and exit.
-
-=item * B<--maxFreq> I<n>
-
-Only report for code points that occur <= I<n> times. Default: 0 (all).
-
-=item * B<--minFreq> I<n>
-
-Only report for code points that occur >= I<n> times. Default: 0 (all).
-
-=item * B<--names>
-
-In the report, show the (Unicode) name for each character.
-
-=item * B<--oencoding> I<e>
-
-Specify character encoding for output.
-
-=item * B<--olineends> I<t>
-
-Write Unix, Dos, or Mac line-breaks for output.
-
-=item * B<--perl>
-
-Detect Perl/C/etc backslash-codes (see I<man perlrebackslash>),
-such as \\, \n, \r, \000, \x{FFFF}, \uFFFFF, etc.
-However, \N{unicode-name} is not yet supported.
-(unfinished)
-
-=item * B<--quiet> OR B<-q>
-Suppress most messages, and line-by-line reporting.
-
-=item * B<--rank>
-
-Sort the I<--count> and I<--stats> output by frequency rather than code point.
-
-=item * B<--showHex>
-
-Display context of found chars in hexadecimal rather than literally
-(see I<--instances>).
-
-=item * B<--showUTF8>
-
-In the report, show the UTF-8 encoding for characters.
-
-=item * B<--strip> I<regex>
-
-Before counting, remove all matches of I<regex> from each input record.
-This can be use to remove punctuation, comments, markup, etc.
-Each match is confined to a single line; thus, this is not completely adequate
-for stripping XML markup if tags are broken across lines.
-See also I<--stripIgnoreCase>.
-
-=item * B<--stripIgnoreCase> OR I<sic>
-
-When matching a I<--strip> regex, ignore case. Not to be confused with
-I<--ignoreCase>.
-
-=item * B<--tickInterval> I<n>
-
-Report progress every I<n> records. Default: 2000.
-Expect a few tens of K characters per second.
-
-=item * B<--unicode>
-
-Synonym for I<--iencoding utf8>.  See also I<--useBinmode>.
-
-=item * B<--useBinmode>
-
-When using I<--iencoding>, do the decoding by applying C<binmode>() to the
-file handle, rather than Perl's B<Decode::encode()>. Default.
-
-=item * B<--ustats>
-
-Report the number of characters instances found, that are from
-each specific Unicode "Script" and "Block". Default: on.
-
-=item * B<--verbose> OR B<-v>
-
-Add more detailed messages (repeatable).
-
-=item * B<--version>
-
-Show version information and exit.
-
-=back
-
-
-
-=head2 Options for TabularFormats
-
-By default, whole records are examined. The options of C<TabularFormats.pm>
-can be used to parse a variety of input data (JSON, SEXP, CSV,...)
-into fields, and then examine only certain selected fields (see I<--columns>,
-above).
-
-See C<TabularFormats.pm> for information on its options.
-For CSV-ish files, the most significant options are I<fieldSep>.
-
-
-=head1 Related Files
-
-F<DATA/UnicodeSamples/utf8sampler.txt> -- a sample of UTF-8 with a wide variety
-of blocks represented.
-
-=head1 Related commands
-
-=over
-
-=item * C<dumpx> Nice display of data in whatever bases
-(like I<od> but better).
-
-=item * C<showNumberInBases>
-Convert a number to multiple bases, and to ASCII or utf-8.
-
-=item * C<chr> and C<ord> convert between code point numbers and characters.
-
-=item * C<iconv> Convert text from one encoding to another.
-Also use C<iconv -f utf8 [file]> to check for invalid utf-8.
-
-=item * L<http://people.w3.org/rishida/scripts/uniview/conversion> has a nice
-gadget to convert between many possible representations of unicode.
-
-=item * C<makeUnicodeData> can generate a file in various forms that includes
-examples of all the characters in a given range and their properties.
-
-=item * C<TabularFormats.pm> provides support for the I<--fields> option.
-This is included if the package is available, but only gives a warning otherwise,
-so C<countChars> can continue to run, just without the relevant options.
-
-=back
-
-
-
-=head1 Known bugs and limitations
-
-Produces excessive warnings on invalid utf-8.
-Use I<iconv> first if needed, to detect/fix invalid utf-8 values.
-
-Cannot count characters above U+FF00, for unknown reasons. It should skip them
-safely.
-
-Counts the components of an escape, entity reference, etc. as literal
-characters, too. That should become optional.
-
-Total chars/block fails to print after last block, and resets just too late.
-
-
-=head1 Ownership
-
-This script was formerly known as 'nonascii'.
-
-This work by Steven J. DeRose is licensed under a Creative Commons
-Attribution-Share Alike 3.0 Unported License. For further information on
-this license, see L<http://creativecommons.org/licenses/by-sa/3.0/>.
-
-For the most recent version, see L<http://www.derose.net/steve/utilities/>.
-
-=cut
 
