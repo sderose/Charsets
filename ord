@@ -2,42 +2,6 @@
 #
 # ord: By Steven J. DeRose, 2007-10.
 #
-# 2007-11-22 sjd:  Accept control-char mnemonics as input. Getopt.
-#     Add binary and long-name output.
-# 2008-02-14 sjd: Multiple input chars. setupCharacterNames(). Unify $fmt.
-#     Add longNames for G0 and G1. Add --g0, --g1. perl -w.
-# 2008-09-03 sjd: Move to BSD. Improve doc.
-# 2008-09-16 sjd: Better handling of Unicode input.
-# 2010-01-06 sjd: Use 'charnames' to know Unicode names. Add --binary.
-#     Make print utf-8 and actual Unicode character. Format binary better.
-# 2010-05-03 sjd: perldoc. Unify formatting. Add Unix Jargon names, rest of
-#     short names. Make user use "_" in.
-# 2011-08-23 sjd: Add options to control each display form separately.
-#     Start --cp1252.
-# 2011-12-11 sjd: Add utf-8 output. Opt out of longNames (lists of
-#     char names -- now using viacode instead).
-# 2012-01-10 sjd: Cleanup. Lose internal 'longNames' lists.
-# 2012-08-15 sjd: sjdUtils, and use getUTF8().
-# 2013-06-17ff sjd: Add --entities, esp. HTML named ones. Add showUnicodeInfo().
-# 2014-09-02: Clean up.
-# 2015-08-15ff: Add formats PYTHONS, PYTHONU; rename format PYTHON to PYTHONN.
-#     Finish --find. Display control-char mnemonics.
-# 2016-01-08: Add --math and --digits.
-# 2016-02-18: Add --regex, --listFormat CHART and HTML.
-#     Warn if env LANG not utf-8. Recognize html entity names, C-J, ^J, etc.
-# 2016-08-30: Get rid of sjdUtils.pm dependencies.
-# 2016-09-05: Add --iconv option.
-# 2018-01-19: Add --pairs.
-# 2020-01-03: Add --minU.
-#
-# To do:
-#     Port to Python, using CharDisplay.
-#     Integrate remainder of 'chr' command functionality.
-#         Catch utf8 hex input.
-#     Way to print/export remaining Unicode char properties
-#     Separate digits from math; handle the exceptions.
-#     Make --typing show how to key on various systems?
-#
 use strict;
 use Getopt::Long;
 use charnames ':full';
@@ -48,8 +12,396 @@ use Encode;
 
 #use sjdUtils;  # getUTF8(), isUnicodeCodePoint() are copied locally.
 
-our $VERSION_DATE = "2018-01-19";
+our %metadata = (
+    'title'        => "ord",
+    'rightsHolder' => "Steven J. DeRose",
+    'creator'      => "http://viaf.org/viaf/50334488",
+    'type'         => "http://purl.org/dc/dcmitype/Software",
+    'language'     => "Perl 5.18",
+    'created'      => "2007-10",
+    'modified'     => "2020-01-29",
+    'publisher'    => "http://github.com/sderose",
+    'license'      => "https://creativecommons.org/licenses/by-sa/3.0/"
+);
+our $VERSION_DATE = $metadata{'modified'};
 
+=pod
+
+=encoding utf8
+
+=head1 Usage
+
+ord [options] [chars|mnemonics]
+
+Displays Unicode character code point numbers and other information
+about a character(s). For example, "ord BULLET" produces:
+
+    Unicode Name:    BULLET
+    Unicode Script:  Common
+    Unicode Block:   General Punctuation
+    Unicode Plane:   0: Basic Multilingual
+    Literal:         •
+    Bases:           o20042 d8226 x2022
+    Unicode:         U+2022, utf8 \xe2\x80\xa2
+    Entities:        &#8226; &#x2022; &bull;
+    Nearest ASCII:
+
+You can specify the character(s) to describe in several ways:
+
+=over
+
+=item * via a numeric code point, in octal, decimal, or hex,
+e.g. C<012>, C<10>, or C<0xB9>.
+
+=item * For control characters, their short mnemonics such as C<LF>,
+or the control-letter equivalent such as C<C-J> or C<^J>.
+
+=item * Full Unicode names like "APL FUNCTIONAL SYMBOL LEFTWARDS VANE",
+ignoring case. But if there are spaces in the name, you need to
+quote it or use "_" instead of each space.
+
+You can now search for incomplete names using the I<--find>
+or I<--regex> option.
+
+=item * A fairly large selection of *nix jargon names (likewise,
+quote them if they contain spaces).
+
+=back
+
+Default output includes the character's short name, code point number
+(in hexadecimal, decimal, octal, and optional I<--binary>), utf-8 coding in hex,
+Unicode long name, Unix Jargon file names for the character,
+and the literal character itself.
+
+With I<--find> or I<--regex>, you can retrieve the
+code points and names of all matching Unicode characters. For example, to
+gather up all the Unicode characters whose formal names include "star", say:
+    ord --find star
+
+This may not get all and only stars, much less all characters one might consider
+using for the purpose one has in mind -- for example "*" (asterisk) does not have
+"star" in its name (not to mention other asterisks, snowflakes, florettes,
+and sparkles),
+and not all characters with "star" in their name may be desired.
+
+The resulting list can also be written out as sets of declarations for various
+languages (see B<--listFormat>).
+
+
+
+=head1 Options
+
+(prefix 'no' to option name to negate where applicable)
+
+=over
+
+=item * B<--binary>
+
+Show code points in binary.
+
+=item * B<--chart>
+
+Show a chart of character values and mnemonics.
+See also I<--c0>, I<--c1>, I<--g0>, I<--g1>, I<--digits>,
+and I<--math> for partial charts.
+
+=item * B<--cp1252>
+
+Assume char set is cp1252.
+
+=item * B<--c0>
+
+Same as I<--chart>, but only for C0 range (d0-d31).
+
+=item * B<--c1>
+
+Same as I<--chart>, but only for C1 range (d128-d159).
+
+=item * B<--decimal>
+
+Display code points in decimal (default).
+
+=item * B<--digits>
+
+Show a chart with of Unicode digits.
+Some of these are font/style variations, similar to the alphabets
+listable using I<--math>; others are digits from non-Latin writing systems.
+See also I<--chart>.
+
+=item * B<--entities>
+
+Display the named HTML special-character entity (if any), and the
+SGML/HTML/XML numeric character references (decimal and hexadecimal).
+
+=item * B<--find>
+
+Return all Unicode character names that contain the main argument (this also
+happens if nothing is found another way). This is a little slow.
+
+B<Note>: By default this only searches the BMP (code points up to 65535).
+To search further, use I<--maxU>
+
+See also I<--listFormat>, I<--regex>, and I<--maxU>.
+
+=item * B<--g0>
+
+Same as I<--chart>, but only for G0 range (d32-d127).
+
+=item * B<--g1>
+
+Same as I<--chart>, but only for G1 range (d160-d255).
+
+=item * B<--hex>
+
+Display code points in hexadecimal (default).
+
+=item * B<--iconv>
+
+For code points >= 128, in addition to the usual display
+show the nearest ASCII equivalent, as determined by C<iconv> (q.v.).
+Default: off. This requires the Perl Text::Iconv package.
+
+B<Note>: C<iconv>'s mapping may or may not be what you want
+in a given situation. For example, accented Latin letters
+and Mathematical variants of Latin letters reduce to the plain ASCII letters,
+Some characters, such as ligatures and the U+24xx "Control symbols, map
+to multiple ASCII characters.
+
+But Greek letters do not map at all, even when they are very closely related
+typographically, historically, and phonetically (for example,
+upper-case alpha (U+0391) vs. A (U+0041)).
+Likewise for non-breaking space (U+A0).
+
+In addition, not all implementations of C<iconv>
+work identically (though perhaps Perl versions always use the same one?
+Don't know).
+
+=item * B<--jargon>
+
+Display applicable *nix jargon names (default).
+
+=item * B<--listFormat> I<f>
+
+Choose the output layout for results from I<--find> or I<--regex>:
+
+=over
+
+=item * PLAIN (default): The hex code point and the name, tab-separated.
+
+=item * LITERAL:  Like PLAIN, but also showing the actual graphic character.
+
+=item * PERL: Hash entries, from hex code point to name.
+
+=item * PYTHONN: Dict entries, from hex code point to name.
+
+=item * PYTHONC: Dict entries, from unichr(hex code point) to name.
+
+=item * PYTHONS: A Python string constructed from the characters, each
+expressed like I<unichr(0xffff)>.
+
+=item * PYTHONU: A Python string constructed from the characters, each
+expressed like I<u'\uffff'>.
+
+=item * INFO: A display like the output for single characters.
+
+=item * HTML: HTML table rows with columns for the code point in hex
+and the character name.
+
+=back
+
+Of course, for other layouts you can choose the nearest of these and
+post-process as desired.
+
+=item * B<--literal>
+
+Include display of the literal character in output (default).
+You may wish to turn this off (I<--no-literal>) if your output device
+can't handle UTF-8 (you may also wish to get a new output device).
+
+=item * B<--long>
+
+Show long names for characters (default).
+
+=item * B<--math>
+
+Show a display with all the mathematical variants of the Latin
+and Greek alphabets. See also I<--chart>.
+
+=item * B<--maxU> I<n>
+
+Only search Unicode characters up through code point I<n> when using
+I<--find>, or trying to resolve an unrecognized name. Default: 65535.
+Numeric options such as I<--max> can be specified in base 8, 10, or 16.
+
+=item * B<--octal>
+
+Display code points in octal (default).
+
+=item * B<--pairs>
+
+Make a valiant attempt to find symmetric pairs of characters, such as ones
+whose names differ only in having "left" vs. "right", "open" vs. "close",
+"begin" vs. "end", etc. Write them out as pairs.
+Does not do "vertical" pairs, though tweaking the code for that is trivial.
+
+=item * B<--regex>
+
+Like I<--find> (q.v.), but returns any characters whose names match the
+given (Perl-style) regex. Implies I<--find>.
+
+=item * B<--short>
+
+Show short names for characters.
+
+=item * B<--typing>
+
+For non-ASCII characters, show how to key it (not yet supported, and of course
+system-dependent).
+
+=item * B<--utf8>
+
+Show UTF-8 byte sequence for the character (default).
+This will also show the %-escape sequence needed to express the character
+in a URI, or "(ok)" if the character is allowed in URIs.
+Characters that may be, but are not always, special in URIs
+('/%&:;=?@'), are listed by their escapes.
+
+=item * B<--version>
+
+Show version/license info and exit.
+
+=back
+
+=head2 Note
+
+You need to backslash and/or quote some characters to use them as arguments:
+
+    sp  (x20,  d32,  o40)
+    \"  (x22,  d34,  o42)
+    \#  (x23,  d35,  o43)
+    \&  (x26,  d38,  o46)
+    \'  (x27,  d39,  o47)
+    \(  (x28,  d40,  o50)
+    \)  (x29,  d41,  o51)
+    \+  (x2b,  d43,  053)
+        (or, you can precede this with '--' (end-of-options)
+    \;  (x3b,  d59,  o73)
+    \<  (x3c,  d60,  o74)
+    \>  (x3e,  d62,  o76)
+    \\  (x5c,  d92, o134)
+    \`  (x60,  d96, o140)
+    \|  (x7c, d124, o174)
+
+And some you can't escape in some shells, including:
+
+    \\t (x09,  d09,  o11) HT
+    \\n (x0a,  d10,  o12) LF (you can put the newline in double-quotes)
+    \\r (x0d,  d13,  o15) CR (you can put the return in double-quotes)
+
+
+=head1 Known bugs and limitations
+
+Even with a Unicode-enabled terminal such as C<uxterm>, a character > 255
+may appear to be length > 1, and so will be taken as a name. But when
+the name is not found, we print out the value anyway.
+
+For --pairs, in addition to a list of keywords, the code has a list of character pairs that can be considered symmetric but whose names don't contain the various keywords. But they aren't showing up yet.
+
+
+=head1 Related commands
+
+C<chr> -- Does the reverse.
+
+C<showNumberInBases> -- Converts a number to multiple bases.
+
+C<mathUnicode.py> -- class to map Latin, Greek, digits to alternate
+forms such as Mathematical double-struck, etc.
+
+
+=head1 Ownership
+
+This work by Steven J. DeRose is licensed under a Creative Commons
+Attribution-Share Alike 3.0 Unported License. For further information on
+this license, see L<http://creativecommons.org/licenses/by-sa/3.0/>.
+
+For the most recent version, see L<http://www.derose.net/steve/utilities/>.
+
+
+=head1 History
+
+=over
+
+=item * 2007-11-22 sjd:  Accept control-char mnemonics as input. Getopt.
+Add binary and long-name output.
+
+=item * 2008-02-14 sjd: Multiple input chars. setupCharacterNames(). Unify $fmt.
+Add longNames for G0 and G1. Add --g0, --g1. perl -w.
+
+=item * 2008-09-03 sjd: Move to BSD. Improve doc.
+
+=item * 2008-09-16 sjd: Better handling of Unicode input.
+
+=item * 2010-01-06 sjd: Use 'charnames' to know Unicode names. Add --binary.
+Make print utf-8 and actual Unicode character. Format binary better.
+
+=item * 2010-05-03 sjd: perldoc. Unify formatting. Add Unix Jargon names, rest of
+short names. Make user use "_" in.
+
+=item * 2011-08-23 sjd: Add options to control each display form separately.
+Start --cp1252.
+
+=item * 2011-12-11 sjd: Add utf-8 output. Opt out of longNames (lists of
+char names -- now using viacode instead).
+
+=item * 2012-01-10 sjd: Cleanup. Lose internal 'longNames' lists.
+
+=item * 2012-08-15 sjd: sjdUtils, and use getUTF8().
+
+=item * 2013-06-17ff sjd: Add --entities, esp. HTML named ones. Add showUnicodeInfo().
+
+=item * 2014-09-02: Clean up.
+
+=item * 2015-08-15ff: Add formats PYTHONS, PYTHONU; rename format PYTHON to PYTHONN.
+Finish --find. Display control-char mnemonics.
+
+=item * 2016-01-08: Add --math and --digits.
+
+=item * 2016-02-18: Add --regex, --listFormat CHART and HTML.
+Warn if env LANG not utf-8. Recognize html entity names, C-J, ^J, etc.
+
+=item * 2016-08-30: Get rid of sjdUtils.pm dependencies.
+
+=item * 2016-09-05: Add --iconv option.
+
+=item * 2018-01-19: Add --pairs.
+
+=item * 2020-01-03: Add --minU.
+
+=back
+
+
+=head1 To do
+
+=over
+
+=item * Port to Python, using CharDisplay.
+
+=item * Integrate remainder of 'chr' command functionality.
+
+=item * Catch utf8 hex input.
+
+=item * Way to print/export remaining Unicode char properties
+
+=item * Separate digits from math; handle the exceptions.
+
+=item * Make --typing show how to key on various systems?
+
+=back
+
+=cut
+
+###############################################################################
+#
 my @C0names     = ();
 my @G0names     = ();
 my @C1names     = ();
@@ -67,6 +419,8 @@ setupUnixJargon();
 my ($mathAlphabets, $mathGreeks, $digitSets, %mathMissing);
 setupMathAlphabets();
 
+# Option defaults
+#
 my $binary      = 0;
 my $chart       = 0;
 my $cp1252      = 0;
@@ -152,7 +506,7 @@ $listFormat = uc($listFormat);
 
 binmode(STDOUT, ":encoding(utf8)");
 if ($ENV{"LANG"} !~ m/UTF-?8/i) {
-	warn "Warning: LANG environment variable does not mention UTF-8.\n";
+    warn "Warning: LANG environment variable does not mention UTF-8.\n";
 }
 
 ###############################################################################
@@ -343,39 +697,35 @@ if ($pairs) {
 # (Data also available in tupleSets/cp1252.xsv, and in 'chr')
 #
 my %cp1252 = (
-    0x80 => 0x20AC,   # EURO SIGN
-    0x82 => 0x201A,   # SINGLE LOW-9 QUOTATION MARK
-    0x83 => 0x0192,   # LATIN SMALL LETTER F WITH HOOK
-    0x84 => 0x201E,   # DOUBLE LOW-9 QUOTATION MARK
-    0x85 => 0x2026,   # HORIZONTAL ELLIPSIS
-    0x86 => 0x2020,   # DAGGER
-    0x87 => 0x2021,   # DOUBLE DAGGER
-    0x88 => 0x02C6,   # MODIFIER LETTER CIRCUMFLEX ACCENT
-    0x89 => 0x2030,   # PER MILLE SIGN
-    0x8A => 0x0160,   # LATIN CAPITAL LETTER S WITH CARON
-    0x8B => 0x2039,   # SINGLE LEFT-POINTING ANGLE QUOTATION MARK
-    0x8C => 0x0152,   # LATIN CAPITAL LIGATURE OE
-    0x8E => 0x017D,   # LATIN CAPITAL LETTER Z WITH CARON
-    0x91 => 0x2018,   # LEFT SINGLE QUOTATION MARK
-    0x92 => 0x2019,   # RIGHT SINGLE QUOTATION MARK
-    0x93 => 0x201C,   # LEFT DOUBLE QUOTATION MARK
-    0x94 => 0x201D,   # RIGHT DOUBLE QUOTATION MARK
-    0x95 => 0x2022,   # BULLET
-    0x96 => 0x2013,   # EN DASH
-    0x97 => 0x2014,   # EM DASH
-    0x98 => 0x02DC,   # SMALL TILDE
-    0x99 => 0x2122,   # TRADE MARK SIGN
-    0x9A => 0x0161,   # LATIN SMALL LETTER S WITH CARON
-    0x9B => 0x203A,   # SINGLE RIGHT-POINTING ANGLE QUOTATION MARK
-    0x9C => 0x0153,   # LATIN SMALL LIGATURE OE
-    0x9E => 0x017E,   # LATIN SMALL LETTER Z WITH CARON
-    0x9F => 0x0178,   # LATIN CAPITAL LETTER Y WITH DIAERESIS
+    # CP1252 => Unicode
+    0x000080 => 0x20AC,   # EURO SIGN
+    0x000082 => 0x201A,   # SINGLE LOW-9 QUOTATION MARK
+    0x000083 => 0x0192,   # LATIN SMALL LETTER F WITH HOOK
+    0x000084 => 0x201E,   # DOUBLE LOW-9 QUOTATION MARK
+    0x000085 => 0x2026,   # HORIZONTAL ELLIPSIS
+    0x000086 => 0x2020,   # DAGGER
+    0x000087 => 0x2021,   # DOUBLE DAGGER
+    0x000088 => 0x02C6,   # MODIFIER LETTER CIRCUMFLEX ACCENT
+    0x000089 => 0x2030,   # PER MILLE SIGN
+    0x00008A => 0x0160,   # LATIN CAPITAL LETTER S WITH CARON
+    0x00008B => 0x2039,   # SINGLE LEFT-POINTING ANGLE QUOTATION MARK
+    0x00008C => 0x0152,   # LATIN CAPITAL LIGATURE OE
+    0x00008E => 0x017D,   # LATIN CAPITAL LETTER Z WITH CARON
+    0x000091 => 0x2018,   # LEFT SINGLE QUOTATION MARK
+    0x000092 => 0x2019,   # RIGHT SINGLE QUOTATION MARK
+    0x000093 => 0x201C,   # LEFT DOUBLE QUOTATION MARK
+    0x000094 => 0x201D,   # RIGHT DOUBLE QUOTATION MARK
+    0x000095 => 0x2022,   # BULLET
+    0x000096 => 0x2013,   # EN DASH
+    0x000097 => 0x2014,   # EM DASH
+    0x000098 => 0x02DC,   # SMALL TILDE
+    0x000099 => 0x2122,   # TRADE MARK SIGN
+    0x00009A => 0x0161,   # LATIN SMALL LETTER S WITH CARON
+    0x00009B => 0x203A,   # SINGLE RIGHT-POINTING ANGLE QUOTATION MARK
+    0x00009C => 0x0153,   # LATIN SMALL LIGATURE OE
+    0x00009E => 0x017E,   # LATIN SMALL LETTER Z WITH CARON
+    0x00009F => 0x0178,   # LATIN CAPITAL LETTER Y WITH DIAERESIS
     );
-
-
-###############################################################################
-# (from sjdUtils.pm)
-###############################################################################
 
 # Return the UTF-8 byte sequences for a given character code,
 # punctuated as needed to put in a URI.
@@ -393,10 +743,16 @@ sub getUTF8local {
 
 sub isUnicodeCodePoint {
     my ($n) = @_;
-    if ($n  < 0x000000 || $n  > 0x10FFFF ||
-        $n == 0x00FFFE || $n == 0x00FFFF ||
-        ($n >= 0x000080 && $n < 0x0000a0)
+    if ($n  < 0x000000 || $n  > 0x10FFFF
+        ||  $n == 0x00E000 || $n == 0x00F8FF
+       #|| ($n >= 0x00FFFE && $n <= 0x00FFFF)     # Private use area
+       #|| ($n >= 0x0F0000 && $n <= 0x0FFFFD))    # Private use A
+       #|| ($n >= 0x100000 && $n <= 0x10FFFD)     # Private use B
+       #|| ($n >= 0x000080 && $n <= 0x00009F)     # C1 control chars
+        || ($n >= 0x002060 && $n <= 0x002069)     # reserved format and control
+        || ($n >= 0x0E0000 && $n <= 0x0E1000)     # reserved format and control
         ) { return(0); }
+    if (!charnames::viacode($n)) { return(0); }   # Perl can't find a name
     return(1);
 }
 
@@ -413,17 +769,17 @@ binmode(STDOUT,":utf8");
         . " information on hard-to-type characters).\n";
 
 while (my $origName = shift) {
-	my $name = $origName;
+    my $name = $origName;
     my $n = 0;
     if (length($name) == 1) {
         $n = ord($name);
     }
     else { # Search for the name
-    	my $entRef = '&'.$name.';';
-    	my $c = HTML::Entities::decode($entRef);
+        my $entRef = '&'.$name.';';
+        my $c = HTML::Entities::decode($entRef);
         if ($c ne $entRef) {                # HTML entity (case sensitive!)
-        	$n = ord($c);
-        	printf("Found HTML entity name '$name' = U+%04x.\n", $n);
+            $n = ord($c);
+            printf("Found HTML entity name '$name' = U+%04x.\n", $n);
         }
         $name = uc($name);                  # C0 name?
         for (my $i=0; $i<scalar @C0names; $i++) {
@@ -451,16 +807,16 @@ while (my $origName = shift) {
             elsif ($name =~ m/^[0-9]+$/)     { $n = $name - 0; }
         }
         if (!$n) {                          # ^J C-S
-        	if ($name =~ m/^(\^|C-)([A-Z])$/) {
-        		$n = index($upper, $2) + 1;
-        	}
+            if ($name =~ m/^(\^|C-)([A-Z])$/) {
+                $n = index($upper, $2) + 1;
+            }
         }
 
         if (!$n || $find) {
             warn "Character mnemonic '$origName' (length "
                 . length($name) . ") not found.\n";
             warn sprintf(
-            	"    Searching for %s...\n", ($regex) ? "regex":"string");
+                "    Searching for %s...\n", ($regex) ? "regex":"string");
             getMatchingUnicodeNames($name);
             next;
         }
@@ -513,6 +869,7 @@ sub showChart {
 
 
 ###############################################################################
+# Make a nicely-formatted form of the binary code point.
 #
 sub getBinary {
     my ($n) = @_;
@@ -531,8 +888,7 @@ sub getBinary {
 
 ###############################################################################
 # Find all Unicode characters whose names contain the given string.
-# This is slow. Could load once and then re-used, but probably it will
-# rarely be used more than one or a few times per invocation.
+# This is slow.
 #
 sub getMatchingUnicodeNames {
     my ($name) = @_;
@@ -544,10 +900,10 @@ sub getMatchingUnicodeNames {
         my $iname = charnames::viacode($i);
         if (!$iname) { next; }
         if (!$regex) {
-        	if (index($iname, uc($name)) < 0) { next; }
+            if (index($iname, uc($name)) < 0) { next; }
         }
         else {
-        	if ($iname !~ m/$name/i) { next; }
+            if ($iname !~ m/$name/i) { next; }
         }
         $nfound++;
         if ($listFormat eq "PLAIN") {
@@ -572,16 +928,16 @@ sub getMatchingUnicodeNames {
             printf("    unichr(0x%04x): '%s',\n", $i, $iname);
         }
         elsif ($listFormat eq "INFO") {
-        	print "\n";
-        	showOne($i);
+            print "\n";
+            showOne($i);
         }
         elsif ($listFormat eq "HTML") {
-        	my $rec = "<tr>\n"
-        	    . sprintf("    <td class='char'>&#x%04x;</td>\n", $i)
-        	    . sprintf("    <td class='hex'>U+%04x</td>\n", $i)
-        	    . sprintf("    <td class='name'>%s</td>\n", $iname)
-        	    . "</tr>\n";
-        	print $rec;
+            my $rec = "<tr>\n"
+                . sprintf("    <td class='char'>&#x%04x;</td>\n", $i)
+                . sprintf("    <td class='hex'>U+%04x</td>\n", $i)
+                . sprintf("    <td class='name'>%s</td>\n", $iname)
+                . "</tr>\n";
+            print $rec;
         }
         else {
             die "Unknown --listFormat '$listFormat'.\n";
@@ -678,7 +1034,6 @@ sub showOne {
     }
 } # showOne
 
-
 sub pline {
     my ($label, $data) = @_;
     printf("    %-16s %s\n", $label, $data || "");
@@ -686,6 +1041,9 @@ sub pline {
 
 sub showUnicodeInfo {
     my ($n) = @_;
+    if ($n >= 0x000080 && $n < 0x0000a0) {
+        pline("WARNING:", "Not a Unicode graphical code point (C1 control char)");
+    }
     if (!isUnicodeCodePoint($n)) {
         pline("WARNING:", "Not a Unicode code point");
     }
@@ -957,12 +1315,12 @@ sub setupUnixJargon {
 
 # Also add:
 my $foo = [
-	# aeox schwa hklmnpst; i=1d62, r=1d63, u=1d64, v=1d65, j=2c7c
-    [ 'subscript latin upper (...209c)',	0x02090 ],
+    # aeox schwa hklmnpst; i=1d62, r=1d63, u=1d64, v=1d65, j=2c7c
+    [ 'subscript latin upper (...209c)',    0x02090 ],
     # superscripts: i=2071
-    # [ 'subscript latin lower',	    		 ],
-    [ 'fullwidth latin upper',			    0x0ff21 ],
-    [ 'fullwidth latin lower',			    0x0ff41 ],
+    # [ 'subscript latin lower',                 ],
+    [ 'fullwidth latin upper',              0x0ff21 ],
+    [ 'fullwidth latin lower',              0x0ff41 ],
 ];
 
 # See mathUnicode.py for more details.
@@ -1002,8 +1360,8 @@ sub setupMathAlphabets {  # Not really all *math*....
 
     $mathAlphabets = [
          [ 'parenthesized LOWER',               'LOWER', 0x0249c ],
-         [ 'circled UPPER',  		            'UPPER', 0x024b6 ],
-         [ 'circled LOWER',  		            'LOWER', 0x024d0 ],
+         [ 'circled UPPER',                     'UPPER', 0x024b6 ],
+         [ 'circled LOWER',                     'LOWER', 0x024d0 ],
          [ 'parenthesized UPPER',               'UPPER', 0x1f110 ],
          [ 'squared upper',                     'UPPER', 0x1f130 ],
          [ 'negative circled UPPER',            'UPPER', 0x1f150 ],
@@ -1014,16 +1372,16 @@ sub setupMathAlphabets {  # Not really all *math*....
          [ 'M. bold UPPER',                     'UPPER', 0x1d400 ],
          [ 'M. bold LOWER',                     'LOWER', 0x1d41A ],
          [ 'M. italic UPPER',                   'UPPER', 0x1d434 ],
-         [ 'M. italic LOWER',                   'LOWER', 0x1d44e ],
+         [ 'M. italic LOWER',                   'LOWER', 0x1d44e ],  # h
          [ 'M. bold italic UPPER',              'UPPER', 0x1d468 ],
          [ 'M. bold italic LOWER',              'LOWER', 0x1d482 ],
-         [ 'M. script UPPER',                   'UPPER', 0x1d49C ],
-         [ 'M. script LOWER',                   'LOWER', 0x1d4B6 ],
+         [ 'M. script UPPER',                   'UPPER', 0x1d49C ],  # BEFHILMPR
+         [ 'M. script LOWER',                   'LOWER', 0x1d4B6 ],  # eglo
          [ 'M. bold script UPPER',              'UPPER', 0x1d4D0 ],
          [ 'M. bold script LOWER',              'LOWER', 0x1d4EA ],
-         [ 'M. fraktur UPPER',                  'UPPER', 0x1d504 ],
+         [ 'M. fraktur UPPER',                  'UPPER', 0x1d504 ],  # CHIJRZ
          [ 'M. fraktur LOWER',                  'LOWER', 0x1d51E ],
-         [ 'M. double-struck UPPER',            'UPPER', 0x1d538 ],
+         [ 'M. double-struck UPPER',            'UPPER', 0x1d538 ],  # CHNPQRZ
          [ 'M. double-struck LOWER',            'LOWER', 0x1d552 ],
          [ 'M. bold fraktur UPPER',             'UPPER', 0x1d56C ],
          [ 'M. bold fraktur LOWER',             'LOWER', 0x1d586 ],
@@ -1069,8 +1427,8 @@ sub setupMathAlphabets {  # Not really all *math*....
         [ 'superscript latin digits',           'DIGITS', 0x000b2, 2, 3 ],
         [ 'superscript latin digits',           'DIGITS', 0x02074, 4, 9 ],
 
-        [ 'circled DIGITS',  		            'DIGITS', 0x024ea, 0,  0 ],
-        [ 'circled DIGITS',  		            'DIGITS', 0x02460, 1, 20 ],
+        [ 'circled DIGITS',                     'DIGITS', 0x024ea, 0,  0 ],
+        [ 'circled DIGITS',                     'DIGITS', 0x02460, 1, 20 ],
         [ 'parenthesized DIGITS',               'DIGITS', 0x02474, 1, 20 ],
         [ 'full stopped DIGITS',                'DIGITS', 0x1f100, 0,  0 ],
         [ 'full stopped DIGITS',                'DIGITS', 0x02488, 1, 20 ],
@@ -1138,311 +1496,3 @@ sub cp1252ToUnicode {
     my ($char) = @_;
     return($cp1252{$char});
 }
-
-
-###############################################################################
-#
-
-=pod
-
-=head1 Usage
-
-ord [options] [chars|mnemonics]
-
-Displays Unicode character code point numbers and other information
-about a character(s). For example, "ord BULLET" produces:
-
-    Unicode Name:    BULLET
-    Unicode Script:  Common
-    Unicode Block:   General Punctuation
-    Unicode Plane:   0: Basic Multilingual
-    Literal:         •
-    Bases:           o20042 d8226 x2022
-    Unicode:         U+2022, utf8 \xe2\x80\xa2
-    Entities:        &#8226; &#x2022; &bull;
-    Nearest ASCII:
-
-You can specify the character(s) to describe in several ways:
-
-=over
-
-=item * via a numeric code point, in octal, decimal, or hex,
-e.g. C<012>, C<10>, or C<0xB9>.
-
-=item * For control characters, their short mnemonics such as C<LF>,
-or the control-letter equivalent such as C<C-J> or C<^J>.
-
-=item * Full Unicode names like "APL FUNCTIONAL SYMBOL LEFTWARDS VANE",
-ignoring case. But if there are spaces in the name, you need to
-quote it or use "_" instead of each space.
-
-You can now search for incomplete names using the I<--find>
-or I<--regex> option.
-
-=item * A fairly large selection of *nix jargon names (likewise,
-quote them if they contain spaces).
-
-=back
-
-Default output includes the character's short name, code point number
-(in hexadecimal, decimal, octal, and optional I<--binary>), utf-8 coding in hex,
-Unicode long name, Unix Jargon file names for the character,
-and the literal character itself.
-
-With I<--find> or I<--regex>, you can retrieve the
-code points and names of all matching Unicode characters. For example, to
-gather up all the Unicode characters whose formal names include "star", say:
-	ord --find star
-
-This may not get all and only stars, much less all characters one might consider
-using for the purpose one has in mind -- for example "*" (asterisk) does not have
-"star" in its name (not to mention other asterisks, snowflakes, florettes,
-and sparkles),
-and not all characters with "star" in their name may be desired.
-
-The resulting list can also be written out as sets of declarations for various
-languages (see B<--listFormat>).
-
-
-
-=head1 Options
-
-(prefix 'no' to option name to negate where applicable)
-
-=over
-
-=item * B<--binary>
-
-Show code points in binary.
-
-=item * B<--chart>
-
-Show a chart of character values and mnemonics.
-See also I<--c0>, I<--c1>, I<--g0>, I<--g1>, I<--digits>,
-and I<--math> for partial charts.
-
-=item * B<--cp1252>
-
-Assume char set is cp1252.
-
-=item * B<--c0>
-
-Same as I<--chart>, but only for C0 range (d0-d31).
-
-=item * B<--c1>
-
-Same as I<--chart>, but only for C1 range (d128-d159).
-
-=item * B<--decimal>
-
-Display code points in decimal (default).
-
-=item * B<--digits>
-
-Show a chart with of Unicode digits.
-Some of these are font/style variations, similar to the alphabets
-listable using I<--math>; others are digits from non-Latin writing systems.
-See also I<--chart>.
-
-=item * B<--entities>
-
-Display the named HTML special-character entity (if any), and the
-SGML/HTML/XML numeric character references (decimal and hexadecimal).
-
-=item * B<--find>
-
-Return all Unicode character names that contain the main argument (this also
-happens if nothing is found another way). This is a little slow.
-
-B<Note>: By default this only searches the BMP (code points up to 65535).
-To search further, use I<--maxU>
-
-See also I<--listFormat>, I<--regex>, and I<--maxU>.
-
-=item * B<--g0>
-
-Same as I<--chart>, but only for G0 range (d32-d127).
-
-=item * B<--g1>
-
-Same as I<--chart>, but only for G1 range (d160-d255).
-
-=item * B<--hex>
-
-Display code points in hexadecimal (default).
-
-=item * B<--iconv>
-
-For code points >= 128, in addition to the usual display
-show the nearest ASCII equivalent, as determined by C<iconv> (q.v.).
-Default: off. This requires the Perl Text::Iconv package.
-
-B<Note>: C<iconv>'s mapping may or may not be what you want
-in a given situation. For example, accented Latin letters
-and Mathematical variants of Latin letters reduce to the plain ASCII letters,
-Some characters, such as ligatures and the U+24xx "Control symbols, map
-to multiple ASCII characters.
-
-But Greek letters do not map at all, even when they are very closely related
-typographically, historically, and phonetically (for example,
-upper-case alpha (U+0391) vs. A (U+0041)).
-Likewise for non-breaking space (U+A0).
-
-In addition, not all implementations of C<iconv>
-work identically (though perhaps Perl versions always use the same one?
-Don't know).
-
-=item * B<--jargon>
-
-Display applicable *nix jargon names (default).
-
-=item * B<--listFormat> I<f>
-
-Choose the output layout for results from I<--find> or I<--regex>:
-
-=over
-
-=item * PLAIN (default): The hex code point and the name, tab-separated.
-
-=item * LITERAL:  Like PLAIN, but also showing the actual graphic character.
-
-=item * PERL: Hash entries, from hex code point to name.
-
-=item * PYTHONN: Dict entries, from hex code point to name.
-
-=item * PYTHONC: Dict entries, from unichr(hex code point) to name.
-
-=item * PYTHONS: A Python string constructed from the characters, each
-expressed like I<unichr(0xffff)>.
-
-=item * PYTHONU: A Python string constructed from the characters, each
-expressed like I<u'\uffff'>.
-
-=item * INFO: A display like the output for single characters.
-
-=item * HTML: HTML table rows with columns for the code point in hex
-and the character name.
-
-=back
-
-Of course, for other layouts you can choose the nearest of these and
-post-process as desired.
-
-=item * B<--literal>
-
-Include display of the literal character in output (default).
-You may wish to turn this off (I<--no-literal>) if your output device
-can't handle UTF-8 (you may also wish to get a new output device).
-
-=item * B<--long>
-
-Show long names for characters (default).
-
-=item * B<--math>
-
-Show a display with all the mathematical variants of the Latin
-and Greek alphabets. See also I<--chart>.
-
-=item * B<--maxU> I<n>
-
-Only search Unicode characters up through code point I<n> when using
-I<--find>, or trying to resolve an unrecognized name. Default: 65535.
-Numeric options such as I<--max> can be specified in base 8, 10, or 16.
-
-=item * B<--octal>
-
-Display code points in octal (default).
-
-=item * B<--pairs>
-
-Make a valiant attempt to find symmetric pairs of characters, such as ones
-whose names differ only in having "left" vs. "right", "open" vs. "close",
-"begin" vs. "end", etc. Write them out as pairs.
-Does not do "vertical" pairs, though tweaking the code for that is trivial.
-
-=item * B<--regex>
-
-Like I<--find> (q.v.), but returns any characters whose names match the
-given (Perl-style) regex. Implies I<--find>.
-
-=item * B<--short>
-
-Show short names for characters.
-
-=item * B<--typing>
-
-For non-ASCII characters, show how to key it (not yet supported, and of course
-system-dependent).
-
-=item * B<--utf8>
-
-Show UTF-8 byte sequence for the character (default).
-This will also show the %-escape sequence needed to express the character
-in a URI, or "(ok)" if the character is allowed in URIs.
-Characters that may be, but are not always, special in URIs
-('/%&:;=?@'), are listed by their escapes.
-
-=item * B<--version>
-
-Show version/license info and exit.
-
-=back
-
-
-=head2 Note
-
-You need to backslash and/or quote some characters to use them as arguments:
-
-    sp  (x20,  d32,  o40)
-    \"  (x22,  d34,  o42)
-    \#  (x23,  d35,  o43)
-    \&  (x26,  d38,  o46)
-    \'  (x27,  d39,  o47)
-    \(  (x28,  d40,  o50)
-    \)  (x29,  d41,  o51)
-    \+  (x2b,  d43,  053)
-        (or, you can precede this with '--' (end-of-options)
-    \;  (x3b,  d59,  o73)
-    \<  (x3c,  d60,  o74)
-    \>  (x3e,  d62,  o76)
-    \\  (x5c,  d92, o134)
-    \`  (x60,  d96, o140)
-    \|  (x7c, d124, o174)
-
-And some you can't escape in some shells, including:
-
-    \\t (x09,  d09,  o11) HT
-    \\n (x0a,  d10,  o12) LF (you can put the newline in double-quotes)
-    \\r (x0d,  d13,  o15) CR (you can put the return in double-quotes)
-
-
-
-=head1 Known bugs and limitations
-
-Even with a Unicode-enabled terminal such as C<uxterm>, a character > 255
-may appear to be length > 1, and so will be taken as a name. But when
-the name is not found, we print out the value anyway.
-
-For --pairs, in addition to a list of keywords, the code has a list of character pairs that can be considered symmetric but whose names don't contain the various keywords. But they aren't showing up yet.
-
-
-
-=head1 Related commands
-
-C<chr> -- Does the reverse.
-
-C<showNumberInBases> -- Converts a number to multiple bases.
-
-C<mathUnicode.py> -- class to map Latin, Greek, digits to alternate
-forms such as Mathematical double-struck, etc.
-
-
-=head1 Ownership
-
-This work by Steven J. DeRose is licensed under a Creative Commons
-Attribution-Share Alike 3.0 Unported License. For further information on
-this license, see L<http://creativecommons.org/licenses/by-sa/3.0/>.
-
-For the most recent version, see L<http://www.derose.net/steve/utilities/>.
-
-=cut

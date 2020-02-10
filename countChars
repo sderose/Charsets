@@ -6,7 +6,7 @@
 our %metadata = (
     'title'        => "countChars",
     'rightsHolder' => "Steven J. DeRose",
-    'creator'      => "http=//viaf.org/viaf/50334488",
+    'creator'      => "http://viaf.org/viaf/50334488",
     'type'         => "http://purl.org/dc/dcmitype/Software",
     'language'     => "Perl 5",
     'created'      => "2006-04-27",
