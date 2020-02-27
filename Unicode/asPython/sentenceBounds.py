@@ -92,4 +92,4 @@ sentenceBounds = {
     0x0ff0e: ( '．', 'FULLWIDTH FULL STOP' ),
     0x0ff61: ( '｡', 'HALFWIDTH IDEOGRAPHIC FULL STOP' ),
 }
-¶
+
