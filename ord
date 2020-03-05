@@ -60,8 +60,8 @@ or the control-letter equivalent such as C<C-J> or C<^J>.
 ignoring case. But if there are spaces in the name, you need to
 quote it or use "_" instead of each space.
 
-You can now search for incomplete names using the I<--find>
-or I<--regex> option.
+You can now search for incomplete names using the I<--findString>
+or I<--findRegex> option.
 
 =item * A fairly large selection of *nix jargon names (likewise,
 quote them if they contain spaces).
@@ -86,10 +86,10 @@ The "URI" portion of the "Unicode" line will be one of:
 A few characters, such as '#', have very reserved meanings in URIs and
 are considered in the third category.
 
-With I<--find> or I<--regex>, you can retrieve the
+With I<--findString> or I<--regex>, you can retrieve the
 code points and names of all matching Unicode characters. For example, to
 gather up all the Unicode characters whose formal names include "star", say:
-    ord --find star
+    ord --findString star
 
 This may not get all and only stars, much less all characters one might
 consider using for the purpose one has in mind -- for example "*" (asterisk)
@@ -146,7 +146,20 @@ See also I<--chart>.
 Display the named HTML special-character entity (if any), and the
 SGML/HTML/XML numeric character references (decimal and hexadecimal).
 
-=item * B<--find>
+=item * B<--findBlock>
+
+Like I<--findString> (q.v.), but treats the main/final argument as the name
+of a Unicode ''block'' (ignoring case), and returns all
+characters assigned to the block
+(and in the code point range from I<--min> and I<--max>).
+
+=item * B<--findRegex> or B<--regex>
+
+Like I<--findString> and I<--findBlock> (q.v.), but treats the final
+argument as a (Perl-style) regex, and returns any
+characters whose names match the given (ignoring case).
+
+=item * B<--findString> or just I<-f>
 
 Return all Unicode character names that contain the main argument (this also
 happens if nothing is found another way). This is a little slow.
@@ -154,7 +167,7 @@ happens if nothing is found another way). This is a little slow.
 B<Note>: By default this only searches the BMP (code points up to 65535).
 To search further, use I<--maxU>
 
-See also I<--listFormat>, I<--regex>, and I<--maxU>.
+See also I<--listFormat>, I<--findRegex>, I<--findBlock>, and I<--maxU>.
 
 =item * B<--g0>
 
@@ -195,7 +208,8 @@ Display applicable *nix jargon names (default).
 
 =item * B<--listFormat> I<f>
 
-Choose the output layout for results from I<--find> or I<--regex>:
+Choose the output layout for results from I<--findString>, I<--findRegex>,
+or I<--findBlock>:
 
 =over
 
@@ -280,7 +294,7 @@ and Greek alphabets. See also I<--chart>.
 =item * B<--maxU> I<n>
 
 Only search Unicode characters up through code point I<n> when using
-I<--find>, or trying to resolve an unrecognized name. Default: 65535.
+I<--findString>, or trying to resolve an unrecognized name. Default: 65535.
 Numeric options such as I<--max> can be specified in base 8, 10, or 16.
 
 =item * B<--octal>
@@ -296,8 +310,7 @@ Does not do "vertical" pairs, though tweaking the code for that is trivial.
 
 =item * B<--regex>
 
-Like I<--find> (q.v.), but returns any characters whose names match the
-given (Perl-style) regex. Implies I<--find>.
+Synonym for I<--findRegex>.
 
 =item * B<--short>
 
@@ -359,6 +372,9 @@ For --pairs, in addition to a list of keywords, the code has a list of character
 
 Does not offer information on Unicode categories such as
 "Nd" ("Number, Decimal Digit") and so on. See `showUnicodeCharsInClass.py`.
+
+Add a way to do --find for a given range (e.g., I<--min>, I<--max>, and
+some always-true test).
 
 =head1 Related commands
 
@@ -479,7 +495,9 @@ my $cp1252      = 0;
 my $decimal     = 1;
 my $digits      = 0;
 my $entities    = 1;
-my $find        = 0;
+my $findBlock   = 0;
+my $findRegex   = 0;
+my $findString  = 0;
 my $C0 = my $C1 = 0;
 my $G0 = my $G1 = 0;
 my $hex         = 1;
@@ -495,7 +513,6 @@ my $octal       = 1;
 my $pairs       = 0;
 my $pyFunction  = 'chr';
 my $quiet       = 0;
-my $regex       = 0;
 my $short       = 0;
 my $typing      = 1;
 my $utf8        = 1;
@@ -515,7 +532,9 @@ my $result = GetOptions(
     "decimal!"            => \$decimal,
     "digits!"             => \$digits,
     "entities!"           => \$entities,
-    "find!"               => \$find,
+    "findBlock!"          => \$findBlock,
+    "findRegex|regex!"    => \$findRegex,
+    "f|findString!"       => \$findString,
     "g0"                  => \$G0,
     "g1"                  => \$G1,
     "h|help|?"            => sub { system "perldoc $0"; },
@@ -532,7 +551,6 @@ my $result = GetOptions(
     "pairs!"              => \$pairs,
     "pyFunction=s"        => \$pyFunction,
     "q|quiet!"            => \$quiet,
-    "regex!"              => \$regex,
     "short!"              => \$short,
     "typing!"             => \$typing,
     "utf8!"               => \$utf8,
@@ -544,8 +562,6 @@ my $result = GetOptions(
     );
 
 ($result) || die "Bad options.\n";
-
-if ($regex) { $find = 1; }
 
 my $iconvConverter = undef;
 if ($iconv) {
@@ -866,11 +882,12 @@ while (my $origName = shift) {
             }
         }
 
-        if (!$n || $find) {
+        if (!$n || $findString || $findRegex || $findBlock) {
             warn "Character mnemonic '$origName' (length "
                 . length($name) . ") not found.\n";
-            warn sprintf(
-                "    Searching for %s...\n", ($regex) ? "regex":"string");
+            ($findBlock) && warn "    Searching for block '$name'...\n";
+            ($findRegex) && warn "    Searching for regex '$name'...\n";
+            ($findString) && warn "    Searching for string '$name'...\n";
             getMatchingUnicodeNames($name);
             next;
         }
@@ -941,11 +958,12 @@ sub getBinary {
 
 
 ###############################################################################
-# Find all Unicode characters whose names contain the given string.
+# Find all Unicode characters, per --find, --regex, or --findBlock.
+# Generate a list of all we found, in a specified --listFormat.
 # This is slow.
 #
 sub getMatchingUnicodeNames {
-    my ($name) = @_;
+    my ($name) = @_;  # Target argument
     my $nfound = 0;
     for (my $i=$minU; $i<=$maxU; $i++) {
         if (!$quiet && ($i % 0x10000)==0) {
@@ -953,13 +971,20 @@ sub getMatchingUnicodeNames {
         }
         my $iname = charnames::viacode($i);
         if (!$iname) { next; }
-        if (!$regex) {
-            if (index($iname, uc($name)) < 0) { next; }
-        }
-        else {
+        if ($findRegex) {
             if ($iname !~ m/$name/i) { next; }
         }
+        elsif ($findBlock) {
+            #warn(sprintf("Block of %05x is '%s'\n", $i, charblock($i)));
+            # TODO: Check UCD's prop_value_aliases() function, too.
+            if (charblock($i) !~ /$name/i) { next; }
+        }
+        else {
+            if (index($iname, uc($name)) < 0) { next; }
+        }
         $nfound++;
+
+        # Generate the right --listFormat.
         if ($listFormat eq "PLAIN") {
             printf("U+%05x\t%s\n", $i, $iname);
         }
@@ -1106,7 +1131,7 @@ sub showUnicodeInfo {
     else {
         pline("Unicode Name:",    charnames::viacode($n) || "-NOT FOUND-");
         pline("Unicode Script: ", charscript(sprintf("U+%05x", $n)));
-        pline("Unicode Block:  ", charblock(sprintf("U+%05x", $n)));
+        pline("Unicode Block:  ", charblock($n));
     }
     my $pnum = $n >> 16;
     my $pname = "";

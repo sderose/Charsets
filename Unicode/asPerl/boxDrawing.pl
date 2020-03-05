@@ -1,4 +1,4 @@
-boxDrawingCharacters = {
+my %boxDrawingCharacters = {
     unichr(0x2500) => 'BOX DRAWINGS LIGHT HORIZONTAL',
     unichr(0x2501) => 'BOX DRAWINGS HEAVY HORIZONTAL',
     unichr(0x2502) => 'BOX DRAWINGS LIGHT VERTICAL',
