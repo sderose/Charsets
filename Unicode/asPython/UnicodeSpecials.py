@@ -18,12 +18,50 @@ import argparse
 #from collections import defaultdict
 
 __metadata__ = {
-    'creator'      : "Steven J. DeRose",
-    'cre_date'     : "2018-11-08",
+    'title'        : "UnicodeSpecials.py",
+    'rightsHolder' : "Steven J. DeRose",
+    'creator'      : "http://viaf.org/viaf/50334488",
+    'type'         : "http://purl.org/dc/dcmitype/Software",
     'language'     : "Python 3.7",
-    'version_date' : "2018-11-08",
+    'created'      : "2018-11-08",
+    'modified'     : "2020-02-28",
+    'publisher'    : "http://github.com/sderose",
+    'license'      : "https://creativecommons.org/licenses/by-sa/3.0/"
 }
-__version__ = __metadata__['version_date']
+__version__ = __metadata__['modified']
+
+descr = """
+=Description=
+
+Provide lists of characters in categories that aren't quite the same as
+off-the-shelf Unicode categories.
+
+You can request them as dicts keyed on the code point, with array values
+that include the name and other relevant info (such as fraction values,
+brace sides, space widths, etc.).
+
+You'll also be able to get them as strings or as regexes groups.
+
+Should also have a way to get lists of all the characters in any particular
+category. In the meantime use my `ord` for that.
+
+For mathematical Latin and Greek sets, see my `mathUnicode.py`.
+
+=Related Commands=
+
+=Known bugs and Limitations=
+
+=Rights=
+
+Copyright 2018-11-08 by Steven J. DeRose. This work is licensed under a Creative Commons
+Attribution-Share Alike 3.0 Unported License. For further information on
+this license, see [http://creativecommons.org/licenses/by-sa/3.0].
+
+For the most recent version, see [http://www.derose.net/steve/utilities] or
+[http://github.com/sderose].
+
+=Options=
+"""
 
 
 ###############################################################################
@@ -289,6 +327,114 @@ class UnicodeSpecials:
         0xFE58: ( "--",  "SMALL EM DASH" ),
         0xFE63: ( "-",  "SMALL HYPHEN-MINUS" ),
         0xFF0D: ( "-",  "FULLWIDTH HYPHEN-MINUS" ),
+        }
+
+        self.ULQuotes = { # Punctuation_Initial
+        0x00AB: ( "L",  "", "LEFT-POINTING DOUBLE ANGLE QUOTATION MARK *" ),
+        0x2018: ( "L",  "", "LEFT SINGLE QUOTATION MARK" ),
+        0x201A: ( "L",  "", "SINGLE LOW-9 QUOTATION MARK" ),
+        0x201C: ( "L",  "", "LEFT DOUBLE QUOTATION MARK" ),
+        0x201E: ( "L",  "", "DOUBLE LOW-9 QUOTATION MARK" ),
+        0x2039: ( "L",  "", "SINGLE LEFT-POINTING ANGLE QUOTATION MARK" ),
+        0x2E02: ( "L",  "", "LEFT SUBSTITUTION BRACKET" ),
+        0x2E04: ( "L",  "", "LEFT DOTTED SUBSTITUTION BRACKET" ),
+        0x2E09: ( "L",  "", "LEFT TRANSPOSITION BRACKET" ),
+        0x2E0C: ( "L",  "", "LEFT RAISED OMISSION BRACKET" ),
+        0x2E1C: ( "L",  "", "LEFT LOW PARAPHRASE BRACKET" ),
+        0x2E20: ( "L",  "", "LEFT VERTICAL BAR WITH QUILL" ),
+        }
+
+
+        self.URQuotes = { # Punctuation_Final
+        0x00BB: ( "R",  "", "RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK *" ),
+        0x2019: ( "R",  "", "RIGHT SINGLE QUOTATION MARK" ),
+        0x201B: ( "R",  "", "SINGLE HIGH-REVERSED-9 QUOTATION MARK" ),
+        0x201D: ( "R",  "", "RIGHT DOUBLE QUOTATION MARK" ),
+        0x201F: ( "R",  "", "DOUBLE HIGH-REVERSED-9 QUOTATION MARK" ),
+        0x203A: ( "R",  "", "SINGLE RIGHT-POINTING ANGLE QUOTATION MARK" ),
+        #0x2358: ( "R",  "", "APL FUNCTIONAL SYMBOL QUOTE UNDERBAR" ),
+        #0x235E: ( "R",  "", "APL FUNCTIONAL SYMBOL QUOTE QUAD" ),
+        0x2E03: ( "R",  "", "RIGHT SUBSTITUTION BRACKET" ),
+        0x2E05: ( "R",  "", "RIGHT DOTTED SUBSTITUTION BRACKET" ),
+        0x2E0A: ( "R",  "", "RIGHT TRANSPOSITION BRACKET" ),
+        0x2E0D: ( "R",  "", "RIGHT RAISED OMISSION BRACKET" ),
+        0x2E1D: ( "R",  "", "RIGHT LOW PARAPHRASE BRACKET" ),
+        0x2E21: ( "R",  "", "RIGHT VERTICAL BAR WITH QUILL" ),
+        }
+
+        self.UQuotePairs = [
+        (0x00AB, 0x00BB, "[LEFT,RIGHT]-POINTING DOUBLE ANGLE QUOTATION MARK *" ),
+        (0x2018, 0x2019, "[LEFT,RIGHT] SINGLE QUOTATION MARK" ),
+        (0x201A, 0x201B, "SINGLE [LOW-9, HIGH-REVERSED-9] QUOTATION MARK" ),
+        (0x201C, 0x201D, "[LEFT,RIGHT] DOUBLE QUOTATION MARK" ),
+        (0x201E, 0x201F, "DOUBLE [LOW-9, HIGH-REVERSED-9] QUOTATION MARK" ),
+        (0x2039, 0x203A, "SINGLE [LEFT,RIGHT]-POINTING ANGLE QUOTATION MARK" ),
+        (0x2E02, 0x2E03, "[LEFT,RIGHT] SUBSTITUTION BRACKET" ),
+        (0x2E04, 0x2E05, "[LEFT,RIGHT] DOTTED SUBSTITUTION BRACKET" ),
+        (0x2E09, 0x2E0A, "[LEFT,RIGHT] TRANSPOSITION BRACKET" ),
+        (0x2E0C, 0x2E0D, "[LEFT,RIGHT] RAISED OMISSION BRACKET" ),
+        (0x2E1C, 0x2E1D, "[LEFT,RIGHT] LOW PARAPHRASE BRACKET" ),
+        (0x2E20, 0x2E21, "[LEFT,RIGHT] VERTICAL BAR WITH QUILL" ),
+        ]
+
+
+        # Not in the Unicode categories, but perhaps relevant:
+        self.UOtherQuotes = {
+        0x0060: ( "?",  "", "GRAVE ACCENT" ),
+
+        0x201A: ( "?",  "", "SINGLE LOW-9 QUOTATION MARK" ),
+        0x201E: ( "?",  "", "DOUBLE LOW-9 QUOTATION MARK" ),
+
+        0x275B: ( "?",  "", "HEAVY SINGLE TURNED COMMA QUOTATION MARK ORNAMENT" ),
+        0x275C: ( "?",  "", "HEAVY SINGLE COMMA QUOTATION MARK ORNAMENT" ),
+        0x275D: ( "?",  "", "HEAVY DOUBLE TURNED COMMA QUOTATION MARK ORNAMENT" ),
+        0x275E: ( "?",  "", "HEAVY DOUBLE COMMA QUOTATION MARK ORNAMENT" ),
+        0x276E: ( "?",  "", "HEAVY LEFT-POINTING ANGLE QUOTATION MARK ORNAMENT" ),
+        0x276F: ( "?",  "", "HEAVY RIGHT-POINTING ANGLE QUOTATION MARK ORNAMENT" ),
+
+        0x301D: ( "?",  "", "REVERSED DOUBLE PRIME QUOTATION MARK" ),
+        0x301E: ( "?",  "", "DOUBLE PRIME QUOTATION MARK" ),
+        0x301F: ( "?",  "", "LOW DOUBLE PRIME QUOTATION MARK" ),
+
+
+        0x0027: ( "?",  "", "APOSTROPHE" ),
+        0x0149: ( "?",  "", "LATIN SMALL LETTER N PRECEDED BY APOSTROPHE" ),
+        0x02bc: ( "?",  "", "MODIFIER LETTER APOSTROPHE" ),
+        0x02ee: ( "?",  "", "MODIFIER LETTER DOUBLE APOSTROPHE" ),
+        0x055a: ( "?",  "", "ARMENIAN APOSTROPHE" ),
+        0x07f4: ( "?",  "", "NKO HIGH TONE APOSTROPHE" ),
+        0x07f5: ( "?",  "", "NKO LOW TONE APOSTROPHE" ),
+        0xff07: ( "?",  "", "FULLWIDTH APOSTROPHE" ),
+        }
+
+        self.USpaces = {
+        # code: ( size, name )
+        0x0009: (  0,  0, "", "CHARACTER TABULATION" ),
+        0x000A: (  0,  0, "", "LINE FEED" ),
+        0x000B: (  0,  0, "", "LINE TABULATION" ),
+        0x000C: (  0,  0, "", "FORM FEED" ),
+        0x000D: (  0,  0, "", "CARRIAGE RETURN" ),
+        0x0020: (  1,  1, "", "SPACE" ),
+        0x0089: (  0,  0, "", "CHARACTER TABULATION WITH JUSTIFICATION" ),
+        0x00A0: (  1,  1, "", "NO-BREAK SPACE" ),
+        0x1680: (  1,  1, "", "OGHAM SPACE MARK" ),
+        0x2000: (  1,  1, "", "EN QUAD" ),
+        0x2001: (  2,  1, "", "EM QUAD" ),
+        0x2002: (  1,  1, "", "EN SPACE" ),
+        0x2003: (  2,  1, "", "EM SPACE" ),
+        0x2004: (  1,  3, "", "THREE-PER-EM SPACE" ),
+        0x2005: (  1,  4, "", "FOUR-PER-EM SPACE" ),
+        0x2006: (  1,  6, "", "SIX-PER-EM SPACE" ),
+        0x2007: (  1,  1, "", "FIGURE SPACE" ),
+        0x2008: (  1,  1, "", "PUNCTUATION SPACE" ),
+        0x2009: (  0,  1, "", "THIN SPACE" ),
+        0x200A: (  0,  1, "", "HAIR SPACE" ),
+        0x200B: (  0,  1, "", "ZERO WIDTH SPACE" ),
+        0x202F: (  0,  1, "", "NARROW NO-BREAK SPACE" ),
+        0x205F: (  1,  1, "", "MEDIUM MATHEMATICAL SPACE" ),
+        #0x2420: (  1,  1, "", "SYMBOL FOR SPACE" ),
+        0x3000: (  1,  1, "", "IDEOGRAPHIC SPACE" ),
+        0x303F: (  1,  2, "", "IDEOGRAPHIC HALF FILL SPACE" ),
         }
 
         self.fractions = {
@@ -874,99 +1020,6 @@ class UnicodeSpecials:
         0xfefc: ( "", 'ARABIC LIGATURE LAM WITH ALEF FINAL FORM' ),
         }
 
-        self.ULQuotes = { # Punctuation_Initial
-        0x00AB: ( "L",  "", "LEFT-POINTING DOUBLE ANGLE QUOTATION MARK *" ),
-        0x2018: ( "L",  "", "LEFT SINGLE QUOTATION MARK" ),
-        0x201A: ( "L",  "", "SINGLE LOW-9 QUOTATION MARK" ),
-        0x201C: ( "L",  "", "LEFT DOUBLE QUOTATION MARK" ),
-        0x201E: ( "L",  "", "DOUBLE LOW-9 QUOTATION MARK" ),
-        0x2039: ( "L",  "", "SINGLE LEFT-POINTING ANGLE QUOTATION MARK" ),
-        0x2E02: ( "L",  "", "LEFT SUBSTITUTION BRACKET" ),
-        0x2E04: ( "L",  "", "LEFT DOTTED SUBSTITUTION BRACKET" ),
-        0x2E09: ( "L",  "", "LEFT TRANSPOSITION BRACKET" ),
-        0x2E0C: ( "L",  "", "LEFT RAISED OMISSION BRACKET" ),
-        0x2E1C: ( "L",  "", "LEFT LOW PARAPHRASE BRACKET" ),
-        0x2E20: ( "L",  "", "LEFT VERTICAL BAR WITH QUILL" ),
-        }
-
-
-        self.URQuotes = { # Punctuation_Final
-        0x00BB: ( "R",  "", "RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK *" ),
-        0x2019: ( "R",  "", "RIGHT SINGLE QUOTATION MARK" ),
-        0x201B: ( "R",  "", "SINGLE HIGH-REVERSED-9 QUOTATION MARK" ),
-        0x201D: ( "R",  "", "RIGHT DOUBLE QUOTATION MARK" ),
-        0x201F: ( "R",  "", "DOUBLE HIGH-REVERSED-9 QUOTATION MARK" ),
-        0x203A: ( "R",  "", "SINGLE RIGHT-POINTING ANGLE QUOTATION MARK" ),
-        0x2358: ( "R",  "", "APL FUNCTIONAL SYMBOL QUOTE UNDERBAR" ),
-        0x235E: ( "R",  "", "APL FUNCTIONAL SYMBOL QUOTE QUAD" ),
-        0x2E03: ( "R",  "", "RIGHT SUBSTITUTION BRACKET" ),
-        0x2E05: ( "R",  "", "RIGHT DOTTED SUBSTITUTION BRACKET" ),
-        0x2E0A: ( "R",  "", "RIGHT TRANSPOSITION BRACKET" ),
-        0x2E0D: ( "R",  "", "RIGHT RAISED OMISSION BRACKET" ),
-        0x2E1D: ( "R",  "", "RIGHT LOW PARAPHRASE BRACKET" ),
-        0x2E21: ( "R",  "", "RIGHT VERTICAL BAR WITH QUILL" ),
-        }
-
-
-        # Not in the Unicode categories, but perhaps relevant:
-        self.UOtherQuotes = {
-        0x0060: ( "?",  "", "GRAVE ACCENT" ),
-
-        0x201A: ( "?",  "", "SINGLE LOW-9 QUOTATION MARK" ),
-        0x201E: ( "?",  "", "DOUBLE LOW-9 QUOTATION MARK" ),
-
-        0x275B: ( "?",  "", "HEAVY SINGLE TURNED COMMA QUOTATION MARK ORNAMENT" ),
-        0x275C: ( "?",  "", "HEAVY SINGLE COMMA QUOTATION MARK ORNAMENT" ),
-        0x275D: ( "?",  "", "HEAVY DOUBLE TURNED COMMA QUOTATION MARK ORNAMENT" ),
-        0x275E: ( "?",  "", "HEAVY DOUBLE COMMA QUOTATION MARK ORNAMENT" ),
-        0x276E: ( "?",  "", "HEAVY LEFT-POINTING ANGLE QUOTATION MARK ORNAMENT" ),
-        0x276F: ( "?",  "", "HEAVY RIGHT-POINTING ANGLE QUOTATION MARK ORNAMENT" ),
-
-        0x301D: ( "?",  "", "REVERSED DOUBLE PRIME QUOTATION MARK" ),
-        0x301E: ( "?",  "", "DOUBLE PRIME QUOTATION MARK" ),
-        0x301F: ( "?",  "", "LOW DOUBLE PRIME QUOTATION MARK" ),
-
-
-        0x0027: ( "?",  "", "APOSTROPHE" ),
-        0x0149: ( "?",  "", "LATIN SMALL LETTER N PRECEDED BY APOSTROPHE" ),
-        0x02bc: ( "?",  "", "MODIFIER LETTER APOSTROPHE" ),
-        0x02ee: ( "?",  "", "MODIFIER LETTER DOUBLE APOSTROPHE" ),
-        0x055a: ( "?",  "", "ARMENIAN APOSTROPHE" ),
-        0x07f4: ( "?",  "", "NKO HIGH TONE APOSTROPHE" ),
-        0x07f5: ( "?",  "", "NKO LOW TONE APOSTROPHE" ),
-        0xff07: ( "?",  "", "FULLWIDTH APOSTROPHE" ),
-        }
-
-        self.USpaces = {
-        # code: ( size, name )
-        0x0009: (  0,  0, "", "CHARACTER TABULATION" ),
-        0x000A: (  0,  0, "", "LINE FEED" ),
-        0x000B: (  0,  0, "", "LINE TABULATION" ),
-        0x000C: (  0,  0, "", "FORM FEED" ),
-        0x000D: (  0,  0, "", "CARRIAGE RETURN" ),
-        0x0020: (  1,  1, "", "SPACE" ),
-        0x0089: (  0,  0, "", "CHARACTER TABULATION WITH JUSTIFICATION" ),
-        0x00A0: (  1,  1, "", "NO-BREAK SPACE" ),
-        0x1680: (  1,  1, "", "OGHAM SPACE MARK" ),
-        0x2000: (  1,  1, "", "EN QUAD" ),
-        0x2001: (  2,  1, "", "EM QUAD" ),
-        0x2002: (  1,  1, "", "EN SPACE" ),
-        0x2003: (  2,  1, "", "EM SPACE" ),
-        0x2004: (  1,  3, "", "THREE-PER-EM SPACE" ),
-        0x2005: (  1,  4, "", "FOUR-PER-EM SPACE" ),
-        0x2006: (  1,  6, "", "SIX-PER-EM SPACE" ),
-        0x2007: (  1,  1, "", "FIGURE SPACE" ),
-        0x2008: (  1,  1, "", "PUNCTUATION SPACE" ),
-        0x2009: (  0,  1, "", "THIN SPACE" ),
-        0x200A: (  0,  1, "", "HAIR SPACE" ),
-        0x200B: (  0,  1, "", "ZERO WIDTH SPACE" ),
-        0x202F: (  0,  1, "", "NARROW NO-BREAK SPACE" ),
-        0x205F: (  1,  1, "", "MEDIUM MATHEMATICAL SPACE" ),
-        #0x2420: (  1,  1, "", "SYMBOL FOR SPACE" ),
-        0x3000: (  1,  1, "", "IDEOGRAPHIC SPACE" ),
-        0x303F: (  1,  2, "", "IDEOGRAPHIC HALF FILL SPACE" ),
-        }
-
         # Add? Control pix, combiners
 
         return  # End __init__
@@ -978,36 +1031,6 @@ class UnicodeSpecials:
 #
 if __name__ == "__main__":
     def processOptions():
-        descr = """
-=head1 Description
-
-Provide lists of characters in categories that aren't quite the same as
-off-the-shelf unicode categories.
-
-You can request them as dicts keyed on the code point, with array values
-that include the name and other relevant info (such as fraction values,
-brace sides, space widths, etc.).
-
-You'll also be able to get them as strings or as regexes groups.
-
-Should also have a way to get lists of all the characters in any particular
-category. In the meantime use my C<ord> for that.
-
-For mathematical Latin and Greek sets, see my C<mathUnicode.py>.
-
-=head1 Related Commands
-
-=head1 Known bugs and Limitations
-
-=head1 Licensing
-
-Copyright 2018-11-08 by Steven J. DeRose. This script is licensed under a
-Creative Commons Attribution-Share-alike 3.0 unported license.
-See http://creativecommons.org/licenses/by-sa/3.0/ for more information.
-
-=head1 Options
-"""
-
         try:
             from MarkupHelpFormatter import MarkupHelpFormatter
             formatter = MarkupHelpFormatter

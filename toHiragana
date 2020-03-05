@@ -1,36 +1,84 @@
 #!/usr/bin/env python
 #
-# toHiragana 
-#
-# 2013-03-21: Written by Steven J. DeRose.
-#
-# To do:
-#     Add katakana.
+# toHiragana: Simple transliteration to help practice.
 #
 from __future__ import print_function
 import sys
 import os
 import re
 import argparse
-import string
-import math
 
-#import subprocess
-#import codecs, locale
+PY2 = sys.version_info[0] == 2
+PY3 = sys.version_info[0] == 3
+if PY3:
+    def unichr(n): return chr(n)
 
-from sjdUtils import sjdUtils
-from alogging import ALogger
+__metadata__ = {
+    'title'        : "toHiragana.py",
+    'rightsHolder' : "Steven J. DeRose",
+    'creator'      : "http://viaf.org/viaf/50334488",
+    'type'         : "http://purl.org/dc/dcmitype/Software",
+    'language'     : "Python 3.7",
+    'created'      : "2013-03-21",
+    'modified'     : "2020-03-04",
+    'publisher'    : "http://github.com/sderose",
+    'license'      : "https://creativecommons.org/licenses/by-sa/3.0/"
+}
+__version__ = __metadata__['modified']
 
-__version__ = "2013-03-21"
+descr = """
+=head1 Usage
 
+toHiragana [options]
+
+Transliterate ASCII to (Unicode) hiragana.
+
+This is rudimentary, and works purely from spelling, not pronunciation.
+By default, it leaves [cfjlqvx] and ph along; but see I<--loose>.
+It also doesn't do anything for consonant-clusters and word-final
+consonants ('splat' will end up unchanged except for the 'a').
+
+=head1 Options
+
+=over
+
+* ''--loose''
+Do something about other Latin characters:
+[cfjlqvx] and ph are mapped
+('c' goes to 's' or 'k' depending on the following vowel).
+I don't know if there's a convention for other English combinations
+such as 'sh', 'ng', etc.
+
+* ''--quiet'' OR ''-q'' Suppress most messages.
+
+* ''--verbose'' Add more detailed messages (doesn't do much at the moment).
+
+* ''--version'' Display version info and exit.
+
+=head1 Related Commands
+
+=head1 Known bugs and limitations
+
+=History=
+
+* 2013-03-21: Written by Steven J. DeRose.
+
+=Rights=
+
+Copyright 2013 by Steven J. DeRose. This work is licensed under a Creative Commons
+Attribution-Share Alike 3.0 Unported License. For further information on
+this license, see [http://creativecommons.org/licenses/by-sa/3.0].
+
+For the most recent version, see [http://www.derose.net/steve/utilities] or
+[http://github.com/sderose].
+"""
 
 ###############################################################################
 # Process options
 #
 parser = argparse.ArgumentParser(
-    description="A utility by Steven J. DeRose.",
-    epilog="(see also 'perldoc "+sys.argv[0]+"')"
-)
+    description=descr)
+
 parser.add_argument(
     "-loose",            action='store_true',
     help='Do some extra mappings for other Latin characters.')
@@ -43,21 +91,15 @@ parser.add_argument(
 parser.add_argument(
     '-version',          action='version',     version='Version of '+__version__,
     help='Display version information, then exit.')
-parser.add_argument(   
-    'files',             type=str, 
+parser.add_argument(
+    'files',             type=str,
     nargs=argparse.REMAINDER,
     help='Path(s) to input file(s)')
 
-global args, su
-#lg = ALogger()
 args = parser.parse_args()
 
 if (os.environ["PYTHONIOENCODING"] != "utf_8"):
     print("Warning: PYTHONIOENCODING is not utf_8.")
-
-su = sjdUtils()
-su.setVerbose(args.verbose)
-
 
 hiraganaLetters = {
     "A":               unichr(0X03042),
@@ -195,7 +237,6 @@ def hiragana(s):
 
 
 ###############################################################################
-###############################################################################
 #
 def doOneFile(fh):
     rec = ""
@@ -210,7 +251,6 @@ def doOneFile(fh):
     return(recnum)
 
 
-
 ###############################################################################
 ###############################################################################
 # Main
@@ -219,89 +259,21 @@ totalRecords = 0
 totalFiles = 0
 
 if (len(args.files) == 0):
-    fh = sys.stdin
+    print("No files specified")
+    sys.exit()
+
 for fnum in (range(len(args.files))):
     totalFiles += 1
     f = args.files[fnum]
     if (os.path.isfile(f)):
-        fh = open(f, "r")
-        totalRecords += doOneFile(fh)
-        fh.close()
+        fh0 = open(f, "r")
+        totalRecords += doOneFile(fh0)
+        fh0.close()
     else:
-        lg.vMsg(0,"Can't find file '" + f + "'.")
+        print("Can't find file '" + f + "'.")
 
 if (not args.quiet):
-    lg.vMsg(0,"Done, " + `totalFiles` + " files, " +
-             `totalRecords` + " records.")
+    print("Done, %d files, %d records." % (totalFiles, totalRecords))
 
 sys.exit(0)
-
-
-
-###############################################################################
-###############################################################################
-###############################################################################
-#
-perldoc = """
-
-=pod
-
-=head1 Usage
-
-toHiragana [options]
-
-Transliterate ASCII to (Unicode) hiragana.
-
-This is rudimentary, and works purely from spelling, not pronunciation.
-By default, it leaves [cfjlqvx] and ph along; but see I<--loose>.
-It also doesn't do anything for consonant-clusters and word-final 
-consonants ('splat' will end up unchanged except for the 'a').
-
-
-
-=head1 Options
-
-=over
-
-=item * B<--loose>
-
-Do something about other Latin characters:
-[cfjlqvx] and ph are mapped 
-('c' goes to 's' or 'k' depending on the following vowel).
-I don't know if there's a convention for other English combinations
-such as 'sh', 'ng', etc.
-
-=item * B<--quiet> OR B<-q>
-Suppress most messages.
-
-=item * B<--verbose>
-
-Add more detailed messages (doesn't do much at the moment).
-
-=item * B<--version>
-
-Display version info and exit.
-
-=back
-
-
-
-=head Related Commands
-
-
-
-=head1 Known bugs and limitations
-
-
-
-=head1 Ownership
-
-This work by Steven J. DeRose is licensed under a Creative Commons 
-Attribution-Share Alike 3.0 Unported License. For further information on
-this license, see L<http://creativecommons.org/licenses/by-sa/3.0/>.
-
-For the most recent version, see L<http://www.derose.net/steve/utilities/>.
-
-=cut
-"""
 

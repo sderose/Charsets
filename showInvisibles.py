@@ -2,50 +2,42 @@
 #
 # showInvisibles: make control and whitespace chars visible.
 #
-# 2007-01-16: Written by Steven J. DeRose.
-# 2007-12-31 sjd: Getopt, version, etc.
-# 2010-09-27 sjd: Cleanup, -base, -pad, -color, factor out makeCharRef().
-# 2011-01-24 sjd: Add control pictures and alternates. binmode STDOUT.
-# 2012-01-23 sjd: Fix -color and -base. Use sjdUtils.
-# Optimize color-escaping instead of doing on/off for every char.
-# 2012-01-23: Converted by perl2python.
-# 2012-01-25 sjd: Cleanup.
-# 2015-10-13: Update argparse usage. pylint.
-#
-# To do:
-#     Options for what to do with line-ends?
-#     Compare to showInvisibles (no .py), and probably discard as obsolete.
-#
 from __future__ import print_function
 import sys
 import os
 import re
 import argparse
-#import subprocess
-#import string
-#import math
-#import codecs, locale
 
 from sjdUtils import sjdUtils
-from alogging import ALogger
 
-__version__ = "2015-10-13"
+PY3 = sys.version_info[0] == 3
+if PY3:
+    def unichr(n): return chr(n)
 
-global args
+__metadata__ = {
+    'title'        : "showInvisibles.py",
+    'rightsHolder' : "Steven J. DeRose",
+    'creator'      : "http://viaf.org/viaf/50334488",
+    'type'         : "http://purl.org/dc/dcmitype/Software",
+    'language'     : "Python 2.7.6, 3.6",
+    'created'      : "2007-01-16",
+    'modified'     : "2020-02-14",
+    'publisher'    : "http://github.com/sderose",
+    'license'      : "https://creativecommons.org/licenses/by-sa/3.0/"
+}
+__version__ = __metadata__['modified']
+
 args = None
-#lg = ALogger(1)
 
+def warn(msg):
+    if (args.verbose): sys.stderr.write(msg+"\n")
 
-###############################################################################
-# Process options
-#
-def processOptions():
-    parser = argparse.ArgumentParser(description="""
-=pod
-
-=head1 Description
+descr = """
+=Description=
 
 showinvisible [options]
+
+(Python version; also available in Perl)
 
 Make control characters and space visible by substituting the Unicode
 "control symbols" for them.
@@ -57,25 +49,54 @@ Useful for visualizing return/linefeed, space/tab, etc. Can also be used
 to escape undesired characters in a file to ease later processing (in that
 case, specify I<--nocolor -s>).
 
-(Python version; also available in Perl)
-
-=head1 Known bugs and limitations
+=Known bugs and limitations=
 
 Options I<-b> and I<-u> are unfinished.
 
+=Rights=
 
-=head1 Ownership
-
-This work by Steven J. DeRose is licensed under a Creative Commons
+Copyright 2007 by Steven J. DeRose. This work is licensed under a Creative Commons
 Attribution-Share Alike 3.0 Unported License. For further information on
-this license, see L<http://creativecommons.org/licenses/by-sa/3.0/>.
+this license, see [http://creativecommons.org/licenses/by-sa/3.0].
 
-For the most recent version, see L<http://www.derose.net/steve/utilities/>.
+For the most recent version, see [http://www.derose.net/steve/utilities] or
+[http://github.com/sderose].
 
-=head1 Options
+=History=
 
-=cut
-""")
+* 2007-01-16: Written by Steven J. DeRose.
+
+* 2007-12-31 sjd: Getopt, version, etc.
+
+* 2010-09-27 sjd: Cleanup, -base, -pad, -color, factor out makeCharRef().
+
+* 2011-01-24 sjd: Add control pictures and alternates. binmode STDOUT.
+
+* 2012-01-23 sjd: Fix -color and -base. Use sjdUtils.
+
+* Optimize color-escaping instead of doing on/off for every char.
+
+* 2012-01-23: Converted by perl2python.
+
+* 2012-01-25 sjd: Cleanup.
+
+* 2015-10-13: Update argparse usage. pylint.
+
+=To do=
+
+*     Options for what to do with line-ends?
+
+*     Compare to showInvisibles (no .py), and probably discard as obsolete.
+
+=Options=
+"""
+
+###############################################################################
+# Process options
+#
+def processOptions():
+    parser = argparse.ArgumentParser(description=descr)
+
     parser.add_argument(
         "--backSlashes",      action='store_true',  default=True,
         help='Use \\ hex-codes to display characters.')
@@ -207,7 +228,7 @@ def getNameForControl(n):
     rc = ""
     if (args.name):
         if (n > len(names)):
-            lg.warning("Control #" + n + " out of range for names -- check code.")
+            warn("Control #" + n + " out of range for names -- check code.")
         rc = "*" + names[n] + "*"
     elif (args.backSlashes):
         if (backslashCodes[n]):
@@ -221,7 +242,6 @@ def getNameForControl(n):
     return rc
 
 
-
 ###############################################################################
 ###############################################################################
 # Main
@@ -233,9 +253,8 @@ if (not sys.argv[0]):
 elif (os.path.isfile(sys.argv[0])):
     fh = open(sys.argv[0], "r")
 else:
-    lg.warning("Can't find file.")
+    warn("Can't find file.")
     sys.exit(0)
-
 
 su = sjdUtils()
 cs = ""
@@ -284,7 +303,7 @@ while (rec):
     rec = fh.readline()
 
 if (not args.quiet):
-    lg.warning("Done. Control characters: %d, chars > 127: %d." %
+    warn("Done. Control characters: %d, chars > 127: %d." %
         (nControls, nHigh))
 
 sys.exit(0)

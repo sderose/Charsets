@@ -1,10 +1,15 @@
 ligatures = {
-    # Four more, synonymous to ligtures:
-        # = latin capital ligature ae (1.0)
-        # * in origin a ligature of 017F and 0073
-        # = latin small ligature ae (1.0)
-        # x (latin small ligature oe - 0153)
-        # x (cyrillic small ligature a ie - 04D5)
+    # Others much like ligatures:
+    # = latin capital ligature ae (1.0)
+    # * in origin a ligature of 017F and 0073
+    # = latin small ligature ae (1.0)
+    # x (latin small ligature oe - 0153)
+    # x (cyrillic small ligature a ie - 04D5)
+    # lots of math operators (le, ge,...)
+    # U+0203d	‽	INTERROBANG
+    # U+02e18	⸘	INVERTED INTERROBANG
+    #     !! !? ?! ??
+    # roman numerals, fractions, some letterlike symbols
 
     0x00132: ( 'IJ', 'LATIN CAPITAL LIGATURE IJ' ),
     0x00133: ( 'ij', 'LATIN SMALL LIGATURE IJ' ),

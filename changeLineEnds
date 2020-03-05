@@ -1,22 +1,106 @@
 #!/usr/bin/perl -w
 #
 # changeLineEnds: Identify/normalize line-ends.
-#
-# 2006-11/29: Written by Steven J. DeRose.
-# 2007-07-10 sjd: Add -outlineends.
-# 2007-07-14 sjd: strict, Getopt, fix backslashes.
-# 2008-05-09 sjd: Implement -inplace, color.
-# 2010-09-12 sjd: Cleanup.
-# 2012-10-23 sjd: Get rid of system calls. Support STDIN. Clean up.
-#
-# To do:
-#    Option to catch mixed types in same file?
-#
+##
 use strict;
 use Getopt::Long;
 
-our $VERSION_DATE = "2012-10-23";
+our %metadata = (
+    'title'        => "changeLineEnds",
+    'rightsHolder' => "Steven J. DeRose",
+    'creator'      => "http://viaf.org/viaf/50334488",
+    'type'         => "http://purl.org/dc/dcmitype/Software",
+    'language'     => "Perl 5.18",
+    'created'      => "2006-11/29",
+    'modified'     => "2020-02-28",
+    'publisher'    => "http://github.com/sderose",
+    'license'      => "https://creativecommons.org/licenses/by-sa/3.0/"
+);
+our $VERSION_DATE = $metadata{'modified'};
 
+=pod
+
+=head1 Usage
+
+changeLineEnds [options] [files]
+
+Identifies and/or changes line-end conventions in a file(s).
+
+=head1 Options
+
+=over
+
+=item * B<--color>
+
+Use color (mainly useful with I<--identify>).
+
+=item * B<--identify>
+
+Just say whether *NIX, DOS, MAC, NOTFOUND, UNKNOWN.
+
+=item * B<--olineends> I<t>
+
+Turn line-ends to M(ac), U(nix - default), or D(os) style.
+
+=item * B<--quiet> OR B<-q>
+Suppress most messages.
+
+=item * B<--verbose> OR B<-v>
+More messages.
+
+=item * B<--version>
+
+Display version info and exit.
+
+=back
+
+=head1 Known bugs and limitations
+
+Can fix, but will not identify, files with mixed line-end types.
+
+=Related commands=
+
+Dave Ragget's `tab2space` can expand tabs and fix line endings.
+See HTML Tidy Project Page at [http://tidy.sourceforge.net].
+
+=head1 History
+
+=over
+
+=item * 2006-11/29: Written by Steven J. DeRose.
+
+=item * 2007-07-10 sjd: Add -outlineends.
+
+=item * 2007-07-14 sjd: strict, Getopt, fix backslashes.
+
+=item * 2008-05-09 sjd: Implement -inplace, color.
+
+=item * 2010-09-12 sjd: Cleanup.
+
+=item * 2012-10-23 sjd: Get rid of system calls. Support STDIN. Clean up.
+
+=item * 2020-02-28: Update layout and metadata.
+
+=back
+
+=head1 To do
+
+Option to catch mixed types in same file?
+
+=Rights=
+
+Copyright 2006 by Steven J. DeRose. This work is licensed under a Creative Commons
+Attribution-Share Alike 3.0 Unported License. For further information on
+this license, see [http://creativecommons.org/licenses/by-sa/3.0].
+
+For the most recent version, see [http://www.derose.net/steve/utilities] or
+[http://github.com/sderose].
+
+=cut
+
+
+###############################################################################
+#
 my $colorOption  = ($ENV{USE_COLOR} && -t STDERR) ? 1:0;
 my $justidentify = 0;
 my $olineends    = "U";
@@ -128,66 +212,3 @@ foreach my $f (@ARGV) {
 ($quiet) || warn "Done, $nFiles files.\n";
 
 exit;
-
-
-
-###############################################################################
-###############################################################################
-###############################################################################
-#
-
-=pod
-
-=head1 Usage
-
-changeLineEnds [options] [files]
-
-Identifies and/or changes line-end conventions in a file(s).
-
-
-
-=head1 Options
-
-=over
-
-=item * B<--color>
-
-Use color (mainly useful with I<--identify>).
-
-=item * B<--identify>
-
-Just say whether *NIX, DOS, MAC, NOTFOUND, UNKNOWN.
-
-=item * B<--olineends> I<t>
-
-Turn line-ends to M(ac), U(nix - default), or D(os) style.
-
-=item * B<--quiet> OR B<-q>
-Suppress most messages.
-
-=item * B<--verbose> OR B<-v>
-More messages.
-
-=item * B<--version>
-
-Display version info and exit.
-
-=back
-
-
-
-=head1 Known bugs and limitations
-
-Can fix, but will not identify, files with mixed line-end types.
-
-
-
-=head1 Ownership
-
-This work by Steven J. DeRose is licensed under a Creative Commons
-Attribution-Share Alike 3.0 Unported License. For further information on
-this license, see L<http://creativecommons.org/licenses/by-sa/3.0/>.
-
-For the most recent version, see L<http://www.derose.net/steve/utilities/>.
-
-=cut
