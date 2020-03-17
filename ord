@@ -19,7 +19,7 @@ our %metadata = (
     'type'         => "http://purl.org/dc/dcmitype/Software",
     'language'     => "Perl 5.18",
     'created'      => "2007-10",
-    'modified'     => "2020-02-12",
+    'modified'     => "2020-03-17",
     'publisher'    => "http://github.com/sderose",
     'license'      => "https://creativecommons.org/licenses/by-sa/3.0/"
 );
@@ -46,7 +46,8 @@ about a character(s). For example, "ord BULLET" produces:
     Entities:        &#08226; &#x02022; &bull;
     Nearest ASCII:
 
-You can specify the character(s) to describe in several ways:
+You can also search for characters with various properties,
+and can specify the character(s) to describe in several ways:
 
 =over
 
@@ -60,8 +61,7 @@ or the control-letter equivalent such as C<C-J> or C<^J>.
 ignoring case. But if there are spaces in the name, you need to
 quote it or use "_" instead of each space.
 
-You can now search for incomplete names using the I<--findString>
-or I<--findRegex> option.
+You can now search for incomplete names using the I<--findString> I<--findRegex>, B<--findBlock> option.
 
 =item * A fairly large selection of *nix jargon names (likewise,
 quote them if they contain spaces).
@@ -73,7 +73,8 @@ Default output includes the character's short name, code point number
 Unicode long name, Unix Jargon file names for the character,
 and the literal character itself.
 
-The "URI" portion of the "Unicode" line will be one of:
+The "URI" portion of the "Unicode" line indicates how the Character
+may be used within URIs, and will be one of:
 
 =over
 
@@ -83,12 +84,13 @@ The "URI" portion of the "Unicode" line will be one of:
 
 =back
 
-A few characters, such as '#', have very reserved meanings in URIs and
+A few characters, such as '#', have very special meanings in URIs and
 are considered in the third category.
 
-With I<--findString> or I<--regex>, you can retrieve the
-code points and names of all matching Unicode characters. For example, to
-gather up all the Unicode characters whose formal names include "star", say:
+Several I<--find...> options can retrieve the
+code points and names of all Unicode characters fitting some condition. For example, to
+gather up all the Unicode characters whose formal names include "star"
+(ignoring case), say:
     ord --findString star
 
 This may not get all and only stars, much less all characters one might
@@ -97,9 +99,26 @@ does not have "star" in its name (not to mention other asterisks, snowflakes,
 florettes, and sparkles), and not all characters with "star" in their name may
 be desired.
 
-The resulting list can also be written out as sets of declarations for various
+All I<--find...> matches ignore case.
+
+I<--findString> searches for a literal match within the character's full name.
+
+I<--findRegex> searches via regex within the character's full name.
+
+I<--findBlock> searches for characters whose Unicode block name, such as
+"General Punctuation", matches the specified regex.
+
+I<--findSet> searches for characters which, as literals, match the specified
+regex. For example, to find what characters are included by (Perl's)
+regex '\\s' shorthand, use:
+    ord --findSet "\\s"
+
+The list resulting from any of these I<--find...> options can be written out
+in many formats, including as sets of declarations for various
 languages (see B<--listFormat>).
 
+If you specify more than one of the I<--findXXX> options, the result is
+not defined.
 
 
 =head1 Options
@@ -117,10 +136,11 @@ Show code points in binary.
 Show a chart of character values and mnemonics.
 See also I<--c0>, I<--c1>, I<--g0>, I<--g1>, I<--digits>,
 and I<--math> for partial charts.
+Charts are not affected by I<--minU> or I<maxU>.
 
 =item * B<--cp1252>
 
-Assume char set is cp1252.
+Assume the input character set is Windows(r) code page I<cp1252>.
 
 =item * B<--c0>
 
@@ -155,9 +175,15 @@ characters assigned to the block
 
 =item * B<--findRegex> or B<--regex>
 
-Like I<--findString> and I<--findBlock> (q.v.), but treats the final
+Like I<--findString> (q.v.), but treats the final
 argument as a (Perl-style) regex, and returns any
 characters whose names match the given (ignoring case).
+
+=item * B<--findSet> searches for characters which, as literals,
+match the specified regex.
+For example, to find what characters are included by (Perl's)
+regex '\\s' shorthand, use:
+    ord --findSet "\\s"
 
 =item * B<--findString> or just I<-f>
 
@@ -208,8 +234,7 @@ Display applicable *nix jargon names (default).
 
 =item * B<--listFormat> I<f>
 
-Choose the output layout for results from I<--findString>, I<--findRegex>,
-or I<--findBlock>:
+Choose the output layout for results from the several I<--find...> options:
 
 =over
 
@@ -227,35 +252,35 @@ or I<--findBlock>:
 
 =item * PERL: Hash entries, from hex code point to name.
 
-    0x002a => 'ASTERISK',
-    0x0359 => 'COMBINING ASTERISK BELOW',
-    0x204e => 'LOW ASTERISK',
+    0x0002a => 'ASTERISK',
+    0x00359 => 'COMBINING ASTERISK BELOW',
+    0x0204e => 'LOW ASTERISK',
 
 =item * PYTHONN: Dict entries, from hex code point to name, like:
 
-    0x002a: 'ASTERISK',
-    0x0359: 'COMBINING ASTERISK BELOW',
-    0x204e: 'LOW ASTERISK',
+    0x0002a: 'ASTERISK',
+    0x00359: 'COMBINING ASTERISK BELOW',
+    0x0204e: 'LOW ASTERISK',
 
 =item * PYTHONC: Dict entries, from unichr(hex code point) to name.
 
-    chr(0x002a): 'ASTERISK',
-    chr(0x0359): 'COMBINING ASTERISK BELOW',
-    chr(0x204e): 'LOW ASTERISK',
+    chr(0x0002a): 'ASTERISK',
+    chr(0x00359): 'COMBINING ASTERISK BELOW',
+    chr(0x0204e): 'LOW ASTERISK',
 
 =item * PYTHONS: A Python string constructed from the characters, each
-expressed like I<chr(0xffff)>:
+expressed like I<chr(0x0ffff)>:
 
-    chr(0x002a) +  # 'ASTERISK'
-    chr(0x0359) +  # 'COMBINING ASTERISK BELOW'
-    chr(0x204e) +  # 'LOW ASTERISK'
+    chr(0x0002a) +  # 'ASTERISK'
+    chr(0x00359) +  # 'COMBINING ASTERISK BELOW'
+    chr(0x0204e) +  # 'LOW ASTERISK'
 
 =item * PYTHONU: A Python string constructed from the characters, each
 expressed like I<u'\uffff'>.
 
-    u'\u002a' +  # 'ASTERISK'
-    u'\u0359' +  # 'COMBINING ASTERISK BELOW'
-    u'\u204e' +  # 'LOW ASTERISK'
+    u'\u0002a' +  # 'ASTERISK'
+    u'\u00359' +  # 'COMBINING ASTERISK BELOW'
+    u'\u0204e' +  # 'LOW ASTERISK'
 
 =item * INFO: A display like the output for single characters.
 
@@ -294,7 +319,15 @@ and Greek alphabets. See also I<--chart>.
 =item * B<--maxU> I<n>
 
 Only search Unicode characters up through code point I<n> when using
-I<--findString>, or trying to resolve an unrecognized name. Default: 65535.
+any of the several I<--find...> options,
+or trying to resolve an unrecognized name. Default: 65535 (0xoFFFF).
+Numeric options such as I<--max> can be specified in base 8, 10, or 16.
+
+=item * B<--minU> I<n>
+
+Only search Unicode characters starting from code point I<n> when using
+any of the several I<--find...> options,
+or trying to resolve an unrecognized name. Default: 65535 (0xoFFFF).
 Numeric options such as I<--max> can be specified in base 8, 10, or 16.
 
 =item * B<--octal>
@@ -445,14 +478,15 @@ Warn if env LANG not utf-8. Recognize html entity names, C-J, ^J, etc.
 
 =item * 2020-01-03: Add --minU.
 
-=back
+=item * 2020-03-17: Factor out all the %05x formatting. Add I<--findSet>.
 
+=back
 
 =head1 To do
 
 =over
 
-=item * Port to Python, using CharDisplay.
+=item * Port to Python, using my CharDisplay package.
 
 =item * Integrate remainder of 'chr' command functionality.
 
@@ -462,7 +496,7 @@ Warn if env LANG not utf-8. Recognize html entity names, C-J, ^J, etc.
 
 =item * Separate digits from math; handle the exceptions.
 
-=item * Make --typing show how to key on various systems?
+=item * Make I<--typing> show how to key on various systems?
 
 =back
 
@@ -475,12 +509,19 @@ my @G0names     = ();
 my @C1names     = ();
 my @G1names     = ();
 
-my $upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-my $lower = 'abcdefghijklmnopqrstuvwxyz';
-my $URIchars = "!\$'()*+-._" . '0123456789' . $upper . $lower;
-my $URIspecials = '/%&:;=?@';
+my $upper        = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+my $lower        = 'abcdefghijklmnopqrstuvwxyz';
+my $URIchars     = "!\$'()*+-._" . '0123456789' . $upper . $lower;
+my $URIspecials  = '/%&:;=?@';
 
-my %unixJargon  = ();
+# sprintf() formats for code point numbers. TODO: Make adjustable width
+#
+my $theHexFormat = "0x%05x";
+my $theUFormat   = "U+%05x";
+my $theEntFormat = "&#x%05x;";
+my $thePyFormat  = "u'\\u%05x'";
+
+my %unixJargon   = ();
 
 setupShortCharacterNames();
 setupUnixJargon();
@@ -497,6 +538,7 @@ my $digits      = 0;
 my $entities    = 1;
 my $findBlock   = 0;
 my $findRegex   = 0;
+my $findSet     = 0;
 my $findString  = 0;
 my $C0 = my $C1 = 0;
 my $G0 = my $G1 = 0;
@@ -534,6 +576,7 @@ my $result = GetOptions(
     "entities!"           => \$entities,
     "findBlock!"          => \$findBlock,
     "findRegex|regex!"    => \$findRegex,
+    "findSet!"            => \$findSet,
     "f|findString!"       => \$findString,
     "g0"                  => \$G0,
     "g1"                  => \$G1,
@@ -572,7 +615,7 @@ if ($iconv) {
 $listFormat = uc($listFormat);
 
 ($minU < $maxU) || die
-    "--minU must be less than --maxU.\n";
+    "--minU ($minU)must be less than --maxU ($maxU).\n";
 
 binmode(STDOUT, ":encoding(utf8)");
 if ($ENV{"LANG"} !~ m/UTF-?8/i) {
@@ -598,7 +641,7 @@ if ($digits) {
         my $foo = $digitSets->[$i];
         my $cpA = $foo->[2];
         my $name = $foo->[0];
-        printf("******* %s (U+%05x...):\n", uc($name), $cpA);
+        printf("******* %s (%s...):\n", uc($name), uDisp($cpA));
         my $msg = "";
         my $howMany = $foo->[4] - $foo->[3] + 1;
         if ($foo->[3] > 0) { $msg .= "   " x $foo->[3]; }
@@ -615,13 +658,13 @@ if ($math) {
     for (my $i=0; $i<scalar(@{$mathAlphabets}); $i++) {
         my $foo = $mathAlphabets->[$i];
         my $cpA = $foo->[2];
-        printf("******* %s (U+%05x...):\n", uc($foo->[0]), $cpA);
+        printf("******* %s (%s...):\n", uc($foo->[0]), uDisp($cpA));
         my $msg = my $extra = "";
         for (my $cp=$cpA; $cp<$cpA+26; $cp++) {
             if ($mathMissing{$cp}) {
                 $msg .= '  -';
-                $extra .= sprintf(
-                    "%s is U+%05x, ",chr($mathMissing{$cp}),$mathMissing{$cp});
+                $extra .= sprintf("%s is %s, ",
+                    chr($mathMissing{$cp}), uDisp($mathMissing{$cp}));
             }
             else { $msg .= sprintf("%3s", chr($cp)); }
         }
@@ -632,7 +675,7 @@ if ($math) {
     for (my $i=0; $i<scalar(@{$mathGreeks}); $i++) {
         my $foo = $mathGreeks->[$i];
         my $cpA = $foo->[2];
-        printf("******* %s (U+%05x...):\n", uc($foo->[0]), $cpA);
+        printf("******* %s (%s...):\n", uc($foo->[0]), uDisp($cpA));
         my $msg = "";
         for (my $cp=$cpA; $cp<$cpA+25; $cp++) {
             $msg .= sprintf("%3s", chr($cp));
@@ -711,11 +754,11 @@ if ($pairs) {
     for (my $i=$minU; $i<=$maxU; $i++) {
         if (exists $lame{$i}) { next; }
         if (!$quiet && ($i % 0x10000)==0) {
-            warn sprintf("...starting Unicode plane at 0x%05x...\n", $i);
+            warn sprintf("...starting Unicode plane at %s...\n", hexDisp($i));
         }
         my $iname = charnames::viacode($i);
         if (!$iname) {
-            # sprintf("Cannot get name for U+%05x.\n", $i);
+            # sprintf("Cannot get name for %s.\n", uDisp($i));
             next;
         }
         # This isn't working...
@@ -742,18 +785,18 @@ if ($pairs) {
         if (!exists $candidateIndex{$rName}) { next; }
         my $rNum = $candidateIndex{$rName};
         my $rec = "<tr>\n"
-        . sprintf("    <td class='char'>&#x%05x;</td>\n", $lNum)
-        . sprintf("    <td class='char'>&#x%05x;</td>\n", $rNum)
-        . sprintf("    <td class='hex'>U+%05x</td>\n", $lNum)
-        . sprintf("    <td class='hex'>U+%05x</td>\n", $rNum)
+        . sprintf("    <td class='char'>%s</td>\n", entDisp($lNum))
+        . sprintf("    <td class='char'>%s</td>\n", entDisp($rNum))
+        . sprintf("    <td class='hex'>%s</td>\n", uDisp($lNum))
+        . sprintf("    <td class='hex'>%s</td>\n", uDisp($rNum))
         . sprintf("    <td class='names'>%s\n                 <br \>%s</td>\n",
             $lName, $rName)
         . "</tr>\n";
         print $rec;
     }
     my $msg = sprintf(
-        "%d character pairs found from 0 to U+%05x (see --maxU).",
-        $nCandidates, $maxU);
+        "%d character pairs found from %s to %s (see --maxU).",
+        $nCandidates, uDisp($minU), uDisp($maxU));
     if ($nCandidates<1 && $maxU < 0x10000) {
         $msg .= " Trying raising --maxU to 0x1FFFF?";
     }
@@ -826,6 +869,23 @@ sub isUnicodeCodePoint {
     return(1);
 }
 
+sub hexDisp {
+    my ($n) = @_;
+    return sprintf($theHexFormat, $n);
+}
+sub uDisp {
+    my ($n) = @_;
+    return sprintf($theUFormat, $n);
+}
+sub entDisp {
+    my ($n) = @_;
+    return sprintf($theEntFormat, $n);
+}
+sub pyDisp {
+    my ($n) = @_;
+    return sprintf($thePyFormat, $n);
+}
+
 
 ###############################################################################
 ###############################################################################
@@ -849,7 +909,7 @@ while (my $origName = shift) {
         my $c = HTML::Entities::decode($entRef);
         if ($c ne $entRef) {                # HTML entity (case sensitive!)
             $n = ord($c);
-            printf("Found HTML entity name '$name' = U+%05xo.\n", $n);
+            printf("Found HTML entity name '$name' = %s.\n", uDisp($n));
         }
         $name = uc($name);                  # C0 name?
         for (my $i=0; $i<scalar @C0names; $i++) {
@@ -882,13 +942,15 @@ while (my $origName = shift) {
             }
         }
 
-        if (!$n || $findString || $findRegex || $findBlock) {
+        if (!$n || $findBlock || $findString || $findRegex || $findSet) {
             warn "Character mnemonic '$origName' (length "
                 . length($name) . ") not found.\n";
-            ($findBlock) && warn "    Searching for block '$name'...\n";
-            ($findRegex) && warn "    Searching for regex '$name'...\n";
+            ($findBlock)  && warn "    Searching for block '$name'...\n";
+            ($findRegex)  && warn "    Searching for regex '$name'...\n";
+            ($findSet)    && warn "    Searching for regex set '$origName'...\n" .
+                "    [[ --findSet is still experimental ]]\n";
             ($findString) && warn "    Searching for string '$name'...\n";
-            getMatchingUnicodeNames($name);
+            findMatchingCharacters($origName);
             next;
         }
     }
@@ -958,53 +1020,61 @@ sub getBinary {
 
 
 ###############################################################################
-# Find all Unicode characters, per --find, --regex, or --findBlock.
+# Find all Unicode characters, per --findString, --findRegex, or --findBlock.
 # Generate a list of all we found, in a specified --listFormat.
 # This is slow.
 #
-sub getMatchingUnicodeNames {
-    my ($name) = @_;  # Target argument
+sub findMatchingCharacters {
+    my ($target) = @_;  # Target argument
+    #warn sprintf("Searching for '%s'.\n", $target);
     my $nfound = 0;
     for (my $i=$minU; $i<=$maxU; $i++) {
         if (!$quiet && ($i % 0x10000)==0) {
-            warn sprintf("...starting Unicode plane at 0x%05x...\n", $i);
+            warn sprintf("...starting Unicode plane at %s...\n", hexDisp($i));
         }
         my $iname = charnames::viacode($i);
-        if (!$iname) { next; }
+        if (!$iname) { next; }  # Undefined (probably?)
+
         if ($findRegex) {
-            if ($iname !~ m/$name/i) { next; }
+            if ($iname !~ m/$target/i) { next; }
         }
         elsif ($findBlock) {
-            #warn(sprintf("Block of %05x is '%s'\n", $i, charblock($i)));
+            #warn(sprintf("Block of %s is '%s'\n", uDisp($i), charblock($i)));
             # TODO: Check UCD's prop_value_aliases() function, too.
-            if (charblock($i) !~ /$name/i) { next; }
+            if (charblock($i) !~ /$target/i) { next; }
+        }
+        elsif ($findString) {
+            if (index($iname, uc($target)) < 0) { next; }
+        }
+        elsif ($findSet) {
+            if (chr($i) !~ /$target/) { next; }
         }
         else {
-            if (index($iname, uc($name)) < 0) { next; }
+            die "Not sure what we're trying to --find...\n";
         }
         $nfound++;
 
         # Generate the right --listFormat.
         if ($listFormat eq "PLAIN") {
-            printf("U+%05x\t%s\n", $i, $iname);
+            printf("%s\t%s\n", uDisp($i), $iname);
         }
         elsif ($listFormat eq "LITERAL") {
-            printf("U+%05x\t%s\t%s\n", $i, chr($i), $iname);
+            printf("%s\t%s\t%s\n", uDisp($i), chr($i), $iname);
         }
         elsif ($listFormat eq "PERL") {
-            printf("    0x%05x => '%s',\n", $i, $iname);
+            printf("    %s => '%s',\n", hexDisp($i), $iname);
         }
         elsif ($listFormat eq "PYTHONN") {
-            printf("    0x%05x: '%s',\n", $i, $iname);
+            printf("    %s: '%s',\n", hexDisp($i), $iname);
         }
         elsif ($listFormat eq "PYTHONS") {
-            printf("    %s(0x%05x) +  # '%s'\n", $pyFunction, $i, $iname);
+            printf("    %s(%s) +  # '%s'\n", $pyFunction, hexDisp($i), $iname);
         }
         elsif ($listFormat eq "PYTHONU") {
-            printf("    u'\\u%05x' +  # '%s'\n", $i, $iname);
+            printf("    %s +   # '%s'\n", pyDisp($i), $iname);
         }
         elsif ($listFormat eq "PYTHONC") {
-            printf("    %s(0x%05x): '%s',\n", $pyFunction, $i, $iname);
+            printf("    %s(%s): '%s',\n", $pyFunction, hexDisp($i), $iname);
         }
         elsif ($listFormat eq "INFO") {
             print "\n";
@@ -1012,8 +1082,8 @@ sub getMatchingUnicodeNames {
         }
         elsif ($listFormat eq "HTML") {
             my $rec = "<tr>\n"
-                . sprintf("    <td class='char'>&#x%05x;</td>\n", $i)
-                . sprintf("    <td class='hex'>U+%05x</td>\n", $i)
+                . sprintf("    <td class='char'>%s</td>\n", entDisp($i))
+                . sprintf("    <td class='hex'>%s</td>\n", uDisp($i))
                 . sprintf("    <td class='name'>%s</td>\n", $iname)
                 . "</tr>\n";
             print $rec;
@@ -1023,8 +1093,8 @@ sub getMatchingUnicodeNames {
         }
     }
     my $msg = sprintf(
-        "%d matching characters found from 0 to U+%05x (see --maxU).",
-        $nfound, $maxU);
+        "%d matches found from %s to %s (see --minU and --maxU).",
+        $nfound, uDisp($minU), uDisp($maxU));
     if ($nfound<1 && $maxU < 0x10000) {
         $msg .= " Trying raising --maxU to 0x1FFFF?";
     }
@@ -1076,8 +1146,6 @@ sub showOne {
         pline("Bases:", $bases);
     }
 
-
-
     if ($utf8) {
         my $utf = getUTF8local($n2 ? $n2:$n, "\\x");
         my $uri = getUTF8local($n2 ? $n2:$n, "%");
@@ -1086,7 +1154,7 @@ sub showOne {
         if ($okURI) { $uri = "ok as literal"; }
         elsif ($spURI) { $uri = "special"; }
         pline("Unicode:", sprintf(
-            "U+%05x, utf8 %s, URI (%s)", $n, $utf, $uri));
+            "%s, utf8 %s, URI (%s)", uDisp($n), $utf, $uri));
     }
 
     if ($entities) {
@@ -1130,7 +1198,7 @@ sub showUnicodeInfo {
     }
     else {
         pline("Unicode Name:",    charnames::viacode($n) || "-NOT FOUND-");
-        pline("Unicode Script: ", charscript(sprintf("U+%05x", $n)));
+        pline("Unicode Script: ", charscript(uDisp($n)));
         pline("Unicode Block:  ", charblock($n));
     }
     my $pnum = $n >> 16;
