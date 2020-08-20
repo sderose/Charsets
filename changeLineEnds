@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 #
-# changeLineEnds: Identify/normalize line-ends.
-##
+# changeLineEnds: Identify/normalize line-ends. By Steven J. DeRose
+#
 use strict;
 use Getopt::Long;
 
@@ -25,6 +25,7 @@ our $VERSION_DATE = $metadata{'modified'};
 changeLineEnds [options] [files]
 
 Identifies and/or changes line-end conventions in a file(s).
+
 
 =head1 Options
 
@@ -54,14 +55,17 @@ Display version info and exit.
 
 =back
 
+
 =head1 Known bugs and limitations
 
-Can fix, but will not identify, files with mixed line-end types.
+This can fix, but will not identify, files with mixed line-end types.
+
 
 =Related commands=
 
-Dave Ragget's `tab2space` can expand tabs and fix line endings.
+Dave Ragget's C<tab2space> can expand tabs and fix line endings.
 See HTML Tidy Project Page at [http://tidy.sourceforge.net].
+
 
 =head1 History
 
@@ -83,9 +87,6 @@ See HTML Tidy Project Page at [http://tidy.sourceforge.net].
 
 =back
 
-=head1 To do
-
-Option to catch mixed types in same file?
 
 =Rights=
 
@@ -94,7 +95,7 @@ Attribution-Share Alike 3.0 Unported License. For further information on
 this license, see [http://creativecommons.org/licenses/by-sa/3.0].
 
 For the most recent version, see [http://www.derose.net/steve/utilities] or
-[http://github.com/sderose].
+[https://github.com/sderose].
 
 =cut
 
@@ -124,8 +125,6 @@ my $result = GetOptions(
 
 ($result) || die "Bad options.\n";
 
-
-###############################################################################
 # Validate and default options
 #
 $olineends = uc(substr($olineends."U",0,1));
@@ -146,7 +145,6 @@ if ($colorOption) {
 }
 
 
-###############################################################################
 ###############################################################################
 # Main
 #

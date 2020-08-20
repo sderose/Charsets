@@ -46,7 +46,7 @@ not Safari, though neither actually formats the MarkDown file I'm reading:
 
 But see also `PYTHONLIBS/CharDisplay.py,` for a Python version of most of the
 same functionality, which can also be accessed as an API;
-and `PYTHONLIBS/mathUnicode.py`, which provides access to those same
+and `PYTHONLIBS/mathAlphanumerics.py`, which provides access to those same
 mathematical variants as an API (it even quietly deals with the characters
 that aren't where you'd expect them in Unicode).
 
@@ -79,7 +79,8 @@ better overall, this is an older Perl module.
 
 * chr (Perl) -- given a Unicode code point number(s) in octal, decimal, or hex,
 or control character mnemonic,
-show a bunch of information about the Unicode character(s).
+show a bunch of information about the Unicode character(s). I prefer `ord`
+(see below), which is similar but has many more features.
 
 * countByCase (Perl) -- count characters in the input by what case they are.
 

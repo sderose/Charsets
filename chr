@@ -1143,7 +1143,7 @@ Display of other characters depends on your terminal program.
 
 =over
 
-=item B<--cp1252>
+=item * B<--cp1252>
 
 Show Windows Code Page 1252 meanings of characters d128-d159 (the rest
 of CP1252 matches Latin-1).
@@ -1158,15 +1158,15 @@ See also I<--listEncodings>, I<--cp1252>.
 
 Show all the encodings supported by I<--iencoding>, and exit.
 
-=item B<--long>
+=item * B<--long>
 
 Give long names for control characters, instead of mnemonics.
 
-=item B<--quiet> OR B<-q>
+=item * B<--quiet> OR B<-q>
 
 Suppress most messages.
 
-=item B<--utf8>
+=item * B<--utf8>
 
 Interpret the command-line numbers as representations of UTF8 (the
 most common representation for Unicode).
@@ -1189,11 +1189,11 @@ C<chr> will find the boundaries, and describe each character in turn.
 However, C<chr> cannot do the same for decimal representations of more than
 1 character together.
 
-=item B<--verbose> OR B<-v>
+=item * B<--verbose> OR B<-v>
 
 Add more detailed messages.
 
-=item B<--version>
+=item * B<--version>
 
 Display version info and exit.
 

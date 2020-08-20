@@ -95,7 +95,8 @@ using the smallest hex escape they can (probably should add a `--width` option).
 
 =Related Commands=
 
-`ord`, `mathUnicode`, `countChars`, `makeCharChart.py`, `getCharsByScript`.
+`ord`, `mathAlphanumerics`, `countChars`,
+`makeCharChart.py`, `getCharsByScript`.
 
 =Known bugs and Limitations=
 
