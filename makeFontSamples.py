@@ -1,12 +1,7 @@
 #!/usr/bin/env python
 #
 # makeFontSamples.py
-#
-# 2019-07-03: Written. Copyright by Steven J. DeRose.
-# Creative Commons Attribution-Share-alike 3.0 unported license.
-# See http://creativecommons.org/licenses/by-sa/3.0/.
-#
-# To do:
+# 2019-07-03: Written by Steven J. DeRose.
 #
 from __future__ import print_function
 import sys, os
@@ -14,25 +9,23 @@ import argparse
 import re
 
 __metadata__ = {
-    'creator'      : "Steven J. DeRose",
-    'cre_date'     : "%DATE%",
+    'title'        : "makeFontSamples.py",
+    'rightsHolder' : "Steven J. DeRose",
+    'creator'      : "http://viaf.org/viaf/50334488",
+    'type'         : "http://purl.org/dc/dcmitype/Software",
     'language'     : "Python 3.7",
-    'version_date' : "%DATE%",
+    'created'      : "2019-07-03",
+    'modified'     : "2020-08-20",
+    'publisher'    : "http://github.com/sderose",
+    'license'      : "https://creativecommons.org/licenses/by-sa/3.0/"
 }
-__version__ = __metadata__['version_date']
+__version__ = __metadata__['modified']
 
-
-###############################################################################
-###############################################################################
-# Main
-#
-if __name__ == "__main__":
-    def processOptions():
-        descr = """
+descr = """
 =head1 Description
 
 Collects fonts from the directories where MacOS keeps them, and makes
-an HTML file wioth a sample of each.
+an HTML file with a sample of each.
 
 The list could be shortened by leaving out files that are variants of a single
 font-family, or ones that Browsers don't seem to use.
@@ -41,22 +34,31 @@ font-family, or ones that Browsers don't seem to use.
 
 =head1 Known bugs and Limitations
 
-=head1 Licensing
+=Rights=
 
-Copyright %DATE% by Steven J. DeRose. This script is licensed under a
+Copyright 2019-07-03 by Steven J. DeRose. This work is licensed under a
 Creative Commons Attribution-Share-alike 3.0 unported license.
-See http://creativecommons.org/licenses/by-sa/3.0/ for more information.
+For further information on this license, see
+[https://creativecommons.org/licenses/by-sa/3.0].
+
+For the most recent version, see [http://www.derose.net/steve/utilities]
+or [https://github.com/sderose].
 
 =head1 Options
 """
 
+
+###############################################################################
+# Main
+#
+if __name__ == "__main__":
+    def processOptions():
         try:
-            from MarkupHelpFormatter import MarkupHelpFormatter
-            formatter = MarkupHelpFormatter
+            from BlockFormatter import BlockFormatter
+            parser = argparse.ArgumentParser(
+                description=descr, formatter_class=BlockFormatter)
         except ImportError:
-            formatter = None
-        parser = argparse.ArgumentParser(
-            description=descr, formatter_class=formatter)
+            parser = argparse.ArgumentParser(description=descr)
 
         parser.add_argument(
             "--color",  # Don't default. See below.
@@ -85,7 +87,7 @@ See http://creativecommons.org/licenses/by-sa/3.0/ for more information.
             help='Display version information, then exit.')
 
         parser.add_argument(
-            'files',             type=str,
+            'files',              type=str,
             nargs=argparse.REMAINDER,
             help='Path(s) to input file(s)')
 

@@ -1,20 +1,168 @@
 #!/usr/bin/perl -w
 #
 # normalizeSpace: Normalize whitespace in the input (not including CR/LF)
-#
-# 2007-10-??: Written by Steven J. DeRose.
-# 2012-09-07: bash-->Perl. Unicode support.
-#     Add --control, --dash, --privateUse, --quote, --space.
-# 2015-06-10: Get rid of \p{} in regexes; use actual Unicode char lists.
-#
-# To do:
+# 2007-10: Written by Steven J. DeRose.
 #
 use strict;
 use Getopt::Long;
 use Encode;
 
-our $VERSION_DATE = "2015-06-10";
+our %metadata = (
+    'title'        => ".pm",
+    'rightsHolder' => "Steven J. DeRose",
+    'creator'      => "http://viaf.org/viaf/50334488",
+    'type'         => "http://purl.org/dc/dcmitype/Software",
+    'language'     => "Perl 5.18",
+    'created'      => "2006-10",
+    'modified'     => "2020-08-20",
+    'publisher'    => "http://github.com/sderose",
+    'license'      => "https://creativecommons.org/licenses/by-sa/3.0/"
+);
+our $VERSION_DATE = $metadata{'modified'};
 
+
+=pod
+
+=head1 Usage
+
+normalizeSpace [options] file
+
+Reduce runs of whitespace to a single space, and drop leading and trailing
+whitespace. Optionally, also normalize quotes, dashes, controls, etc.
+
+If you specify I<--iencoding utf8>, all Unicode "Separator" characters
+count as spaces. These include regular space, TAB, CR, LF,
+non-breaking space, en, em, thin, and other width spaces (U+20xx), etc.
+
+Otherwise,
+
+=head1 Options
+
+(prefix 'no' to negate where applicable)
+
+=over
+
+=item * B<--control>
+
+Turn each control character (U+0000 to U+001F and U+0080 to U+009F) to
+a space. This happens before I<--space>.
+
+B<Note>: If the "upper" control
+characters are used for graphical characters, as in the Windows "CP1252"
+character set (but not Unicode or most other encodings),
+this option will still turn them to spaces.
+If you have this problem, you can turn off I<--control>,
+translate your data out of CP1252 (e.g., with C<iconv>),
+or specify I<--iencoding cp1252>.
+
+=item * B<--dash>
+
+Turn all dash character sequences to a single hyphen, except for
+soft hyphens (U+00AD) and hyphenation points (U+2027) which are deleted,
+em (clause) dashes (U+2014) which remain;
+and 2 hyphens in a row, which are changed to em dash.
+
+=item * B<--iencoding> I<e>
+
+Specify character encoding for input.
+
+=item * B<--ilineends> I<t>
+
+Assume Unix, Dos, or Mac line-breaks for input.
+
+=item * B<--listEncodings>
+
+Show all available character encodings, then exit.
+
+=item * B<--privateUse>
+
+Turn all Unicode private-use characters to regular spaces.
+Namely: [\x{E000}-\x{F8FF}\x{F0000}-\x{FFFFD}\x{100000}-\x{10FFFD}].
+
+=item * B<--quiet> or B<-q>
+
+Fewer messages.
+
+=item * B<--quote>
+
+Turn each Unicode initial (open) or final (close) quotation mark to '"'.
+Apostrophe and backquote are not changed.
+
+=item * B<--space>
+
+Turn each run of one or more Unicode Separator characters to a single space,
+except for the following, which are deleted because they are
+too narrow to make a visual space:
+    U+2009     THIN SPACE
+    U+200A     HAIR SPACE
+    U+200B     ZERO WIDTH SPACE
+    U+202F     NARROW NO-BREAK SPACE
+
+In addition, delete a leading and/or trailing space that remains after that.
+
+I<--space> is the default behavior; use I<--nospace> to turn it off.
+
+=item * B<--unicode>
+
+Synonym for I<--iencoding utf8>.
+
+=item * B<--verbose> or B<-v>
+
+Add more messages (repeatable).
+
+=item * B<--version>
+
+Show version info and exit.
+
+=back
+
+
+=head1 Known Bugs and Limitations
+
+Regex specials like \\p{Dash_Punctuation}, \\p{Initial_Punctuation}, and
+\\p{Final_Punctuation} do not seem to work. Have switched to actual Unicode
+character lists. That also seems to have problems. But it should still work
+for normal \\s spaces.
+
+
+=head1 Related commands
+
+The C<Tokenizer.pm> library provides more extensive normalization capabilities.
+
+C<nukeNonXmlChars> does some similar cleanups.
+
+
+=head1 History
+
+=over
+
+=item * 2007-10: Written by Steven J. DeRose.
+
+=item * 2012-09-07: bash-->Perl. Unicode support.
+Add --control, --dash, --privateUse, --quote, --space.
+
+=item * 2015-06-10: Get rid of \p{} in regexes; use actual Unicode char lists.
+
+=back
+
+
+=head1 To do
+
+
+=head1 Rights
+
+Copyright 2007-10 by Steven J. DeRose. This work is licensed under a
+Creative Commons Attribution-Share Alike 3.0 Unported License.
+For further information on this license, see
+L<https://creativecommons.org/licenses/by-sa/3.0>.
+
+For the most recent version, see L<http://www.derose.net/steve/utilities> or
+L<https://github.com/sderose>.
+
+=cut
+
+
+###############################################################################
 # Pre-compile regexes, esp. for Unicode phenomena
 #
 my $controlToKillString = "\x00-\x1F\x80-\x9F";
@@ -207,134 +355,3 @@ while (my $file = shift) {
 #warn "Done, $recnum records processed.\n";
 
 exit;
-
-
-
-###############################################################################
-###############################################################################
-###############################################################################
-#
-
-=pod
-
-=head1 Usage
-
-normalizeSpace [options] file
-
-Reduce runs of whitespace to a single space, and drop leading and trailing
-whitespace. Optionally, also normalize quotes, dashes, controls, etc.
-
-If you specify I<--iencoding utf8>, all Unicode "Separator" characters
-count as spaces. These include regular space, TAB, CR, LF,
-non-breaking space, en, em, thin, and other width spaces (U+20xx), etc.
-
-
-
-=head1 Options
-
-(prefix 'no' to negate where applicable)
-
-=over
-
-=item * B<--control>
-
-Turn each control character (U+0000 to U+001F and U+0080 to U+009F) to
-a space. This happens before I<--space>.
-
-B<Note>: If the "upper" control
-characters are used for graphical characters, as in the Windows "CP1252"
-character set (but not Unicode or most other encodings),
-this option will still turn them to spaces.
-If you have this problem, you can turn off I<--control>,
-translate your data out of CP1252 (e.g., with C<iconv>),
-or specify I<--iencoding cp1252>.
-
-=item * B<--dash>
-
-Turn all dash character sequences to a single hyphen, except for
-soft hyphens (U+00AD) and hyphenation points (U+2027) which are deleted,
-em (clause) dashes (U+2014) which remain;
-and 2 hyphens in a row, which are changed to em dash.
-
-=item * B<--iencoding> I<e>
-
-Specify character encoding for input.
-
-=item * B<--ilineends> I<t>
-
-Assume Unix, Dos, or Mac line-breaks for input.
-
-=item * B<--listEncodings>
-
-Show all available character encodings, then exit.
-
-=item * B<--privateUse>
-
-Turn all Unicode private-use characters to regular spaces.
-Namely: [\x{E000}-\x{F8FF}\x{F0000}-\x{FFFFD}\x{100000}-\x{10FFFD}].
-
-=item * B<--quiet> or B<-q>
-
-Fewer messages.
-
-=item * B<--quote>
-
-Turn each Unicode initial (open) or final (close) quotation mark to '"'.
-Apostrophe and backquote are not changed.
-
-=item * B<--space>
-
-Turn each run of one or more Unicode Separator characters to a single space,
-except for the following, which are deleted because they are
-too narrow to make a visual space:
-    U+2009     THIN SPACE
-    U+200A     HAIR SPACE
-    U+200B     ZERO WIDTH SPACE
-    U+202F     NARROW NO-BREAK SPACE
-
-In addition, delete a leading and/or trailing space that remains after that.
-
-I<--space> is the default behavior; use I<--nospace> to turn it off.
-
-=item * B<--unicode>
-
-Synonym for I<--iencoding utf8>.
-
-=item * B<--verbose> or B<-v>
-
-Add more messages (repeatable).
-
-=item * B<--version>
-
-Show version info and exit.
-
-=back
-
-
-
-=head1 Known Bugs and Limitations
-
-Regex specials like \\p{Dash_Punctuation}, \\p{Initial_Punctuation}, and
-\\p{Final_Punctuation} do not seem to work. Have switched to actual Unicode
-character lists. That also seems to have problems. But it should still work
-for normal \\s spaces.
-
-
-
-=head1 Related commands
-
-The C<Tokenizer.pm> library provides more extensive normalization capabilities.
-
-C<nukeNonXmlChars> does some similar cleanups.
-
-
-
-=head1 Ownership
-
-This work by Steven J. DeRose is licensed under a Creative Commons
-Attribution-Share Alike 3.0 Unported License. For further information on
-this license, see L<http://creativecommons.org/licenses/by-sa/3.0/>.
-
-For the most recent version, see L<http://www.derose.net/steve/utilities/>.
-
-=cut
