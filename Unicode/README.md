@@ -1,8 +1,97 @@
-This directory mainly contains lists of selected Unicode characters,
-expressed as Python, Perl, or other data objects.
+#README for sjd "Charsets" repo#
 
-Generally, they just declare a dict that maps the code point to the Unicode name.
-For example, asPython/spaces.py looks like:
+This directory mainly contains a variety of tools for manipulating data
+in various character sets and encoding, especially Unicode.
+
+## Highlights ##
+
+* `countChars` -- Lots of statistics on character use in files.
+
+* `ord` -- really nice shell access to information about Unicode characters.
+
+* `mathAlphanumerics.py` -- Must be tried to be believed.
+
+
+## Short descriptions ##
+
+* `changeCase` --
+
+* `changeEncoding` --
+
+* `changeLineEnds` -- Mess with, or just identify, Mac vs. DOS vs. Unix
+style line-breaks.
+
+* `chr` -- Much like `ord`.
+
+* `countByCase` --
+
+* `countChars` -- Count statistics of character use in files. Reports
+frequencies (with character names as well as literals and code points),
+and can report all specific locations of particular characters or ranges.
+Also break down distributions by Unicode plane, script, and block, and
+reports coding errors.
+
+* `getCharsByScript` --
+
+* `isUTF8` -- Test whether a file is legit UTF-8.
+
+* `makeCharChart.py` --
+
+* `makeFontSamples.py` -- Grabs all the fonts it can find and makes an
+HTML file with a sample in each.
+
+* `mathAlphanumerics.py` -- provides somewhat easier access to the very many
+alternate Latin and Greek alphabets and Latin digits in Unicode,
+such as sans-serif bold, Fraktur, circled, etc.. Many of these
+are in the "Mathematical Alphanumeric Symbols" area, but other sets are
+supported as well. This package can translate regular Latin and Greek to
+any of these. This is more pain than it might seem, because many of the
+variants have members that are not in the "expected" place (for example,
+MATHEMATICAL ITALIC does not have "h" between "g" and "i", because an earlier
+version of Unicode defined Planck constant somewhere else. This package
+quietly takes care of all that. It does not handle diacritics,
+though that may be added. A few characters are simply missing, particularly
+the digit 0. `normalizeUnicode` can undo most of the Latin alphabet transforms.
+
+* `normalizeSpace` -- Do XML-style space normalization on any data.
+Can also do more aggressive Unicode space normalization, and has options
+to deal with dashes, line-ends, control characters, Unicode private use areas,
+and quotes.
+
+* `normalizeUnicode` -- Character normalization on steroids. You can
+separately choose most kinds of equivalence defined for Unicode compatibility
+decomposition. Can even undo most of the Latin mappings provided by
+`mathAlphanumerics.py`.
+
+* `ord` -- Provide tons of data about characters, from their URL encodings
+to their Unix Jargon names, Unicode script, plane, and block, etc. Can
+also search the Unicode character space and generate lists of found
+characters in a wide variety of useful formats.
+
+* `showInvisibles` and `showInvisibles.py` -- Turn
+various characters to viewable forms. By
+default, turns control characters into the tiny mnemonics known as Unicode
+"Control Pictures", but can also turn various characters to hex backslash
+codes, URL escapes, and/or colorize them. Should, but does not yet, offer
+conversion to XML or HTML character references.
+
+* `showUnicodeCharsInClass.py` --
+
+* `toHiragana` -- Rudimentary Latin to Hiragana transliteration. Written in
+hopes of forcing myself to learn Hiragan.
+
+* `transliterate` --
+
+
+
+=The `Unicode/` subdirectory=
+
+This has lists of selected Unicode characters in various useful
+categories, such as brackets, left/right paired characters in general,
+spaces, dashes, quotes. Theses are mostly available as declared lists
+in Perl or Python form..
+
+For example, Unicode/asPython/spaces.py contains lines like:
 
     USpaces = {
         0x0009:  'CHARACTER TABULATION',
@@ -14,10 +103,12 @@ For example, asPython/spaces.py looks like:
         0x303F:  'IDEOGRAPHIC HALF FILL SPACE',
     }
 
-This is the same as produced by `ord --listFormat PYTHONN -f SPACE`.
+This can be produced by `ord --listFormat PYTHONN -f SPACE` (`ord` is also
+available in this repo).
 The `-f SPACE` means to select all characters whose formal name matches
 the string (actually regex) "SPACE".
-Other formats are available, such as mapping literal characters to names,
+Several other formats are available,
+such as mapping literal characters to names,
 or creating strings of the found character; or for Perl; or as an HTML chart,
 or as a full information block about each character.
 
@@ -32,7 +123,7 @@ bracket characters, and/or the literal character as a string:
         ...
     }
 
-Lists included are:
+Some of the lists included are:
 
     boxDrawing.py
     brackets.py
@@ -48,7 +139,7 @@ Lists included are:
     spaces.py
     xmlPredefined.py
 
-=UnicodeSpecials.py=
+#Unicode/asPython/UnicodeSpecials.py#
 
 This file is special. It defines a class, which in turn defines a bunch of
 variables with useful lists, which include things like bracket side, space width, etc.
