@@ -2,6 +2,16 @@
 #
 # countChars: Find and report certain characters in a file.
 #
+use strict;
+use Getopt::Long;
+use Encode;
+use charnames ':full';
+use Unicode::UCD 'charscript';    # Unicode property access
+use Unicode::UCD 'charblock';     # Unicode property access
+#use Devel::DProf; # add '-d' above, view results with dprofpp.
+
+use sjdUtils;
+use alogging;
 
 our %metadata = (
     'title'        => "countChars",
@@ -10,7 +20,7 @@ our %metadata = (
     'type'         => "http://purl.org/dc/dcmitype/Software",
     'language'     => "Perl 5",
     'created'      => "2006-04-27",
-    'modified'     => "2020-01-28",
+    'modified'     => "2020-08-25",
     'publisher'    => "http://github.com/sderose",
     'license'      => "https://creativecommons.org/licenses/by-sa/3.0/"
 );
@@ -268,8 +278,8 @@ I<--ignoreCase>.
 
 =item * B<--tickInterval> I<n>
 
-Report progress every I<n> records. Default: 2000.
-Expect a few tens of K characters per second.
+Report progress every I<n> records. Default: 25,000.
+Expect about 1MB per second.
 
 =item * B<--unicode>
 
@@ -357,6 +367,105 @@ With I<--showNames>, ASCII printables are just displayed literally. This
 is probably preferable as a default, but there should be an option to get the
 full names, like "LATIN CAPITAL LETTER A".
 
+
+=head1 History
+
+=over
+
+=item * Written by Steven J. DeRose, 2006-04-27, as 'nonascii'.
+
+=item * 2007-09-xx sjd: fix table reporting bug.
+
+=item * 2008-04-24 sjd: Fix for BSD.
+
+=item * 2008-05-13 sjd: Report total % found.
+
+=item * 2009-05-05 sjd: Fix % reporting.
+
+=item * 2009-08-05 sjd: Add --g1names, --cp1252, --cpmac mnemonics, --unicode.
+
+=item * 2010-03-23 sjd: Add --tickInterval, perldoc. Bug w/ html entities.
+Clean up logic. Support U'xxxx, Javascript, and CSS. Add --all.
+Report character counts by escape type. Nicer names in report.
+
+=item * 2011-06-30 sjd: Start integrating HTML::Entities and TabularFormats.
+Refactor a little. Catch literal chars, duh.
+
+=item * 2011-07-14 sjd: Add --rank. Start merging countChars features.
+Rename to countChars.
+
+=item * 2011-08-03 sjd:  Implement --iencoding, --oencoding, --olineends.
+Suppress invalid utf8 warnings, add --fixBadUTF8 option. Localize $c.
+Rename --minCode and --maxCode, in favor of --ascii. Drop --cpmac.
+Make --cp1252 force --iencoding.
+
+=item * 2011-08-04 sjd:  --justCount -> --instances. Add --literals. Fix --ents.
+Fix --fcol/--lcol to --columns x-y. Add %byScript, %byBlock. Fix \f, \v.
+
+=item * 2012-03-07 sjd: Add --color.
+
+=item * 2012-07-02 sjd: Redo options for TF.
+
+=item * 2012-09-14 sjd: Fix so doesn't default to counting NO fields. Report speed.
+Add $expandingAnything, and save subr call if not in effect. Ditch --ascii.
+
+=item * 2012-09-19 sjd: Report % for representation form, Script, and Block.
+    Profile. Most time spend in Unicode::UCD::_search, so made --ustats option.
+
+=item * 2012-11-08 sjd: Check chars>127 for utf8 and count, display both ways?
+
+=item * 2012-11-30 sjd: Look up unicode scripts/blocks only once per code point.
+
+=item * 2012-12-13 sjd: Heading before each Unicode block in alpha list. Add U+XXXX.
+More work on handling invalid utf8.
+
+=item * 2013-01-14 sjd: Colorize headings. Sort --ustats output. Use eval(decode).
+Make STDIN work.
+
+=item * 2014-09-01ff: Only issue 'waiting' msg if -t STDIN. --. Latin1 totals. TF optional.
+Add -r option to deal with OANC-type files. Fix heading before new U. block.
+Add --strip, --stripIgnoreCase.
+
+=item * 2018-08-06: Add --useBinmode.
+
+=item * 2020-01-28: Fix display of some Unicode char names. Standardize doc.
+Add some display options.
+
+=item * 2020-08-25: Clean up. Catch --iencoding 'utf-8' (no hyphen please).
+
+=back
+
+
+=head1 To do
+
+=over
+
+=item *     Identify HTML named entities
+
+=item *     Option to insert literal (or entity or \x) in output chart.
+
+=item *     Catch and complain about undetected UTF8, unicode coding errors (done?).
+
+=item *     Colorizing headings isn't working right.
+
+=item *     Color hyph/space/dash/quote green; non-word-chars outside ascii
+
+=item *     --first appears to be broken.
+
+=item *     --noascii appears to be broken.
+
+=item *     Lose local escaping and entities tables.
+
+=item *     Support colorizing in --instances reporting.
+
+=item *     Trap SIGINT and report partial results.
+
+=item *     Offer commentary on how far off from typical language norms.
+
+=item *     Port to Python and use powerWalk.py (esp. for --exclude option).
+
+=back
+
 =head1 Ownership
 
 This script was formerly known as 'nonascii'.
@@ -369,82 +478,8 @@ this license, see L<http://creativecommons.org/licenses/by-sa/3.0/>.
 For the most recent version, see L<http://www.derose.net/steve/utilities/> or
 L<http://github/com/sderose>.
 
-=head1 History
-
-=over
-
-=item * Written by Steven J. DeRose, 2006-04-27, as 'nonascii'.
-=item * 2007-09-xx sjd: fix table reporting bug.
-=item * 2008-04-24 sjd: Fix for BSD.
-=item * 2008-05-13 sjd: Report total % found.
-=item * 2009-05-05 sjd: Fix % reporting.
-=item * 2009-08-05 sjd: Add --g1names, --cp1252, --cpmac mnemonics, --unicode.
-=item * 2010-03-23 sjd: Add --tickInterval, perldoc. Bug w/ html entities.
-Clean up logic. Support U'xxxx, Javascript, and CSS. Add --all.
-Report character counts by escape type. Nicer names in report.
-=item * 2011-06-30 sjd: Start integrating HTML::Entities and TabularFormats.
-Refactor a little. Catch literal chars, duh.
-=item * 2011-07-14 sjd: Add --rank. Start merging countChars features.
-Rename to countChars.
-=item * 2011-08-03 sjd:  Implement --iencoding, --oencoding, --olineends.
-Suppress invalid utf8 warnings, add --fixBadUTF8 option. Localize $c.
-Rename --minCode and --maxCode, in favor of --ascii. Drop --cpmac.
-Make --cp1252 force --iencoding.
-=item * 2011-08-04 sjd:  --justCount -> --instances. Add --literals. Fix --ents.
-Fix --fcol/--lcol to --columns x-y. Add %byScript, %byBlock. Fix \f, \v.
-=item * 2012-03-07 sjd: Add --color.
-=item * 2012-07-02 sjd: Redo options for TF.
-=item * 2012-09-14 sjd: Fix so doesn't default to counting NO fields. Report speed.
-Add $expandingAnything, and save subr call if not in effect. Ditch --ascii.
-=item * 2012-09-19 sjd: Report % for representation form, Script, and Block.
-    Profile. Most time spend in Unicode::UCD::_search, so made --ustats option.
-=item * 2012-11-08 sjd: Check chars>127 for utf8 and count, display both ways?
-=item * 2012-11-30 sjd: Look up unicode scripts/blocks only once per code point.
-=item * 2012-12-13 sjd: Heading before each Unicode block in alpha list. Add U+XXXX.
-More work on handling invalid utf8.
-=item * 2013-01-14 sjd: Colorize headings. Sort --ustats output. Use eval(decode).
-Make STDIN work.
-=item * 2014-09-01ff: Only issue 'waiting' msg if -t STDIN. --. Latin1 totals. TF optional.
-Add -r option to deal with OANC-type files. Fix heading before new U. block.
-Add --strip, --stripIgnoreCase.
-=item * 2018-08-06: Add --useBinmode.
-=item * 2020-01-28: Fix display of some Unicode char names. Standardize doc.
-Add some display options.
-
-=back
-
-
-=head1 To do
-
-=over
-
-=item *     Identify HTML named entities
-=item *     Option to insert literal (or entity or \x) in output chart.
-=item *     Catch and complain about undetected UTF8, unicode coding errors (done?).
-=item *     Colorizing headings isn't working right.
-=item *     Color hyph/space/dash/quote green; non-word-chars outside ascii
-=item *     --first appears to be broken.
-=item *     --noascii appears to be broken.
-=item *     Lose local escaping and entities tables.
-=item *     Support colorizing in --instances reporting.
-=item *     Trap SIGINT and report partial results.
-=item *     Offer commentary on how far off from typical language norms.
-=item *     Port to Python and use powerWalk.py (esp. for --exclude option).
-
-=back
-
 =cut
 
-use strict;
-use Getopt::Long;
-use Encode;
-use charnames ':full';
-use Unicode::UCD 'charscript';    # Unicode property access
-use Unicode::UCD 'charblock';     # Unicode property access
-#use Devel::DProf; # add '-d' above, view results with dprofpp.
-
-use sjdUtils;
-use alogging;
 
 my $badUTFsubstitute = "?";       # See -fixBadUTF8 option
 
@@ -637,7 +672,7 @@ for my $cols (@columns) {
 
 my @instStarts = my @instEnds = ();
 for my $inst (@instances) {
-    $inst =~ m/^\s*(\d+)\s*-\s*(\d+)\s*$/;
+    $inst =~ m/^\s*(0?x?[\dA-F]+)\s*-\s*(0?x?[\dA-F]+)\s*$/i;
     (defined $1 && defined $2) || die
         "Bad value for -instances option: '$inst'.\n";
     my $s = $1; my $e = $2;
@@ -678,6 +713,11 @@ if ($olineends) {
     $olineends = uc(substr($olineends."U",0,1));
     if    ($olineends eq "M") { $\ = chr(13); }
     elsif ($olineends eq "D") { $\ = chr(13).chr(10); }
+}
+
+if ($iencoding eq "utf-8") {
+    vMsg(0, "Perl wants 'utf8', not 'utf-8'. Corrected.\n");
+    $iencoding = "utf8";
 }
 
 
@@ -742,7 +782,6 @@ setupBackslashingTable();
 
 
 ###############################################################################
-###############################################################################
 # Keep some stats
 #
 my $fileCount        = 0;     # Total files attempted
@@ -791,7 +830,6 @@ exit;
 
 
 ###############################################################################
-###############################################################################
 #
 sub doOneItem {
     my ($path) = @_;
@@ -834,7 +872,8 @@ sub doOneFile {
     $fileCount++;
     if ($useBinmode && $iencoding) {
         alogging::vMsg(1, "*** Set encoding '$iencoding'.");
-        binmode($fh, $iencoding);
+        binmode($fh, $iencoding) ||
+            vMsg(0, "binmode failed for encoding '$iencoding'.");
     }
     while ($rec = <$fh>) {
         $linenum++;
@@ -1102,8 +1141,6 @@ sub scream {
 } # sub scream
 
 
-
-###############################################################################
 ###############################################################################
 # Show report
 #
@@ -1149,7 +1186,7 @@ sub report {
         print "\n";
     } # count && charcount
 
-    print "Invalid encoding sequences found (iencoding '$iencoding'): $badUTFcount\n";
+    print "Invalid encoding sequences (iencoding '$iencoding'): $badUTFcount\n";
     printf("    Decoding method: %s\n",
         ($useBinmode ? "binmode" : "Encode::decode"));
 
@@ -1185,7 +1222,7 @@ sub report {
             if ($c1>0 && !$cp1252) {
                 print "    ***** SHOULD NOT BE HERE *****\n";
                 alogging::eMsg(0,
-                    "Warning: $c1 characters found in range 128-159! Not Unicode!");
+                    "Warning: $c1 characters found (128-159)! Not Unicode!");
             }
             percentLine("G1 graphics", $g1, $charCount);
         }
@@ -1321,7 +1358,8 @@ BEGIN {
         }
         if ($color && $i>=128 && $i<=159) {
             $toPrint =~ s/\s+$//;
-            $toPrint = $cred . $toPrint . " (CP1252: " . getCP1252name($i) . ")" . $coff;
+            $toPrint = $cred . $toPrint .
+                " (CP1252: " . getCP1252name($i) . ")" . $coff;
         }
         print "$toPrint\n";
         $last = $i;

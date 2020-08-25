@@ -8,7 +8,7 @@ As with all my utilities, use "-h" to get help.
 
 ==Favorites==
 
-* chr and ord: Get you lots of information about characters chosen in
+* `ord` (and similar `chr'): Get you lots of information about characters chosen in
 various ways. For example:
 
     ord bullet
@@ -27,8 +27,19 @@ a character to a request in one of those ways, it
 searches in the text of Unicode names and prints
 all matches.
 
-It also has many other options, such as `--math` which shows you all the
-"mathematical" variants of the Latin and Greek letters. Note: You may or
+It also has many other options, such as `--c1` which displays a chart of
+the C1 control characters; `--math` which shows you all the
+"mathematical" variants of the Latin and Greek letters; and several `--findXXX`
+options for collecting characters by matching names or other properties.
+
+`ord` can write out collected characters in a variety of forms, including as
+Java, Perl, or Python lists or hashes mapping code point numbers or literal
+characters to their name or other information. A bunch of useful collections,
+hand-curated, as python declarations are in
+[https://github.com/sderose/Charsets/Unicode]
+(or soon will be -- ask me if they're not visible yet).
+
+Note: You may or
 may not see the special characters correctly in the following example,
 or when using the command, depending on how your browser, shell, or
 other tool is set up. For example, I see them correctly in Firefox but
@@ -44,12 +55,20 @@ not Safari, though neither actually formats the MarkDown file I'm reading:
       ⓐ  ⓑ  ⓒ  ⓓ  ⓔ  ⓕ  ⓖ  ⓗ  ⓘ  ⓙ  ⓚ  ⓛ  ⓜ  ⓝ  ⓞ  ⓟ  ⓠ  ⓡ  ⓢ  ⓣ  ⓤ  ⓥ  ⓦ  ⓧ  ⓨ  ⓩ
     ...
 
-But see also `PYTHONLIBS/CharDisplay.py,` for a Python version of most of the
+* `PYTHONLIBS/CharDisplay.py` is a Python version of most of the
 same functionality, which can also be accessed as an API;
 and `PYTHONLIBS/mathAlphanumerics.py`, which provides access to those same
 mathematical variants as an API (it even quietly deals with the characters
 that aren't where you'd expect them in Unicode).
 
+* Wrappers to do basic operations in a pipe or shell: `normalizeSpace`,
+`normalizeUnicode`, `showInvisible` (as Unicode "Control Pictures" and/or
+backslash codes or entities), `isUTF8`, and `changeLineEnds`.
+
+* Statistics gatherers such as `countChars`
+
+
+=======
 
 ==Unicode/==
 

@@ -491,10 +491,14 @@ Warn if env LANG not utf-8. Recognize html entity names, C-J, ^J, etc.
 
 =item * Port to Python, using my C<CharDisplay.py> package.
 
+=item * Catch utf-8 hex input.
+
+=item * Make `--listFormat` apply to the main list, not just `-f`.
+
+=item * Add a `--listFormat` value to just produce a string of the literals.
+
 =item * Integrate remainder of C<chr> command functionality:
 Allow numbers on command line. Compare/sync report format.
-
-=item * Catch utf8 hex input.
 
 =item * Way to print/export remaining Unicode char properties.
 
@@ -502,22 +506,21 @@ Allow numbers on command line. Compare/sync report format.
 actual character names. Camel or snake case? Extend Enum to do minimum
 unique prefix? (Do all this after Python port).
 
-=item * Separate digits from math; handle the exceptions.
+=item * Add I<--typing> show how to key on various systems?
 
-=item * Make I<--typing> show how to key on various systems?
+=item * Add a way to do I<--find> for a given range (e.g.,
+I<--min>, I<--max> and some always-true test).
 
-Add a way to do I<--find> for a given range (e.g., I<--min>, I<--max>, and
-some always-true test).
-
-Make I<find> on names match regardless of token order, cf
-Joel Kalvesmaki paper in Balisage 2020
-
-Add listFormat to just produce a string of the literals.
+=item * Make I<find> on names match regardless of token order. Cf
+Joel Kalvesmaki, '''Balisage Paper: A New \\u: Extending XSLT
+Regular Expressions for Unicode.''' Balisage (2020).
+[https://www.balisage.net/Proceedings/vol25/html/Kalvesmaki01/BalisageVol25-Kalvesmaki01.html]
 
 
 =back
 
 =cut
+
 
 ###############################################################################
 #
