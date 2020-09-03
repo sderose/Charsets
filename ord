@@ -407,7 +407,7 @@ Even with a Unicode-enabled terminal such as C<uxterm>, a character > 255
 may appear to be length > 1, and so will be taken as a name. But when
 the name is not found, we print out the value anyway.
 
-For --pairs, in addition to a list of keywords, the code has a list of character pairs that can be considered symmetric but whose names don't contain the various keywords. But they aren't showing up yet.
+For C<--pairs>, in addition to a list of keywords, the code has a list of character pairs that can be considered symmetric but whose names don't contain the various keywords. But they aren't showing up yet.
 
 Does not offer information on Unicode categories such as
 "Nd" ("Number, Decimal Digit") and so on. See C<showUnicodeCharsInClass.py>.
@@ -439,20 +439,20 @@ For the most recent version, see L<http://www.derose.net/steve/utilities/>.
 Add binary and long-name output.
 
 =item * 2008-02-14 sjd: Multiple input chars. setupCharacterNames(). Unify $fmt.
-Add longNames for G0 and G1. Add --g0, --g1. perl -w.
+Add longNames for G0 and G1. Add C<--g0>, C<--g1>. C<perl -w>.
 
 =item * 2008-09-03 sjd: Move to BSD. Improve doc.
 
 =item * 2008-09-16 sjd: Better handling of Unicode input.
 
-=item * 2010-01-06 sjd: Use 'charnames' to know Unicode names. Add --binary.
+=item * 2010-01-06 sjd: Use 'charnames' to know Unicode names. Add C<--binary>.
 Make print utf-8 and actual Unicode character. Format binary better.
 
 =item * 2010-05-03 sjd: perldoc. Unify formatting. Add Unix Jargon names, rest of
 short names. Make user use "_" in.
 
 =item * 2011-08-23 sjd: Add options to control each display form separately.
-Start --cp1252.
+Start C<--cp1252>.
 
 =item * 2011-12-11 sjd: Add utf-8 output. Opt out of longNames (lists of
 char names -- now using viacode instead).
@@ -461,29 +461,32 @@ char names -- now using viacode instead).
 
 =item * 2012-08-15 sjd: sjdUtils, and use getUTF8().
 
-=item * 2013-06-17ff sjd: Add --entities, esp. HTML named ones. Add showUnicodeInfo().
+=item * 2013-06-17ff sjd: Add C<--entities>, esp. HTML named ones. Add showUnicodeInfo().
 
 =item * 2014-09-02: Clean up.
 
 =item * 2015-08-15ff: Add formats PYTHONS, PYTHONU; rename format PYTHON to PYTHONN.
-Finish --find. Display control-char mnemonics.
+Finish C<--find>. Display control-char mnemonics.
 
-=item * 2016-01-08: Add --math and --digits.
+=item * 2016-01-08: Add C<--math> and C<--digits>.
 
-=item * 2016-02-18: Add --regex, --listFormat CHART and HTML.
+=item * 2016-02-18: Add C<--regex>, C<--listFormat> CHART and HTML.
 Warn if env LANG not utf-8. Recognize html entity names, C-J, ^J, etc.
 
 =item * 2016-08-30: Get rid of sjdUtils.pm dependencies.
 
-=item * 2016-09-05: Add --iconv option.
+=item * 2016-09-05: Add C<--iconv> option.
 
-=item * 2018-01-19: Add --pairs.
+=item * 2018-01-19: Add C<--pairs>.
 
-=item * 2020-01-03: Add --minU.
+=item * 2020-01-03: Add C<--minU>.
 
 =item * 2020-03-17: Factor out all the %05x formatting. Add I<--findSet>.
 
+=item * 2020-09-03: Clean up. Add warning for I<--findString> w/ bad chars.
+
 =back
+
 
 =head1 To do
 
@@ -502,7 +505,7 @@ Allow numbers on command line. Compare/sync report format.
 
 =item * Way to print/export remaining Unicode char properties.
 
-=item * --listFormat option to create Python Enum with names based on
+=item * C<--listFormat> option to create Python Enum with names based on
 actual character names. Camel or snake case? Extend Enum to do minimum
 unique prefix? (Do all this after Python port).
 
@@ -515,7 +518,6 @@ I<--min>, I<--max> and some always-true test).
 Joel Kalvesmaki, '''Balisage Paper: A New \\u: Extending XSLT
 Regular Expressions for Unicode.''' Balisage (2020).
 [https://www.balisage.net/Proceedings/vol25/html/Kalvesmaki01/BalisageVol25-Kalvesmaki01.html]
-
 
 =back
 
@@ -625,6 +627,13 @@ my $result = GetOptions(
     );
 
 ($result) || die "Bad options.\n";
+
+if (!$quiet && $findString && $ARGV[0] =~ m/[^A-Za-z 0-9]/) {
+    # ()., also occur in my Charsets/Unicode/metaUnicode/NamesList.txt, but
+    # I think they're only from synonym / alt name entries?
+    warn "\nWARNING: --findString for '" . $ARGV[0] .
+        "' has characters not used in Unicode names. Use --findRegex?\n";
+}
 
 my $iconvConverter = undef;
 if ($iconv) {
@@ -1028,11 +1037,13 @@ sub findMatchingCharacters {
         $nfound++;
 
         # Generate the right --listFormat.
+        # This is really annoying for COMBINING characters.
+        #
         if ($listFormat eq "PLAIN") {
             printf("%s\t%s\n", uDisp($i), $iname);
         }
-        elsif ($listFormat eq "LITERAL") {
-            printf("%s\t%s\t%s\n", uDisp($i), chr($i), $iname);
+        elsif ($listFormat eq "LITERAL") {             # DEFAULT
+            printf("%s  %s  %s\n", uDisp($i), chr($i), $iname);
         }
         elsif ($listFormat eq "STRING") {
             $s .= ($i == 0x27) ? "\\'" : chr($i);
@@ -1627,7 +1638,6 @@ sub cp1252ToUnicode {
 }
 
 
-###############################################################################
 ###############################################################################
 # Main
 #

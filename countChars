@@ -367,6 +367,14 @@ With I<--showNames>, ASCII printables are just displayed literally. This
 is probably preferable as a default, but there should be an option to get the
 full names, like "LATIN CAPITAL LETTER A".
 
+Fix colorizing headings.
+
+Color hyph/space/dash/quote green; non-word-chars outside ascii
+
+`--first` appears to be broken.
+
+`--noascii` appears to be broken.
+
 
 =head1 History
 
@@ -446,13 +454,8 @@ Add some display options.
 
 =item *     Catch and complain about undetected UTF8, unicode coding errors (done?).
 
-=item *     Colorizing headings isn't working right.
-
-=item *     Color hyph/space/dash/quote green; non-word-chars outside ascii
-
-=item *     --first appears to be broken.
-
-=item *     --noascii appears to be broken.
+=item * Watch for common errors, like Mac/Win char sequences that arise
+from mis-identified charset (say, quotes, etc).
 
 =item *     Lose local escaping and entities tables.
 
@@ -460,9 +463,7 @@ Add some display options.
 
 =item *     Trap SIGINT and report partial results.
 
-=item *     Offer commentary on how far off from typical language norms.
-
-=item *     Port to Python and use powerWalk.py (esp. for --exclude option).
+=item *     Port to Python.
 
 =back
 

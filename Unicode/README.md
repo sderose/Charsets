@@ -14,16 +14,18 @@ in various character sets and encoding, especially Unicode.
 
 ## Short descriptions ##
 
-* `changeCase` --
+* `changeCase` -- a *nix filter to modify case, to --case Upper, Lower,
+Words, Records, or Sentences.
 
-* `changeEncoding` --
+* `changeEncoding` -- convert form one encoding to another. "iconv" is
+better overall, this is an older Perl module.
 
 * `changeLineEnds` -- Mess with, or just identify, Mac vs. DOS vs. Unix
 style line-breaks.
 
 * `chr` -- Much like `ord`.
 
-* `countByCase` --
+* `countByCase` -- count characters in the input by what case they are.
 
 * `countChars` -- Count statistics of character use in files. Reports
 frequencies (with character names as well as literals and code points),
@@ -31,11 +33,13 @@ and can report all specific locations of particular characters or ranges.
 Also break down distributions by Unicode plane, script, and block, and
 reports coding errors.
 
-* `getCharsByScript` --
+* `getCharsByScript` -- pull out the Unicode characters of a given script.
 
 * `isUTF8` -- Test whether a file is legit UTF-8.
 
-* `makeCharChart.py` --
+* `makeCharChart.py` -- Create a nice HTML chart showing information about
+chosen characters. You may also find the "Unisearcher"
+at [http://www.isthisthingon.org/unicode/index.php] very useful.
 
 * `makeFontSamples.py` -- Grabs all the fonts it can find and makes an
 HTML file with a sample in each.
@@ -66,7 +70,19 @@ decomposition. Can even undo most of the Latin mappings provided by
 * `ord` -- Provide tons of data about characters, from their URL encodings
 to their Unix Jargon names, Unicode script, plane, and block, etc. Can
 also search the Unicode character space and generate lists of found
-characters in a wide variety of useful formats.
+characters in a wide variety of useful formats. You can pick characters
+by hex, decimal, or octal, or mnemonics or literals. Reports are like:
+
+    %ord SPLAT
+    Unicode Name:    NUMBER SIGN
+    Unicode Script:  Common
+    Unicode Block:   Basic Latin
+    Unicode Plane:   0: Basic Multilingual
+    Literal:         #
+    Bases:           o0043 d0035 x0023
+    Unicode:         U+0023, utf8 \x23, URI %23
+    Entities:        &#35; &#x23; #
+    Unix jargon:     Common: number sign; pound; pound sign; hash; sharp; crunch; hex; mesh. Rare: grid; cross-hatch; octothorpe; flash; pig-pen; tic-tac-toe; scratchmark; thud; thump; splat
 
 * `showInvisibles` and `showInvisibles.py` -- Turn
 various characters to viewable forms. By
@@ -80,9 +96,12 @@ conversion to XML or HTML character references.
 * `toHiragana` -- Rudimentary Latin to Hiragana transliteration. Written in
 hopes of forcing myself to learn Hiragan.
 
-* `transliterate` --
+* `transliterate` -- convert once-popular transliterations of Greek, to Unicode.
+This mainly handles Betacode and CCAT text (always be careful because the
+conventional transliteration differs between Classicists and Theologians).
 
 
+=======
 
 =The `Unicode/` subdirectory=
 
