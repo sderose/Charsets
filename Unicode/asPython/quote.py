@@ -41,32 +41,35 @@ URQuotes = {
     0x02E21:  "RIGHT VERTICAL BAR WITH QUILL",
 }
 
-qPairs = [
-    [ "'",    "'" ],     # Apostrophe / single quotation mark
-    [ '"',    '"' ],     # Double quotation mark
-    # [ 0x00FF02, 0x00FF02 ],  # Fullwidth Quotation Mark
-    # [ 0x0301E, 0x0301E ],  # "DOUBLE PRIME QUOTATION MARK",
-    [ 0x000AB, 0x000BB ],  # "LEFT-POINTING DOUBLE ANGLE QUOTATION MARK *",
-    [ 0x02018, 0x02019 ],  # "LEFT SINGLE QUOTATION MARK",
-    [ 0x0201A, 0x0201B ],  # "SINGLE LOW-9 QUOTATION MARK",
-    [ 0x0201C, 0x0201D ],  # "LEFT DOUBLE QUOTATION MARK",
-    [ 0x0201E, 0x0201F ],  # "DOUBLE LOW-9 QUOTATION MARK",
-    [ 0x02039, 0x0203A ],  # "SINGLE LEFT-POINTING ANGLE QUOTATION MARK",
-    [ 0x02E02, 0x02E03 ],  # "LEFT SUBSTITUTION BRACKET",
-    [ 0x02E04, 0x02E05 ],  # "LEFT DOTTED SUBSTITUTION BRACKET",
-    [ 0x02E09, 0x02E0A ],  # "LEFT TRANSPOSITION BRACKET",
-    [ 0x02E0C, 0x02E0D ],  # "LEFT RAISED OMISSION BRACKET",
-    [ 0x02E1C, 0x02E1D ],  # "LEFT LOW PARAPHRASE BRACKET",
-    [ 0x02E20, 0x02E21 ],  # "LEFT VERTICAL BAR WITH QUILL",
-    [ 0x0301D, 0x0301F ],  # "REVERSED DOUBLE PRIME QUOTATION MARK",
-    [ 0x02032, 0x02035 ],  # "PRIME", "REVERSED PRIME",
-    [ 0x02034, 0x02037 ],  # "TRIPLE PRIME", "REVERSED TRIPLE PRIME",
-    [ 0x02057, 0x0301D ],  # "QUADRUPLE PRIME", "REVERSED DOUBLE PRIME QUOTATION MARK",
-    [ 0x00275B, 0x00275C ],  # Heavy Single Turned Comma Quotation Mark Ornament
-    [ 0x00275D, 0x00275E ],  # Heavy Double Turned Comma Quotation Mark Ornament
-    [ 0x00276E, 0x00276F ],  # Heavy Left-pointing Angle Quotation Mark Ornament
-    [ 0x01F677, 0x01F678 ],  # Sans-serif Heavy Double Comma Quotation Mark Ornament
-]
+qPairs = {
+    'splain':   [ "'",    "'" ],     # Apostrophe / single quotation mark
+    'dplain':   [ '"',    '"' ],     # Double quotation mark
+    'single':   [ 0x2018, 0x2019 ],  # "LEFT SINGLE QUOTATION MARK",
+    'double':   [ 0x201C, 0x201D ],  # "LEFT DOUBLE QUOTATION MARK",
+    'sangle':   [ 0x2039, 0x203A ],  # "SINGLE LEFT-POINTING ANGLE QUOTATION MARK",
+    'dangle':   [ 0x00AB, 0x00BB ],  # "LEFT-POINTING DOUBLE ANGLE QUOTATION MARK *",
+    'slow9':    [ 0x201A, 0x201B ],  # "SINGLE LOW-9 QUOTATION MARK",
+    'dlow9':    [ 0x201E, 0x201F ],  # "DOUBLE LOW-9 QUOTATION MARK",
+    'sprime':   [ 0x2032, 0x2035 ],  # "PRIME", "REVERSED PRIME",
+    'dprime':   [ 0x301E, 0x301E ],  # "DOUBLE PRIME QUOTATION MARK",
+    'tprime':   [ 0x2034, 0x2037 ],  # "TRIPLE PRIME", "REVERSED TRIPLE PRIME",
+
+    'subst':    [ 0x2E02, 0x2E03 ],  # "LEFT SUBSTITUTION BRACKET",
+    'dotsubst': [ 0x2E04, 0x2E05 ],  # "LEFT DOTTED SUBSTITUTION BRACKET",
+    'transp':   [ 0x2E09, 0x2E0A ],  # "LEFT TRANSPOSITION BRACKET",
+    'romission':[ 0x2E0C, 0x2E0D ],  # "LEFT RAISED OMISSION BRACKET",
+    'lpara':    [ 0x2E1C, 0x2E1D ],  # "LEFT LOW PARAPHRASE BRACKET",
+    'vbarq':    [ 0x2E20, 0x2E21 ],  # "LEFT VERTICAL BAR WITH QUILL",
+    #'rdprime':  [ 0x301D, 0x301F ], # "REVERSED DOUBLE PRIME QUOTATION MARK",
+    'rdprime':  [ 0x2057, 0x301D ],  # "REVERSED DOUBLE PRIME QUOTATION MARK",
+        # = "QUADRUPLE PRIME"
+
+    'fullwidth':[ 0xFF02, 0xFF02 ],  # Fullwidth Quotation Mark
+    'scommaO':  [ 0x275B, 0x275C ],  # Heavy Single Turned Comma QM Ornament
+    'dcommaO':  [ 0x275D, 0x275E ],  # Heavy Double Turned Comma QM Ornament
+    'hangleO':  [ 0x276E, 0x276F ],  # Heavy Left-pointing Angle QM Ornament
+    'sshdcommonO':  [ 0x1F677, 0x1F678 ],  # Sans-serif Heavy Double Comma QM Ornament
+}
 
 
 # Not in:  "the Unicode categories, but perhaps relevant:
