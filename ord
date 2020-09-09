@@ -1181,6 +1181,7 @@ sub pline {
 
 sub showUnicodeInfo {
     my ($n) = @_;
+    print("\n");
     if ($n >= 0x000080 && $n < 0x0000a0) {
         pline("WARNING:", "Not a Unicode graphical code point (C1 control char)");
     }
