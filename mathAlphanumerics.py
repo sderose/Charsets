@@ -350,14 +350,9 @@ There are some additional scripts and forms that are not supported:
     circled katakana U+032d0
     some circled hangul and ideographs U+3260
     circled number X on black square U+3248
-    superscript and subscript sets (very incomplete)
 
     aeox schwa hklmnpst; i=1d62, r=1d63, u=1d64, v=1d65, j=2c7c
     [ 'subscript latin upper (...209c)', 0x02090 ],
-https://en.wikipedia.org/wiki/Unicode_subscripts_and_superscripts#Uses,
-superscripts: i=2071 n=207f,
-subscripts: iruv, grk bgrfx 0x1d62...0x1d6a aeoxhklmnpst
-      combining diacriticals marks has aeioucdhmrtvx
 and suppl for rest of lc latin except jqy (seriously???)
       spacing modifier letters a few
       phonetic extensions has some latin/cyr/ipa
@@ -493,56 +488,13 @@ overline. There's even COMBINING ENCLOSING CIRCLE (and SQUARE).
     w => w
     x => x
 
-* Possibly add small cap (not in a neat 26-char block)
-    U+01d00 LATIN LETTER SMALL CAPITAL A
-    U+00299 LATIN LETTER SMALL CAPITAL B  (far)
-    U+01d04 LATIN LETTER SMALL CAPITAL C
-    U+01d05 LATIN LETTER SMALL CAPITAL D
-    U+01d07 LATIN LETTER SMALL CAPITAL E
-    U+0a730 LATIN LETTER SMALL CAPITAL F  (far)
-    U+00262 LATIN LETTER SMALL CAPITAL G  (far)
-    U+0029c LATIN LETTER SMALL CAPITAL H  (far)
-    U+0026a LATIN LETTER SMALL CAPITAL I  (far)
-    U+01d0a LATIN LETTER SMALL CAPITAL J
-    U+01d0b LATIN LETTER SMALL CAPITAL K
-    U+0029f LATIN LETTER SMALL CAPITAL L  (far)
-    U+01d0d LATIN LETTER SMALL CAPITAL M
-    U+00274 LATIN LETTER SMALL CAPITAL N  (far)
-    U+01d0f LATIN LETTER SMALL CAPITAL O
-    U+01d18 LATIN LETTER SMALL CAPITAL P
-    q???
-    U+00280 LATIN LETTER SMALL CAPITAL R  (far)
-    U+0a731 LATIN LETTER SMALL CAPITAL S  (far)
-    U+01d1b LATIN LETTER SMALL CAPITAL T
-    U+01d1c LATIN LETTER SMALL CAPITAL U
-    U+01d20 LATIN LETTER SMALL CAPITAL V
-    U+01d21 LATIN LETTER SMALL CAPITAL W
-    x???
-    U+0028f LATIN LETTER SMALL CAPITAL Y  (far)
-    U+01d22 LATIN LETTER SMALL CAPITAL Z
+* Hook up smallCapMap (missing Q and X
 
 * Possibly add superscript
     U+02071 SUPERSCRIPT LATIN SMALL LETTER I
     U+0207f SUPERSCRIPT LATIN SMALL LETTER N
 
-* Add subscript (this is not a block with empties like most others)
-    U+02090 LATIN SUBSCRIPT SMALL LETTER A
-    U+02091 LATIN SUBSCRIPT SMALL LETTER E
-    U+02095 LATIN SUBSCRIPT SMALL LETTER H
-    U+01d62 LATIN SUBSCRIPT SMALL LETTER I  (far)
-    U+02c7c LATIN SUBSCRIPT SMALL LETTER J  (far)
-    U+02096 LATIN SUBSCRIPT SMALL LETTER K
-    U+02097 LATIN SUBSCRIPT SMALL LETTER L
-    U+02098 LATIN SUBSCRIPT SMALL LETTER M
-    U+02099 LATIN SUBSCRIPT SMALL LETTER N
-    U+02092 LATIN SUBSCRIPT SMALL LETTER O
-    U+0209a LATIN SUBSCRIPT SMALL LETTER P
-    U+01d63 LATIN SUBSCRIPT SMALL LETTER R  (far)
-    U+0209b LATIN SUBSCRIPT SMALL LETTER S
-    U+0209c LATIN SUBSCRIPT SMALL LETTER T
-    U+01d64 LATIN SUBSCRIPT SMALL LETTER U  (far)
-    U+01d65 LATIN SUBSCRIPT SMALL LETTER V  (far)
-    U+02093 LATIN SUBSCRIPT SMALL LETTER X  (far)
+* Hook up subscriptMap
 
 * Non-alphanumeric variants: punctuation, esp. for superscript and subscript
 
@@ -785,6 +737,75 @@ class mathAlphanumerics:
         0x1f010: None,     # MAHJONG TILES, BAMBOOS DIGIT ZERO
         0x1f019: None,     # MAHJONG TILES, CIRCLES DIGIT ZERO
 
+    }
+
+    # Small caps should probably just apply to lowercase?
+    smallCapMap = {
+        'a': 0x01d00,  # LATIN LETTER SMALL CAPITAL A
+        'b': 0x00299,  # LATIN LETTER SMALL CAPITAL B  (far)
+        'c': 0x01d04,  # LATIN LETTER SMALL CAPITAL C
+        'd': 0x01d05,  # LATIN LETTER SMALL CAPITAL D
+        'e': 0x01d07,  # LATIN LETTER SMALL CAPITAL E
+        'f': 0x0a730,  # LATIN LETTER SMALL CAPITAL F  (far)
+        'g': 0x00262,  # LATIN LETTER SMALL CAPITAL G  (far)
+        'h': 0x0029c,  # LATIN LETTER SMALL CAPITAL H  (far)
+        'i': 0x0026a,  # LATIN LETTER SMALL CAPITAL I  (far)
+        'j': 0x01d0a,  # LATIN LETTER SMALL CAPITAL J
+        'k': 0x01d0b,  # LATIN LETTER SMALL CAPITAL K
+        'l': 0x0029f,  # LATIN LETTER SMALL CAPITAL L  (far)
+        'm': 0x01d0d,  # LATIN LETTER SMALL CAPITAL M
+        'n': 0x00274,  # LATIN LETTER SMALL CAPITAL N  (far)
+        'o': 0x01d0f,  # LATIN LETTER SMALL CAPITAL O
+        'p': 0x01d18,  # LATIN LETTER SMALL CAPITAL P
+        #'q': None,
+        'r': 0x00280,  # LATIN LETTER SMALL CAPITAL R  (far)
+        's': 0x0a731,  # LATIN LETTER SMALL CAPITAL S  (far)
+        't': 0x01d1b,  # LATIN LETTER SMALL CAPITAL T
+        'u': 0x01d1c,  # LATIN LETTER SMALL CAPITAL U
+        'v': 0x01d20,  # LATIN LETTER SMALL CAPITAL V
+        'w': 0x01d21,  # LATIN LETTER SMALL CAPITAL W
+        #'x': None,
+        'y': 0x0028f,  # LATIN LETTER SMALL CAPITAL Y  (far)
+        'z': 0x01d22,  # LATIN LETTER SMALL CAPITAL Z
+    }
+
+    # https://en.wikipedia.org/wiki/Unicode_subscripts_and_superscripts#Uses,
+    subscriptMap = {
+        'a': 0x02090,  # LATIN SUBSCRIPT SMALL LETTER A
+        #'b'    beta?
+        #'c'
+        #'d'
+        'e': 0x02091,  # LATIN SUBSCRIPT SMALL LETTER E
+        #'f'
+        #'g'
+        'h': 0x02095,  # LATIN SUBSCRIPT SMALL LETTER H (MISSING on MAC?)... through T
+        'i': 0x01d62,  # LATIN SUBSCRIPT SMALL LETTER I  (far)
+        'j': 0x02c7c,  # LATIN SUBSCRIPT SMALL LETTER J  (far)
+        'k': 0x02096,  # LATIN SUBSCRIPT SMALL LETTER K
+        'l': 0x02097,  # LATIN SUBSCRIPT SMALL LETTER L
+        'm': 0x02098,  # LATIN SUBSCRIPT SMALL LETTER M
+        'n': 0x02099,  # LATIN SUBSCRIPT SMALL LETTER N
+        'o': 0x02092,  # LATIN SUBSCRIPT SMALL LETTER O
+        'p': 0x0209a,  # LATIN SUBSCRIPT SMALL LETTER P
+        #'q'
+        'r': 0x01d63,  # LATIN SUBSCRIPT SMALL LETTER R  (far)
+        's': 0x0209b,  # LATIN SUBSCRIPT SMALL LETTER S
+        't': 0x0209c,  # LATIN SUBSCRIPT SMALL LETTER T
+        'u': 0x01d64,  # LATIN SUBSCRIPT SMALL LETTER U  (far)
+        'v': 0x01d65,  # LATIN SUBSCRIPT SMALL LETTER V  (far)
+        #'w'
+        'x': 0x02093,  # LATIN SUBSCRIPT SMALL LETTER X  (far)
+        #'y'
+        #'z'
+    }
+
+    # Greek subscripts: bgrfx 0x1d62...0x1d6a aeoxhklmnpst
+
+    # combining diacriticals marks has aeioucdhmrtvx
+
+    superscriptMap = {  # and +-=()
+        'i': 0x02071,
+        'n': 0x0207f,
     }
 
     # TODO: Finish alternate sets that are trickier.
