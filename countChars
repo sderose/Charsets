@@ -1,6 +1,6 @@
 #!/usr/bin/env perl -w
 #
-# countChars: Find and report certain characters in a file.
+# countChars: Find and report what characters occur in a file.
 #
 use strict;
 use Getopt::Long;
@@ -20,7 +20,7 @@ our %metadata = (
     'type'         => "http://purl.org/dc/dcmitype/Software",
     'language'     => "Perl 5",
     'created'      => "2006-04-27",
-    'modified'     => "2020-08-25",
+    'modified'     => "2020-10-14",
     'publisher'    => "http://github.com/sderose",
     'license'      => "https://creativecommons.org/licenses/by-sa/3.0/"
 );
@@ -261,7 +261,7 @@ Include the octal expression of the code point in summary lines. Default: off.
 
 =item * B<--showUTF8>
 
-In the report, show the UTF-8 encoding for characters.
+In the report, show the utf8 encoding for characters.
 
 =item * B<--strip> I<regex>
 
@@ -319,7 +319,7 @@ For CSV-ish files, the most significant options are I<fieldSep>.
 
 =head1 Related Files
 
-F<DATA/UnicodeSamples/utf8sampler.txt> -- a sample of UTF-8 with a wide variety
+F<DATA/UnicodeSamples/utf8sampler.txt> -- a sample of utf8 with a wide variety
 of blocks represented.
 
 =head1 Related commands
@@ -330,12 +330,12 @@ of blocks represented.
 (like I<od> but better).
 
 =item * C<showNumberInBases>
-Convert a number to multiple bases, and to ASCII or utf-8.
+Convert a number to multiple bases, and to ASCII or utf8.
 
 =item * C<chr> and C<ord> convert between code point numbers and characters.
 
 =item * C<iconv> Convert text from one encoding to another.
-Also use C<iconv -f utf8 [file]> to check for invalid utf-8.
+Also use C<iconv -f utf8 [file]> to check for invalid utf8.
 
 =item * L<http://people.w3.org/rishida/scripts/uniview/conversion> has a nice
 gadget to convert between many possible representations of unicode.
@@ -352,8 +352,8 @@ so C<countChars> can continue to run, just without the relevant options.
 
 =head1 Known bugs and limitations
 
-Produces excessive warnings on invalid utf-8.
-Use I<iconv> first if needed, to detect/fix invalid utf-8 values.
+Produces excessive warnings on invalid utf8.
+Use I<iconv> first if needed, to detect/fix invalid utf8 values.
 
 Cannot count characters above U+FF00, for unknown reasons. It should skip them
 safely.
@@ -441,6 +441,11 @@ Add some display options.
 
 =item * 2020-08-25: Clean up. Catch --iencoding 'utf-8' (no hyphen please).
 
+=item * 2020-10-14: Make U+FEFF (ZERO WIDTH NO-BREAK SPACE,
+aka byte order mark), no longer be
+counted as part of block "Arabic Presentation Forms-B".
+
+
 =back
 
 
@@ -509,10 +514,10 @@ my @fieldsToSearch    = ();      # Where to look among fields of a CSV
 my $filesOnly         = 0;       # Don't allow reading stdin
 my $filesWithMatches  = 0;
 my $first             = 0;       # Report just first occurrences of chars
-my $fixBadUTF8        = 0;       # Filter out invalid UTF-8 chars
+my $fixBadUTF8        = 0;       # Filter out invalid utf8 chars
 my $g1names           = 1;
 my $ignoreCase        = 0;
-my $iencoding         = "utf-8"; # Char set for input?
+my $iencoding         = "utf8";  # Char set for input?
 my $ilineends         = "U";     #
 my @instances         = ();      # Report char instances with context
 my $maxFreq           = 0;       # Report chars at most this frequent
@@ -526,7 +531,7 @@ my $showHex           = 0;       # Show context in hex (else just as chars)
 my $showLiteral       = 0;       # Show literal character in summary
 my $showNames         = 1;       # Show character names in summary
 my $showOctal         = 0;       # Show code point also in octal
-my $showUTF8          = 0;       # Show character's UTF-8 encoding
+my $showUTF8          = 0;       # Show character's utf8 encoding
 my $strip             = "";      # Regex to remove from input before counting.
 my $stripIgnoreCase   = 0;       # Ignore case with --strip.
 my $tickInterval      = 25000;
@@ -720,6 +725,10 @@ if ($iencoding eq "utf-8") {
     vMsg(0, "Perl wants 'utf8', not 'utf-8'. Corrected.\n");
     $iencoding = "utf8";
 }
+if ($oencoding eq "utf-8") {
+    vMsg(0, "Perl wants 'utf8', not 'utf-8'. Corrected.\n");
+    $oencoding = "utf8";
+}
 
 
 ###############################################################################
@@ -755,7 +764,7 @@ my @C1names1252 = (
     "oelig",   $UNK,    "zcaron", "ydiaer",     # x9C-
     "NBS");
 
-# Apple code page (pre-OS-X; OS X uses UTF-8) -- UNUSED for now
+# Apple code page (pre-OS-X; OS X uses utf8) -- UNUSED for now
 #
 my @C1namesMac = (
     "Auml",   "Aring",  "Ccedil", "Eacute",     # x80-
@@ -1056,6 +1065,14 @@ sub tryOtherForms {
 } # tryOtherForms
 
 
+# Indirect though here, because charblock seems to think FEFF is part of
+# Arabic Presentation Forms-B.
+#
+sub getCharBlockName {
+    my ($i) = @_;
+    ($i == 0xFEFF) && return "[SPECIAL: Byte order mark]";
+    return charblock($i) || "???";
+}
 
 ###############################################################################
 # If needed, extract some context and print it. Also record the event.
@@ -1202,7 +1219,7 @@ sub report {
         for (my $i=0; $i < scalar @freqs; $i++) {
             next unless (defined $freqs[$i]);
             $byScript{charscript($i) || "???"} += $freqs[$i];
-            $byBlock{charblock($i) || "???"}   += $freqs[$i];
+            $byBlock{getCharBlockName($i)}   += $freqs[$i];
         }
 
         if (1) {
@@ -1300,7 +1317,7 @@ BEGIN {
             $head .= sprintf(" %3s", "Lit");
         }
         if ($showUTF8) {
-            $head .= $head .= (" " x ($widthReport-2)) . "UTF-8";
+            $head .= $head .= (" " x ($widthReport-2)) . "utf8";
         }
         $head .= sprintf(" %10s %10s ", "Freq", "Percent");
         if ($showNames) {
@@ -1349,7 +1366,7 @@ BEGIN {
             ($blankLines) && print "\n";
         }
         if (!$rank) {
-            my $newBlock = charblock($i) || "???";
+            my $newBlock = getCharBlockName($i);
             if ($newBlock ne $lastBlock) {
                 print sjdUtils::colorize("magenta",
                     "\n*** New Unicode Block: '$newBlock'") . "\n";
