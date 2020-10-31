@@ -42,32 +42,33 @@ URQuotes = {
 }
 
 qPairs = {
-    'splain':   [ "'",    "'" ],     # Apostrophe / single quotation mark
-    'dplain':   [ '"',    '"' ],     # Double quotation mark
-    'single':   [ 0x2018, 0x2019 ],  # "LEFT SINGLE QUOTATION MARK",
-    'double':   [ 0x201C, 0x201D ],  # "LEFT DOUBLE QUOTATION MARK",
-    'sangle':   [ 0x2039, 0x203A ],  # "SINGLE LEFT-POINTING ANGLE QUOTATION MARK",
-    'dangle':   [ 0x00AB, 0x00BB ],  # "LEFT-POINTING DOUBLE ANGLE QUOTATION MARK *",
+    # 'back':   [ 0x0060, 0x0060 ],  # GRAVE ACCENT
+    'splain':   [ 0x0027, 0x0027 ],  # Apostrophe / single quotation mark
+    'dplain':   [ 0x0022, 0x0022 ],  # Double quotation mark,
+    'single':   [ 0x2018, 0x2019 ],  # "SINGLE QUOTATION MARK",
+    'double':   [ 0x201C, 0x201D ],  # "DOUBLE QUOTATION MARK",
+    'sangle':   [ 0x2039, 0x203A ],  # "SINGLE ANGLE QUOTATION MARK",
+    'dangle':   [ 0x00AB, 0x00BB ],  # "DOUBLE ANGLE QUOTATION MARK *",
     'slow9':    [ 0x201A, 0x201B ],  # "SINGLE LOW-9 QUOTATION MARK",
     'dlow9':    [ 0x201E, 0x201F ],  # "DOUBLE LOW-9 QUOTATION MARK",
-    'sprime':   [ 0x2032, 0x2035 ],  # "PRIME", "REVERSED PRIME",
+    'sprime':   [ 0x2032, 0x2035 ],  # "PRIME",
     'dprime':   [ 0x301E, 0x301E ],  # "DOUBLE PRIME QUOTATION MARK",
     'tprime':   [ 0x2034, 0x2037 ],  # "TRIPLE PRIME", "REVERSED TRIPLE PRIME",
 
-    'subst':    [ 0x2E02, 0x2E03 ],  # "LEFT SUBSTITUTION BRACKET",
-    'dotsubst': [ 0x2E04, 0x2E05 ],  # "LEFT DOTTED SUBSTITUTION BRACKET",
-    'transp':   [ 0x2E09, 0x2E0A ],  # "LEFT TRANSPOSITION BRACKET",
-    'romission':[ 0x2E0C, 0x2E0D ],  # "LEFT RAISED OMISSION BRACKET",
-    'lpara':    [ 0x2E1C, 0x2E1D ],  # "LEFT LOW PARAPHRASE BRACKET",
-    'vbarq':    [ 0x2E20, 0x2E21 ],  # "LEFT VERTICAL BAR WITH QUILL",
-    #'rdprime':  [ 0x301D, 0x301F ], # "REVERSED DOUBLE PRIME QUOTATION MARK",
-    'rdprime':  [ 0x2057, 0x301D ],  # "REVERSED DOUBLE PRIME QUOTATION MARK",
+    'subst':    [ 0x2E02, 0x2E03 ],  # "SUBSTITUTION BRACKET",
+    'dotsubst': [ 0x2E04, 0x2E05 ],  # "DOTTED SUBSTITUTION BRACKET",
+    'transp':   [ 0x2E09, 0x2E0A ],  # "TRANSPOSITION BRACKET",
+    'romission':[ 0x2E0C, 0x2E0D ],  # "RAISED OMISSION BRACKET",
+    'lpara':    [ 0x2E1C, 0x2E1D ],  # "LOW PARAPHRASE BRACKET",
+    'vbarq':    [ 0x2E20, 0x2E21 ],  # "VERTICAL BAR WITH QUILL",
+    #'rdprime':  [ 0x301D, 0x301F ], # "DOUBLE PRIME QUOTATION MARK",
+    'rdprime':  [ 0x2057, 0x301D ],  # "DOUBLE PRIME QUOTATION MARK",
         # = "QUADRUPLE PRIME"
 
     'fullwidth':[ 0xFF02, 0xFF02 ],  # Fullwidth Quotation Mark
     'scommaO':  [ 0x275B, 0x275C ],  # Heavy Single Turned Comma QM Ornament
     'dcommaO':  [ 0x275D, 0x275E ],  # Heavy Double Turned Comma QM Ornament
-    'hangleO':  [ 0x276E, 0x276F ],  # Heavy Left-pointing Angle QM Ornament
+    'hangleO':  [ 0x276E, 0x276F ],  # Heavy Angle QM Ornament
     'sshdcommonO':  [ 0x1F677, 0x1F678 ],  # Sans-serif Heavy Double Comma QM Ornament
 }
 
