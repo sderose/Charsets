@@ -1,20 +1,23 @@
 #!/usr/bin/perl -w
 #
-# normalizeSpace: Normalize whitespace in the input (not including CR/LF)
+# normalizeSpace: Normalize whitespace (and optionally some other things).
 # 2007-10: Written by Steven J. DeRose.
 #
 use strict;
 use Getopt::Long;
 use Encode;
 
+use alogging;
+
 our %metadata = (
-    'title'        => ".pm",
+    'title'        => "normalizeSpace",
+    'description'  => "Normalize whitespace (and some other things).",
     'rightsHolder' => "Steven J. DeRose",
     'creator'      => "http://viaf.org/viaf/50334488",
     'type'         => "http://purl.org/dc/dcmitype/Software",
     'language'     => "Perl 5.18",
     'created'      => "2006-10",
-    'modified'     => "2020-08-20",
+    'modified'     => "2020-11-30",
     'publisher'    => "http://github.com/sderose",
     'license'      => "https://creativecommons.org/licenses/by-sa/3.0/"
 );
@@ -30,11 +33,13 @@ normalizeSpace [options] file
 Reduce runs of whitespace to a single space, and drop leading and trailing
 whitespace. Optionally, also normalize quotes, dashes, controls, etc.
 
-If you specify I<--iencoding utf8>, all Unicode "Separator" characters
-count as spaces. These include regular space, TAB, CR, LF,
+With I<--iencoding utf8>, all Unicode "Separator" characters
+count as spaces except for CR and LF. These include regular space, TAB,
 non-breaking space, en, em, thin, and other width spaces (U+20xx), etc.
+To include CR and LF as well, set I<--evenNewlines>.
 
-Otherwise,
+As of 2020-10, there is a bug where it always deletes CR and LF.
+
 
 =head1 Options
 
@@ -45,9 +50,9 @@ Otherwise,
 =item * B<--control>
 
 Turn each control character (U+0000 to U+001F and U+0080 to U+009F) to
-a space. This happens before I<--space>.
+a space. This happens before I<--space>, and does affect CR and LF.
 
-B<Note>: If the "upper" control
+B<Note>: If the "upper" ("C1") control
 characters are used for graphical characters, as in the Windows "CP1252"
 character set (but not Unicode or most other encodings),
 this option will still turn them to spaces.
@@ -62,9 +67,13 @@ soft hyphens (U+00AD) and hyphenation points (U+2027) which are deleted,
 em (clause) dashes (U+2014) which remain;
 and 2 hyphens in a row, which are changed to em dash.
 
+=item * B<--evenNewlines>
+Make I<--space> affect even CR and LF characters. By default it doesn't.
+See also I<--control>, since CR and LF are also control characters.
+
 =item * B<--iencoding> I<e>
 
-Specify character encoding for input.
+Specify character encoding for input. Default: C<utf8>
 
 =item * B<--ilineends> I<t>
 
@@ -100,7 +109,14 @@ too narrow to make a visual space:
 
 In addition, delete a leading and/or trailing space that remains after that.
 
+By default, this option does not affect CR or LF characters. To nuke them
+as well, set I<--evenNewlines>.
+
 I<--space> is the default behavior; use I<--nospace> to turn it off.
+
+=item * B<--test>
+
+Run a small self-test.
 
 =item * B<--unicode>
 
@@ -118,6 +134,8 @@ Show version info and exit.
 
 
 =head1 Known Bugs and Limitations
+
+Seems to delete newlines when it shouldn't. Working on it.
 
 Regex specials like \\p{Dash_Punctuation}, \\p{Initial_Punctuation}, and
 \\p{Final_Punctuation} do not seem to work. Have switched to actual Unicode
@@ -143,6 +161,9 @@ Add --control, --dash, --privateUse, --quote, --space.
 
 =item * 2015-06-10: Get rid of \p{} in regexes; use actual Unicode char lists.
 
+=item * 2020-10-15: Add --evenNewlines so we don't nuke CR and LF by default.
+Refactor. Add --test.
+
 =back
 
 
@@ -164,6 +185,7 @@ L<https://github.com/sderose>.
 
 ###############################################################################
 # Pre-compile regexes, esp. for Unicode phenomena
+# Character lists like these can be extract from Unicode via my 'ord' script.
 #
 my $controlToKillString = "\x00-\x1F\x80-\x9F";
 my $controlToKillExpr = qr/([$controlToKillString])/;
@@ -224,6 +246,8 @@ my $spaceToKillString = "" .
 my $spaceToKillExpr = qr/([$spaceToKillString])/;
 
 my $spaceString = "" .
+    "\x{0020}" .    # SPACE
+    "\x{0009}" .    # CHARACTER TABULATION
     "\x{00A0}" .    # NO-BREAK SPACE
     "\x{1680}" .    # OGHAM SPACE MARK
     "\x{2000}" .    # EN QUAD
@@ -250,17 +274,20 @@ my $quoteString = "'\"";   ### FIX
 #
 my $control       = 0;
 my $dash          = 0;
+my $evenNewlines  = 0;
 my $iencoding     = "utf8";
 my $ilineends     = "U";
 my $privateUse    = 0;
 my $quiet         = 0;
 my $quote         = 0;
 my $space         = 1;
+my $test          = 0;
 my $verbose       = 0;
 
 my %getoptHash = (
     "control!"                => \$control,
     "dash!"                   => \$dash,
+    "evenNewlines!"           => \$evenNewlines,
     "h|help"                  => sub { system "perldoc $0"; exit; },
     "iencoding=s"             => \$iencoding,
     "ilineends=s"             => \$ilineends,
@@ -275,6 +302,7 @@ my %getoptHash = (
     "quiet|q!"                => \$quiet,
     "quote!"                  => \$quote,
     "space!"                  => \$space,
+    "test!",                  => \$test,
     "unicode!"                => sub { $iencoding = "utf8"; },
     "v+"                      => \$verbose,
     "version"                 => sub {
@@ -283,6 +311,8 @@ my %getoptHash = (
     );
 Getopt::Long::Configure ("ignore_case");
 GetOptions(%getoptHash) || die "Bad options.\n";
+
+if ($verbose) { alogging::setLogOption("verbose", $verbose) }
 
 $ilineends = uc(substr($ilineends."U",0,1));
 if    ($ilineends eq "M") { $/ = chr(13); }
@@ -298,6 +328,52 @@ if ($iencoding) {
 
 
 ###############################################################################
+#
+sub normalize {
+    my ($rec) = @_;
+    if ($control) {
+        $rec =~ s/$controlToKillExpr/ /g;
+    }
+    if ($privateUse) {
+        $rec =~ s/$privateToKillExpr/ /g;
+    }
+    if ($dash) {
+        $rec =~ s/$dashToKillExpr//g;        # soft hyphen
+        $rec =~ s/--/\x{2014}/g;             # make real em dashes
+        $rec =~ s/$dashExpr/-/g;             # unify rest of dashes
+    }
+    if ($quote) {
+        $rec =~ s/\p{Initial_Punctuation}/"/g;
+        $rec =~ s/\p{Final_Punctuation}/"/g;
+    }
+    if ($space) {
+        $rec =~ s/$spaceToKillExpr//g;       # Not incl. \n \r
+        $rec =~ s/$spaceExpr+/ /g;           # Not incl. \n \r
+        if ($evenNewlines) {
+            $rec =~ s/\s+/ /g;
+        }
+        $rec =~ s/^ //;
+        $rec =~ s/ $//;
+    }
+    return $rec;
+}
+
+
+sub doTest {
+    print("Testing...\n");
+    printf("  privateUse %d, dash %d, quote %d, space %d, evenNewlines %d, \n",
+        $privateUse, $dash, $quote, $space, $evenNewlines);
+    my $sample = "Here's a   bunch \t\t\t of w\xA0e\x{2003}i\xA0\xA0r\xA0\xA0d-looking\nstuff.";
+    printf("    #%s#\n", $sample);
+    my $result = normalize($sample);
+    printf("    #%s#\n", $result);
+    my $visible = $result;
+    print("And with literal ASCII spaces as U+2423:\n");
+    $visible =~ s/ /\x{2423}/g;
+    printf("    #%s#\n", $visible);
+}
+
+
 ###############################################################################
 # Main
 #
@@ -309,49 +385,38 @@ if ($verbose) {
     warn("Chars for quote:   " . $quoteString . "\n");
 }
 
+if ($test) {
+    doTest();
+    exit;
+}
+
 if (scalar(@ARGV)<=0) {
     push @ARGV, "-";
     if (-t STDIN && !$quiet) { warn "Waiting on STDIN...\n"; }
 }
+($spaceToKillExpr =~ m/[\n\r]/) && warn
+    "spaceToKillExpr has CR or LF!\n";
+($spaceExpr =~ m/[\n\r]/) && warn
+    "spaceToKillExpr has CR or LF!\n";
+
+my $recnum = my $filenum = 0;
 while (my $file = shift) {
     open(my $fh, "<$file") || die "Failed to open input file '$file'.\n";
+    $filenum++;
     if ($iencoding) {
         binmode($fh, ":encoding($iencoding)");
         print "";
         binmode(STDOUT, ":encoding($iencoding)");
     }
-
-    my $recnum = 0;
     while (my $rec = <$fh>) {
         $recnum++;
         chomp $rec;
-        if ($control) {
-            $rec =~ s/$controlToKillExpr/ /g;
-        }
-        if ($privateUse) {
-            $rec =~ s/$privateToKillExpr/ /g;
-        }
-        if ($dash) {
-            $rec =~ s/$dashToKillExpr//g;             # soft hyphen
-            $rec =~ s/--/\x{2014}/g;                  # make real em dashes
-            $rec =~ s/$dashExpr/-/g;                  # unify rest of dashes
-        }
-        if ($quote) {
-            $rec =~ s/\p{Initial_Punctuation}/"/g;
-            $rec =~ s/\p{Final_Punctuation}/"/g;
-        }
-        if ($space) {
-            $rec =~ s/$spaceToKillExpr//g;
-            $rec =~ s/$spaceExpr+/ /g;
-            $rec =~ s/\s+/ /g;
-            $rec =~ s/^ //;
-            $rec =~ s/ $//;
-        }
-        print "$rec\n";
+        my $buf = normalize($rec);
+        print "$buf\n";
     }
     close($fh);
 }
 
-#warn "Done, $recnum records processed.\n";
-
+($verbose) && warn
+    "normalizeSpace: Done, $filenum files, $recnum records processed.\n";
 exit;

@@ -20,7 +20,7 @@ our %metadata = (
     'type'         => "http://purl.org/dc/dcmitype/Software",
     'language'     => "Perl 5",
     'created'      => "2006-04-27",
-    'modified'     => "2020-10-14",
+    'modified'     => "2020-11-18",
     'publisher'    => "http://github.com/sderose",
     'license'      => "https://creativecommons.org/licenses/by-sa/3.0/"
 );
@@ -78,7 +78,7 @@ Catch any control chars except \\n\\r\\t.
 
 Catch CSS \\-escapes.
 
-=item * B<--ents>
+=item * B<--ents> OR B<--entities>
 
 Catch HTML named entities.
 
@@ -96,7 +96,7 @@ Include the Unicode character itself in summary lines.
 
 =item * B<--upop>
 
-Catch Unicode U'xxxx escapes.
+Catch Unicode U+xxxx or U'xxxx escapes.
 
 =item * B<--uri>
 
@@ -105,8 +105,7 @@ Catch URI %xx-escapes.
 =item * B<--xml>
 
 Catch XML C<&#ddd;> and C<&#Xxxxx;> numeric character references.
-This script cannot identify named character references specifically,
-but counts how many there are, at least.
+To identify named character references, see I<--ents>.
 
 =back
 
@@ -445,6 +444,8 @@ Add some display options.
 aka byte order mark), no longer be
 counted as part of block "Arabic Presentation Forms-B".
 
+=item * 2020-11-18: Make I<--upop> handle both U'xxxx and U+xxxx, and
+handle from 1 to 5 hex digits, not just exactly 4.
 
 =back
 
@@ -455,7 +456,7 @@ counted as part of block "Arabic Presentation Forms-B".
 
 =item *     Identify HTML named entities
 
-=item *     Option to insert literal (or entity or \x) in output chart.
+=item *     Option to insert literal (or entity or \\x) in output chart.
 
 =item *     Catch and complain about undetected UTF8, unicode coding errors (done?).
 
@@ -464,7 +465,7 @@ from mis-identified charset (say, quotes, etc).
 
 =item *     Lose local escaping and entities tables.
 
-=item *     Support colorizing in --instances reporting.
+=item *     Support colorizing in I<--instances> reporting.
 
 =item *     Trap SIGINT and report partial results.
 
@@ -482,12 +483,12 @@ Attribution-Share Alike 3.0 Unported License. For further information on
 this license, see L<http://creativecommons.org/licenses/by-sa/3.0/>.
 
 For the most recent version, see L<http://www.derose.net/steve/utilities/> or
-L<http://github/com/sderose>.
+L<https://github/com/sderose/Charsets>.
 
 =cut
 
 
-my $badUTFsubstitute = "?";       # See -fixBadUTF8 option
+my $badUTFsubstitute = "?";       # See --fixBadUTF8 option
 
 # Kinds of representations to catch
 #
@@ -496,7 +497,7 @@ my $ents            = 0;    # Catch HTML named entities?
 my $javascript      = 0;    # Catch JavaScript-escaped characters
 my $literals        = 1;    # Detect literal characters?
 my $perl            = 0;    # Catch Perl/C/etc backslashes
-my $upop            = 0;    # Catch Unicode U'xxxx notation
+my $upop            = 0;    # Catch Unicode U'xxxx and U+xxxx notation
 my $uri             = 0;    # Catch URI %-escapes?
 my $xml             = 0;    # Catch XML numeric character references?
 
@@ -548,7 +549,7 @@ my $widthReport       = 30;      # Columns in big final report
 my %getoptHash = (
     # Kinds of character representations to catch
     "css!"                 => \$css,
-    "ents!"                => \$ents,
+    "ents|entities!"       => \$ents,
     "javascript!"          => \$javascript,
     "literals!"            => \$literals,
     "perl!"                => \$perl,
@@ -1055,9 +1056,9 @@ sub tryOtherForms {
         }
     }
 
-    if ($upop && $c eq "U") {                               # U'xxxx
+    if ($upop && $c eq "U") {                               # U'xxxx and U+xxxx
         my $remainder = substr($context, $theCol);
-        if ($remainder =~ m/U['+]([[:xdigit:]]{4})/) {
+        if ($remainder =~ m/U['+]([[:xdigit:]]{1,5})\b/) {
             checkAndScream(chr(hex($1)), "Unicode U'",$theCol,$path);
             $theCol += length($1)+1;
         }

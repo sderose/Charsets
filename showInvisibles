@@ -1,22 +1,7 @@
 #!/usr/bin/perl -w
 #
 # showInvisibles: make control and whitespace chars visible.
-#
 # 2007-01-16: Written by Steven J. DeRose.
-# 2007-12-31 sjd: Getopt, version, etc.
-# 2010-09-27 sjd: Cleanup, --base, --pad, --color, factor out makeCharRef().
-# 2011-01-24 sjd: Add control pictures and alternates. binmode STDOUT.
-# 2012-01-23 sjd: Fix --color and --base. Use sjdUtils.
-#     Optimize color-escaping instead of doing on/off for every char.
-# 2012-02-24 sjd: Count and report C1, >65535, whitespace.
-# 2012-10-23 sjd: Simplify. Ditch counting, -base, -names, -pad. Use sjdUtils.
-# 2013-06-21: Add --color, --whichColor.
-# 2014-09-01: Add --iencoding. Multifile. Fix --color.
-# 2015-09-11: Drop -s, add --spaceAs OK, fix code points. --lfAs likewise.
-# 2019-11-16: Update color use.
-#
-# To do:
-#     Option to color-code white-space? see colorizeWhiteSpace(), below.
 #
 use strict;
 use Getopt::Long;
@@ -24,134 +9,20 @@ use Getopt::Long;
 use sjdUtils;
 use alogging;
 
-our $VERSION_DATE = "2019-11-16";
-
-my $backslash     = 0;
-my $color         = 0;
-my $iencoding     = "";
-my $lfAs          = "NL";
-my $pics          = 1;
-my $quiet         = 0;
-my $spaceAs       = "OK";
-my $uri           = 0;
-my $verbose       = 0;
-my $whichColor    = "/yellow";
-
-###############################################################################
-# Process options
-#
-Getopt::Long::Configure ("ignore_case");
-my $result = GetOptions(
-	"backslash!"        => \$backslash,
-    "color!"            => \$color,
-	"h|help|?"          => sub { system "perldoc $0"; exit; },
-	"iencoding=s"       => \$iencoding,
-    "lfAs=s"            => \$lfAs,
-    "pics|pix!"         => \$pics,
-	"q|quiet!"          => \$quiet,
-    "spaceAs=s"         => \$spaceAs,
-	"uri!"              => \$uri,
-	"v|verbose+"        => \$verbose,
-    "version"           => sub {
-		die "Version of $VERSION_DATE, by Steven J. DeRose.\n";
-	},
-    "whichColor=s"      => \$whichColor,
-	);
-
-($result) || die "Bad options.\n";
-
-$spaceAs = uc($spaceAs);
-($spaceAs =~ m/^(B|U|SP|OK|COLOR)$/) || (len($spaceAs)==1) ||
-    die "-spaceAs must be 'B', 'U', 'SP', 'COLOR', or 'OK'.\n";
-
-$lfAs = uc($lfAs);
-($lfAs =~ m/^(LF|NL|OK)$/i) || (len($lfAs)==1) ||
-    die "-lfAs must be 'LF' or 'NL' or 'OK'.\n";
-
-my @names = ( # currently unused
-	"NUL", "SOH", "STX", "ETX", "EOT", "ENQ", "ACK", "BEL",
-	"BS",  "HT",  "NL",  "VT",  "FF",  "CR",  "SO",  "SI",
-	"DLE", "DC1", "DC2", "DC3", "DC4", "NAK", "SYN", "ETB",
-	"CAN", "EM",  "SUB", "ESC", "FS",  "GS",  "RS",  "US",
-	"SP");
-
-my $con = my $coff = "";
-if ($color) {
-    sjdUtils::setColors(1);
-    $con  = sjdUtils::getColorString($whichColor);
-    $coff = sjdUtils::getColorString("off");
-}
-
-print "";
-binmode(STDOUT, ":encoding(utf8)");
-
-
-# Apply colorizing to whitespaces.
-#
-my %spaceMap = (
-    ' '   => sjdUtils::getColorString('/red'),
-    "\\t" => sjdUtils::getColorString('/yellow'),
-    "\\r" => sjdUtils::getColorString('/green'),
-    "\\n" => sjdUtils::getColorString('/blue'),
-    "\\s" => sjdUtils::getColorString('/magenta'),
+our %metadata = (
+    'title'        => "showInvisibles",
+    'description'  => "Make control and whitespace chars visible.",
+    'rightsHolder' => "Steven J. DeRose",
+    'creator'      => "http://viaf.org/viaf/50334488",
+    'type'         => "http://purl.org/dc/dcmitype/Software",
+    'language'     => "Perl 5.18",
+    'created'      => "2007-01-16",
+    'modified'     => "2020-11-19",
+    'publisher'    => "http://github.com/sderose",
+    'license'      => "https://creativecommons.org/licenses/by-sa/3.0/"
 );
-sub colorizeWhiteSpace {
-    my ($s) = @_;
-    for my $x (keys %spaceMap) {
-        my $y = $spaceMap{$x};
-        $s =~ s/$x/$y/g;
-    }
-}
+our $VERSION_DATE = $metadata{'modified'};
 
-###############################################################################
-###############################################################################
-# Main
-#
-if (!$ARGV[0]) {
-	push @ARGV, "-";
-	if (-t STDIN && !$quiet) {
-	    vMsg(0, "Waiting for STDIN...");
-	}
-}
-
-while (my $file = shift) {
-    my $fh;
-	open($fh, "<$file") || die "Can't find file '$file'.\n";
-    if ($iencoding) {
-        binmode($fh, $iencoding);
-    }
-
-    while (my $rec = <$fh>) {
-        if ($pics) {
-            if ($spaceAs eq "COLOR") {
-                $rec = colorizeWhiteSpace($rec);
-            }
-            else {
-                $rec = sjdUtils::showInvisibles($rec,"SYM", $spaceAs, $lfAs);
-            }
-        }
-        elsif ($backslash) {
-            $rec = sjdUtils::showInvisibles($rec, "DFT", $spaceAs, $lfAs);
-        }
-        elsif ($uri) {
-            $rec = sjdUtils::escapeURI($rec, "DFT", $spaceAs, $lfAs);
-        }
-        if ($color) {
-            $rec =~ s/(\\x[0-9a-f][0-9a-f]|[^[:ascii:]]+)/$con$1$coff/g;
-        }
-        print "$rec\n";
-    } # EOF
-    close($fh);
-}
-
-exit;
-
-
-
-###############################################################################
-###############################################################################
-###############################################################################
-#
 
 =pod
 
@@ -164,11 +35,10 @@ Make control and non-ASCII characters visible.
 Do this by using the Unicode "control symbols" where applicable,
 and backslash-codes (or XML numeric character references) elsewhere.
 
-Literal spaces I<are> replaced by default (but see I<-s> and I<--spaceAs>.
+By default, literal spaces I<are not> replaced (but see I<-s> and I<--spaceAs>.
 
 Useful for visualizing return/linefeed, space/tab, etc. Can also be used
 to escape undesired characters in a file to ease later processing.
-
 
 
 =head1 Options
@@ -214,6 +84,7 @@ Display spaces as:
   I<U> (an underscore with the ends turned up, U+2423)
   I<SP> (a little "SP", U+2420)
   I<NBSP> (a non-breaking space, U+00A0)
+  I<COLOR> (experimental, different colors for different whitespace chars)
 
 =item * B<--lfAs> I<l>
 
@@ -238,18 +109,19 @@ Display version info and exit.
 
 =item * B<--whichColor> I<name>
 
-Choose the color to use with I<--color>. See C<colorManager.pm> for details and
-a list of the names, of the form C<[effect]/[fg]/[bg]>.
+Choose the color to use with I<--color>. See C<colorManager.pm> and
+F<colorNames.md> for details and
+a list of the names. Generally, the form is C<[fg]/[bg]/[effect]>.
 
 =back
-
 
 
 =head1 Related Commands
 
 C<sjdUtils.pm> provides functions to do the transformations.
 
-C<colorManager.pm> provides
+C<colorManager.pm> provides ANSI terminal color support.
+
 
 =head1 Known bugs and limitations
 
@@ -257,13 +129,170 @@ For UTF-8, shows \xFF-style escapes for each byte, not \UFFFF or \x{FFFF}
 for the code point as a whole.
 
 
-=head1 Ownership
+=head1 History
 
-This work by Steven J. DeRose is licensed under a Creative Commons
-Attribution-Share Alike 3.0 Unported License. For further information on
-this license, see L<here|http://creativecommons.org/licenses/by-sa/3.0/>.
+  2007-01-16: Written by Steven J. DeRose.
+  2007-12-31 sjd: Getopt, version, etc.
+  2010-09-27 sjd: Cleanup, --base, --pad, --color, factor out makeCharRef().
+  2011-01-24 sjd: Add control pictures and alternates. binmode STDOUT.
+  2012-01-23 sjd: Fix --color and --base. Use sjdUtils.
+Optimize color-escaping instead of doing on/off for every char.
+  2012-02-24 sjd: Count and report C1, >65535, whitespace.
+  2012-10-23 sjd: Simplify. Ditch counting, -base, -names, -pad. Use sjdUtils.
+  2013-06-21: Add --color, --whichColor.
+  2014-09-01: Add --iencoding. Multifile. Fix --color.
+  2015-09-11: Drop -s, add --spaceAs OK, fix code points. --lfAs likewise.
+  2019-11-16: Update color use.
+  2020-11-19: New layout.
 
-For the most recent version, see L<here|"http://www.derose.net/steve/utilities/">.
+
+=head1 To do
+
+Option to color-code white-space and/or newlines differently?
+See C<colorizeWhiteSpace()>, below.
+
+
+=head1 Rights
+
+Copyright 2007-01-16 by Steven J. DeRose. This work is licensed under a
+Creative Commons Attribution-Share Alike 3.0 Unported License.
+For further information on this license, see
+L<https://creativecommons.org/licenses/by-sa/3.0>.
+
+For the most recent version, see L<http://www.derose.net/steve/utilities> or
+L<https://github.com/sderose>.
+
 
 =cut
 
+
+###############################################################################
+# Process options
+#
+my $backslash     = 0;
+my $color         = 0;
+my $iencoding     = "";
+my $lfAs          = "NL";
+my $pics          = 1;
+my $quiet         = 0;
+my $spaceAs       = "OK";
+my $uri           = 0;
+my $verbose       = 0;
+my $whichColor    = "/yellow";
+
+Getopt::Long::Configure ("ignore_case");
+my $result = GetOptions(
+    "backslash!"        => \$backslash,
+    "color!"            => \$color,
+    "h|help|?"          => sub { system "perldoc $0"; exit; },
+    "iencoding=s"       => \$iencoding,
+    "lfAs=s"            => \$lfAs,
+    "pics|pix!"         => \$pics,
+    "q|quiet!"          => \$quiet,
+    "spaceAs=s"         => \$spaceAs,
+    "uri!"              => \$uri,
+    "v|verbose+"        => \$verbose,
+    "version"           => sub {
+        die "Version of $VERSION_DATE, by Steven J. DeRose.\n";
+    },
+    "whichColor=s"      => \$whichColor,
+    );
+
+($result) || die "Bad options.\n";
+
+$spaceAs = uc($spaceAs);
+($spaceAs =~ m/^(B|U|SP|OK|COLOR)$/) || (len($spaceAs)==1) ||
+    die "-spaceAs must be 'B', 'U', 'SP', 'COLOR', or 'OK'.\n";
+
+$lfAs = uc($lfAs);
+($lfAs =~ m/^(LF|NL|OK)$/i) || (len($lfAs)==1) ||
+    die "-lfAs must be 'LF' or 'NL' or 'OK'.\n";
+
+my @names = ( # currently unused
+    "NUL", "SOH", "STX", "ETX", "EOT", "ENQ", "ACK", "BEL",
+    "BS",  "HT",  "NL",  "VT",  "FF",  "CR",  "SO",  "SI",
+    "DLE", "DC1", "DC2", "DC3", "DC4", "NAK", "SYN", "ETB",
+    "CAN", "EM",  "SUB", "ESC", "FS",  "GS",  "RS",  "US",
+    "SP");
+
+my $con = my $coff = "";
+if ($color) {
+    sjdUtils::setColors(1);
+    $con  = sjdUtils::getColorString($whichColor);
+    $coff = sjdUtils::getColorString("off");
+}
+
+print "";
+binmode(STDOUT, ":encoding(utf8)");
+
+
+# Apply colorizing to whitespaces.
+#
+my %spaceMap = (
+    ' '  => sjdUtils::getColorString('red'),
+    "\t" => sjdUtils::getColorString('yellow'),
+    "\r" => sjdUtils::getColorString('green'),
+    "\n" => sjdUtils::getColorString('blue'),
+    #"\s" => sjdUtils::getColorString('/magenta'),
+);
+my $offSequence = sjdUtils::getColorString('default')
+
+sub colorizeWhiteSpace {
+    my ($s) = @_;
+    for my $x (keys %spaceMap) {
+        my $y = $spaceMap{$x};
+        $s =~ s/($x)/$y$1$offSequence/g;
+    }
+}
+
+
+###############################################################################
+# Main
+#
+if (!$ARGV[0]) {
+    push @ARGV, "-";
+    if (-t STDIN && !$quiet) {
+        vMsg(0, "Waiting for STDIN...");
+    }
+}
+
+if ($verbose) {
+    warn "Testing colors:\n";
+    for my $x (keys %spaceMap) {
+        my $y = $spaceMap{$x};
+        warn "    $sHello$offSequence\n";
+    }
+
+}
+
+while (my $file = shift) {
+    my $fh;
+    open($fh, "<$file") || die "Can't find file '$file'.\n";
+    if ($iencoding) {
+        binmode($fh, $iencoding);
+    }
+
+    while (my $rec = <$fh>) {
+        if ($pics) {
+            if ($spaceAs eq "COLOR") {
+                $rec = colorizeWhiteSpace($rec);
+            }
+            else {
+                $rec = sjdUtils::showInvisibles($rec,"SYM", $spaceAs, $lfAs);
+            }
+        }
+        elsif ($backslash) {
+            $rec = sjdUtils::showInvisibles($rec, "DFT", $spaceAs, $lfAs);
+        }
+        elsif ($uri) {
+            $rec = sjdUtils::escapeURI($rec, "DFT", $spaceAs, $lfAs);
+        }
+        if ($color) {
+            $rec =~ s/(\\x[0-9a-f][0-9a-f]|[^[:ascii:]]+)/$con$1$coff/g;
+        }
+        print "$rec\n";
+    } # EOF
+    close($fh);
+}
+
+exit;

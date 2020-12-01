@@ -1,37 +1,209 @@
 #!/usr/bin/perl -w
 #
-# normalizeUnicode 
-#
+# normalizeUnicode
 # 2010-11-19ff: Written by Steven J. DeRose.
-#     Mostly pulled from domExtensions.
-# 
-# To do:
-#     ?? Generalize to be able to operate on any \p{name} classes??
-#     Deal with ligature/accent interaction (combining long s).
-#     Finish packagizing.
-#     Updates from findKeyWords.
-#     Entities?
-# Possible additions:
-#     old italic, gothic, etc. U'10300
-#     roman numerals, enclosed alphanumerics
-#     vertical forms U'fe00
-#     Greek and Cyrillic and Hebrew math variants?
-#     ellipsis, punc ligatures U'203c...
-#     sup/sub U'2070
-#     Halfwidth/fullwidth U'ff00
-#     Non-Latin ligatures.
-#     supplemental punct U'
-#     Arrows? U'2190, 2799, 27f0, 2900, 2b00
-#     letterlike symbols U'2100, fractions, 
-#     braille U'2800
-#     high surrogates U'd800, low surrogates U'dc00
 #
 use strict;
 use Getopt::Long;
 use Unicode::Normalize;
 #use ../MODULES/SimplifyUnicode;
 
-our $VERSION_DATE = "2012-11-29";
+our %metadata = (
+    'title'        => ".pm",
+    'rightsHolder' => "Steven J. DeRose",
+    'creator'      => "http://viaf.org/viaf/50334488",
+    'type'         => "http://purl.org/dc/dcmitype/Software",
+    'language'     => "Perl 5.18",
+    'created'      => "2010-11-19ff",
+    'modified'     => "2020-11-19",
+    'publisher'    => "http://github.com/sderose",
+    'license'      => "https://creativecommons.org/licenses/by-sa/3.0/"
+);
+our $VERSION_DATE = $metadata{'modified'};
+
+
+=pod
+
+=head1 Usage
+
+normalizeUnicode [options] file
+
+Map various classes of Unicode characters.
+
+For example, can reduce all the
+different whitespace characters to ' '; all the hyphens and dashes to '-',
+and deal with various kinds of quotes, ligatures, accented characters, etc.
+
+
+=head1 Options
+
+(prefix 'no' to negate where applicable)
+
+Several options control what is done to various classes of Unicode characters.
+See the next section for descriptions of the available actions.
+
+=over
+
+=item * B<--accents> <t>
+
+What to do with diacritics:
+I<atomic>, I<unchanged>, I<molecular>, I<unaccent>, I<space>, I<delete>.
+
+=item * B<--allLigatures>
+
+Count all Latin ligatures, not just the very
+common ones (fi fl ffi ffl).
+
+=item * B<--ligatures> <t>
+
+What to do with ligatures:
+I<atomic>, I<unchanged>, I<molecular>, I<space>, I<delete>.
+See also I<--allLigatures>.
+
+=item * B<--maths> <t>
+
+What to do withfont-variations of
+basic Latin alphabet (that Unicode defines for math usage).
+I<atomic>, I<unchanged>, I<molecular>, I<tag>, I<space>, I<delete>.
+Note: Only handles Latin, not Greek or Hebrew letters so far.
+
+=item * B<--dashes>
+
+Turn all hyphens, dashes, etc. to hyphen.
+
+=item * B<--dquotes>
+
+Turn all funky double-quotes to straight.
+
+=item * B<--squotes>
+
+Turn all funky single-quotes to straight
+(does not include back-quote, for which see I<--bquote>.
+
+=item * B<--bquote>
+
+Turn backquote to apostrophe.
+
+=item * B<--quotes>
+
+Shorthand for I<--dquotes -squotes>.
+
+=item * B<--spaces>
+
+Turn all whitespace (except CR, LF, and TAB)
+to a normal space.
+
+=item * B<--quiet> OR B<-q>
+Suppress most messages.
+
+=item * B<--verbose> OR B<-v>
+Add more messages (repeatable).
+
+=item * B<--version>
+
+Show version info and exit.
+
+=back
+
+
+=head1 Action descriptions
+
+The actions available are drawn from this list:
+
+=over
+
+=item * I<molecular>: use more/more complex characters wherever possible,
+such as precombined character+diacritic combinations; ligatures, etc.
+
+=item * I<unchanged>: leave them however they were in the input.
+
+=item * I<atomic>: use fewer/simpler distinct characters, such as by
+breaking ligatures apart, or splitting accented characters into separate
+base and combining characters.
+
+=item * I<space>: delete characters from the category in question, and
+put in a space where they were (see also I<delete>).
+
+=item * I<tag>: For characters that are (in the author's opinion) formatting
+variations of more basic characters, express them via XML markup instead.
+For the moment, a <span> element will be used (similar to HTML). For
+example, I<--maths tag> would turn I<Double-struck Capital R> (U'211D) into:
+
+    <span class='uchar doublestruck x211d'>r</span>
+
+=item * I<delete>: delete characters from the category in question
+(see also I<space>).
+
+=back
+
+
+=head1 Related commands
+
+C<normalizeUnicode.py> -- Later Python analog of this script. It does not
+provide so many detailed/specific options, but it does do the four standard
+Unicode Normalization Forms.
+
+C<iconv>, C<tuples>, C<nonascii>, C<entify>, C<normalizeEntities>.
+
+
+=head1 Known Bugs and Limitations
+
+Only a few settings for ligatures, accents, and maths are finished.
+Math characters and ligatures are only handled for Latin alphabet so far.
+
+This is gradually becoming a package.
+
+
+=head1 History
+
+  2010-11-19ff: Written by Steven J. DeRose. Mostly pulled from domExtensions.
+  2012-11-29: ???
+  2020-11-19: New layout.
+
+
+=head1 To do
+
+   ?? Generalize to be able to operate on any \p{name} classes??
+   Deal with ligature/accent interaction (combining long s).
+   Finish packagizing.
+   Updates from findKeyWords.
+   Entities?
+   Hook up Math alphabets support (though Unicode Compatibility Normalization
+will take care of that, among other things).
+
+
+=head2 Possible additions
+
+   old italic, gothic, etc. U'10300
+   roman numerals, enclosed alphanumerics
+   vertical forms U'fe00
+   Greek and Cyrillic and Hebrew math variants?
+   ellipsis, punc ligatures U'203c...
+   sup/sub U'2070
+   Halfwidth/fullwidth U'ff00
+   Non-Latin ligatures.
+   supplemental punct U'
+   Arrows? U'2190, 2799, 27f0, 2900, 2b00
+   letterlike symbols U'2100, fractions,
+   braille U'2800
+   high surrogates U'd800, low surrogates U'dc00
+
+
+=head1 Rights
+
+Copyright 2010-11-19 by Steven J. DeRose. This work is licensed under a
+Creative Commons Attribution-Share Alike 3.0 Unported License.
+For further information on this license, see
+L<https://creativecommons.org/licenses/by-sa/3.0>.
+
+For the most recent version, see L<http://www.derose.net/steve/utilities> or
+L<https://github.com/sderose>.
+
+=cut
+
+
+###############################################################################
+# Options
 
 my $ignoreCase    = 0;
 my $ilineends     = "U";
@@ -53,8 +225,6 @@ my $bquote	      = 0;
 my $quotes	      = 0;
 my $spaces	      = 0;
 
-###############################################################################
-#
 Getopt::Long::Configure ("ignore_case");
 my $result = GetOptions(
     "allLigatures!"           => \$allLigatures,
@@ -85,9 +255,6 @@ my $result = GetOptions(
 ($result) || die "Bad options.\n";
 
 
-###############################################################################
-# Set implied options, validate option values...
-#
 ($accents =~ m/^(atomic|unchanged|molecular|unaccent|space|delete)$/) ||
 
 ($ligatures =~ m/^(atomic|unchanged|molecular|unaccent|space|delete)$/) ||
@@ -125,7 +292,6 @@ elsif ($olineends eq "D") { $\ = chr(13).chr(10); }
 else { }
 
 
-###############################################################################
 ###############################################################################
 # Main
 #
@@ -175,8 +341,6 @@ while (my $rec = <$fh>) {
 exit;
 
 
-
-###############################################################################
 ###############################################################################
 #
 package normalizeChars;
@@ -226,6 +390,7 @@ sub setMathOption {
     $self->{mathOption} = $v;
 }
 
+
 ###############################################################################
 #
 sub normalize_Space {
@@ -264,7 +429,7 @@ sub normalize_SpaceChars {
 ###############################################################################
 #
 sub handle_Diacritics {
-    my ($self,$rec) = @_;        
+    my ($self,$rec) = @_;
     if ($accents eq "atomic") {
         die "unsupported -accents handling '$accents'\n";
     }
@@ -365,12 +530,12 @@ sub math2letter {
 #
 sub setupDashes {
     my ($self) = @_;
-    my $dashChars = 
+    my $dashChars =
         # Leave out regular hyphen so doesn't mess up regex, and since it's
         # what we normalize *to*.
         #
         chr(0x000ad) . # soft hyphen
-        chr(0x0058a) . # armenian hyphen      
+        chr(0x0058a) . # armenian hyphen
         chr(0x01806) . # mongolian todo soft hyphen
         chr(0x01b60) . # balinese pameneng (line-breaking hyphen)
         chr(0x02010) . # 008208) . hyphen) .        '-',
@@ -414,7 +579,7 @@ sub setupDashes {
 
 sub setupDQuotes {
     my ($self) = @_;
-    my $dQuoteChars = 
+    my $dQuoteChars =
     chr(0x00AB) .	# LEFT-POINTING DOUBLE ANGLE QUOTATION MARK *
     chr(0x00BB) .	# RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK *
     chr(0x201C) .	# LEFT DOUBLE QUOTATION MARK
@@ -452,7 +617,7 @@ sub setupSQuotes {
 
 sub setupSpaces {
     my ($self) = @_;
-    my $spaceChars = 
+    my $spaceChars =
     chr(0x0009) .    # TAB
     chr(0x000A) .    # LINE FEED
     chr(0x000B) .    # VERTICAL TAB
@@ -550,7 +715,7 @@ FB4F	HEBREW LIGATURE ALEF LAMED
     };
 }
 
-sub setupMathAlphabets {
+sub setupMathAlphabets {  # Not yet integrated
     my %mathAlphabetStarts = (
          0x1d400 => "UPPER",  # mathematical bold
          0x1d41A => "LOWER",
@@ -586,151 +751,3 @@ sub setupMathAlphabets {
     # greek upper+lower: 1d6a8, 1d6e2, etc.
     return(\%mathAlphabetStarts);
 }
-
-
-
-###############################################################################
-###############################################################################
-###############################################################################
-#
-=pod
-
-=head1 Usage
-
-normalizeUnicode [options] file
-
-Map various classes of Unicode characters. 
-
-For example, can reduce all the
-different whitespace characters to ' '; all the hyphens and dashes to '-',
-and deal with various kinds of quotes, ligatures, accented characters, etc.
-
-
-=head1 Options
-
-(prefix 'no' to negate where applicable)
-
-Several options control what is done to various classes of Unicode characters.
-See the next section for descriptions of the available actions.
-
-=over 
-
-=item * B<--accents> <t>
-
-What to do with diacritics:
-I<atomic>, I<unchanged>, I<molecular>, I<unaccent>, I<space>, I<delete>.
-
-=item * B<--allLigatures>
-
-Count all Latin ligatures, not just the very
-common ones (fi fl ffi ffl).
-
-=item * B<--ligatures> <t>
-
-What to do with ligatures:
-I<atomic>, I<unchanged>, I<molecular>, I<space>, I<delete>.
-See also I<--allLigatures>.
-
-=item * B<--maths> <t>
-
-What to do withfont-variations of 
-basic Latin alphabet (that Unicode defines for math usage).
-I<atomic>, I<unchanged>, I<molecular>, I<tag>, I<space>, I<delete>.
-Note: Only handles Latin, not Greek or Hebrew letters so far.
-
-=item * B<--dashes>
-
-Turn all hyphens, dashes, etc. to hyphen.
-
-=item * B<--dquotes>
-
-Turn all funky double-quotes to straight.
-
-=item * B<--squotes>
-
-Turn all funky single-quotes to straight
-(does not include back-quote, for which see I<--bquote>.
-
-=item * B<--bquote>
-
-Turn backquote to apostrophe.
-
-=item * B<--quotes>
-
-Shorthand for I<--dquotes -squotes>.
-
-=item * B<--spaces>
-
-Turn all whitespace (except CR, LF, and TAB)
-to a normal space.
-
-=item * B<--quiet> OR B<-q>
-Suppress most messages.
-
-=item * B<--verbose> OR B<-v>
-Add more messages (repeatable).
-
-=item * B<--version>
-
-Show version info and exit.
-
-=back
-
-
-
-=head1 Action descriptions
-
-The actions available are drawn from this list:
-
-=over
-
-=item * I<molecular>: use more/more complex characters wherever possible,
-such as precombined character+diacritic combinations; ligatures, etc.
-
-=item * I<unchanged>: leave them however they were in the input.
-
-=item * I<atomic>: use fewer/simpler distinct characters, such as by
-breaking ligatures apart, or splitting accented characters into separate
-base and combining characters.
-
-=item * I<space>: delete characters from the category in question, and
-put in a space where they were (see also I<delete>).
-
-=item * I<tag>: For characters that are (in the author's opinion) formatting
-variations of more basic characters, express them via XML markup instead.
-For the moment, a <span> element will be used (similar to HTML). For
-example, I<--maths tag> would turn I<Double-struck Capital R> (U'211D) into:
-
-    <span class='uchar doublestruck x211d'>r</span>
-
-=item * I<delete>: delete characters from the category in question
-(see also I<space>).
-
-=back
-
-
-
-=head1 Known Bugs and Limitations
-
-Only a few settings for ligatures, accents, and maths are finished.
-Math characters and ligatures are only handled for Latin alphabet so far.
-
-This is gradually becoming a package.
-
-
-
-=head1 Related commands
-
-iconv, tuples, nonascii, entify, normalizeEntities.
-
-
-
-=head1 Ownership
-
-This work by Steven J. DeRose is licensed under a Creative Commons 
-Attribution-Share Alike 3.0 Unported License. For further information on
-this license, see L<http://creativecommons.org/licenses/by-sa/3.0/>.
-
-For the most recent version, see L<http://www.derose.net/steve/utilities/>.
-
-=cut

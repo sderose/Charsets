@@ -9,6 +9,7 @@ use Unicode::UCD 'charscript';
 use Unicode::UCD 'charblock';
 use HTML::Entities;
 use Encode;
+use URI::Escape;
 
 #use sjdUtils;  # getUTF8(), isUnicodeCodePoint() are copied locally.
 
@@ -19,7 +20,7 @@ our %metadata = (
     'type'         => "http://purl.org/dc/dcmitype/Software",
     'language'     => "Perl 5.18",
     'created'      => "2007-10",
-    'modified'     => "2020-07-27",
+    'modified'     => "2020-11-30",
     'publisher'    => "http://github.com/sderose",
     'license'      => "https://creativecommons.org/licenses/by-sa/3.0/"
 );
@@ -48,23 +49,44 @@ For example, "ord BULLET" produces:
     Unicode:         U+02022, utf8 \xe2\x80\xa2, URI(%e2%80%a2)
     Entities:        &#08226; &#x02022; &bull;
 
-You can also search for characters with various properties,
-and can specify the character(s) to describe in several ways:
+You can specify the character(s) to describe in several ways (to describe
+several, separate their specifications by spaces):
 
 =over
 
-=item * via a numeric code point, in octal, decimal, or hex,
+=item * ord [char]
+
+A single literal character.
+
+=item * ord [entityName]
+
+An HTML 4 or XML special-character entity name, such as "nbsp".
+
+=item * ord [number]
+
+a numeric code point, in octal, decimal, or hex,
 e.g. C<012>, C<10>, or C<0xB9>.
 
-=item * For control characters, their short mnemonics such as C<LF>,
+=item * ord [mnemonic]
+
+For control characters, their short mnemonics such as C<LF>,
 or the control-letter equivalent such as C<C-J> or C<^J>.
 
-=item * Full unicode names like "APL FUNCTIONAL SYMBOL LEFTWARDS VANE",
-ignoring case. But if there are spaces in the name, you need to
+=item * ord [name]
+
+Full unicode names like "APL FUNCTIONAL SYMBOL LEFTWARDS VANE",
+ignoring case. If there are spaces in the name, you need to
 quote it or use "_" instead of each space.
 
-=item * A fairly large selection of *nix jargon names
+=item * ord [jargon]
+
+A fairly large selection of *nix jargon names, such as "splat" or "ket"
 (quote them if they contain spaces).
+
+=item * ord [%utfhex]
+
+A literal percent sign, followed by a sequence of bytes specified in
+hexadecimal, to be interpreted as a UTF-8 character (e.g., '%
 
 =back
 
@@ -96,11 +118,11 @@ consider using for the purpose one has in mind -- for example:
     "*" (asterisk) does not have "star" in its name
     Nor do many other asterisks, snowflakes, florettes, and sparkles.
     Some character have "star" in their name but may not be wanted:
-        U+00001		START OF HEADING
-        U+00f0c	༌	TIBETAN MARK DELIMITER TSHEG BSTAR
-        U+029e6	⧦	GLEICH STARK
-        U+1f303	🌃	NIGHT WITH STARS
-        U+1f752	🝒	ALCHEMICAL SYMBOL FOR STARRED TRIDENT
+        U+00001     START OF HEADING
+        U+00f0c ༌   TIBETAN MARK DELIMITER TSHEG BSTAR
+        U+029e6 ⧦   GLEICH STARK
+        U+1f303 🌃  NIGHT WITH STARS
+        U+1f752 🝒  ALCHEMICAL SYMBOL FOR STARRED TRIDENT
 
 I<--findString> searches for a literal match within the character's full name.
 
@@ -235,7 +257,7 @@ Don't know).
 
 Display applicable *nix jargon names (default).
 
-=item * B<--listFormat> I<f>
+=item * B<--listFormat> I<f> OR B<--outFormat> OR B<--oFormat>
 
 Choose the output layout for results from the several I<--find...> options:
 
@@ -243,18 +265,18 @@ Choose the output layout for results from the several I<--find...> options:
 
 =item * PLAIN (default): The hex code point and the name, tab-separated:
 
-    U+002a	ASTERISK
-    U+0359	COMBINING ASTERISK BELOW
-    U+204e	LOW ASTERISK
+    U+002a  ASTERISK
+    U+0359  COMBINING ASTERISK BELOW
+    U+204e  LOW ASTERISK
 
 =item * LITERAL: Like PLAIN, but also showing the actual graphic character.
 
-    U+002a	*	ASTERISK
-    U+0359 	͙	COMBINING ASTERISK BELOW
-    U+204e	⁎	LOW ASTERISK
+    U+002a  *   ASTERISK
+    U+0359  ͙   COMBINING ASTERISK BELOW
+    U+204e  ⁎   LOW ASTERISK
 
 =item * STRING: A string of just the selected literal characters.
-    u"*	͙⁎"
+    u"* ͙⁎"
 
 =item * PERL: Hash entries, from hex code point to name.
 
@@ -362,11 +384,8 @@ system-dependent).
 
 =item * B<--utf8>
 
-Show UTF-8 byte sequence for the character (default).
-This will also show the %-escape sequence needed to express the character
-in a URI, or "(ok)" if the character is allowed in URIs.
-Characters that may be, but are not always, special in URIs
-('/%&:;=?@'), are listed by their escapes.
+Show a variety of information about the UTF-8 encoding for the character(s).
+Default: on.
 
 =item * B<--version>
 
@@ -411,6 +430,11 @@ For C<--pairs>, in addition to a list of keywords, the code has a list of charac
 
 Does not offer information on Unicode categories such as
 "Nd" ("Number, Decimal Digit") and so on. See C<showUnicodeCharsInClass.py>.
+
+Reports look a little weird in the case of combining characters. Especially if
+you search for just the combining characters, and print them out as
+I<--listFormat STRING>.
+
 
 =head1 Related commands
 
@@ -485,6 +509,8 @@ Warn if env LANG not utf-8. Recognize html entity names, C-J, ^J, etc.
 
 =item * 2020-09-03: Clean up. Add warning for I<--findString> w/ bad chars.
 
+=item * 2020-11-30: Support hex UTF-9 input.
+
 =back
 
 
@@ -493,8 +519,6 @@ Warn if env LANG not utf-8. Recognize html entity names, C-J, ^J, etc.
 =over
 
 =item * Port to Python, using my C<CharDisplay.py> package.
-
-=item * Catch utf-8 hex input.
 
 =item * Make `--listFormat` apply to the main list, not just `-f`.
 
@@ -515,7 +539,7 @@ unique prefix? (Do all this after Python port).
 I<--min>, I<--max> and some always-true test).
 
 =item * Make I<find> on names match regardless of token order. Cf
-Joel Kalvesmaki, '''Balisage Paper: A New \\u: Extending XSLT
+Joel Kalvesmaki, '''A New \\u: Extending XSLT
 Regular Expressions for Unicode.''' Balisage (2020).
 [https://www.balisage.net/Proceedings/vol25/html/Kalvesmaki01/BalisageVol25-Kalvesmaki01.html]
 
@@ -606,7 +630,7 @@ my $result = GetOptions(
     "hex!"                => \$hex,
     "iconv!"              => \$iconv,
     "jargon!"             => \$jargon,
-    "listFormat=s"        => \$listFormat,
+    "listFormat|outFormat|oFormat=s" => \$listFormat,
     "literal!"            => \$literal,
     "long!"               => \$long,
     "math!"               => \$math,
@@ -642,6 +666,21 @@ if ($iconv) {
     $iconvConverter = Text::Iconv->new("utf8", "ascii//TRANSLIT");
 }
 $listFormat = uc($listFormat);
+my %listFormats = (
+    "HTML"      => 1,
+    "INFO"      => 1,
+    "LITERAL"   => 1,
+    "PERL"      => 1,
+    "PLAIN"     => 1,
+    "PYTHONN"   => 1,
+    "PYTHONS"   => 1,
+    "PYTHONU"   => 1,
+    "PYTHONC"   => 1,
+    "STRING"    => 1,
+    );
+(defined $listFormats{$listFormat}) || die
+    "Unknown --listFormat '$listFormat'. Known: "
+    . join(", ", sort keys %listFormats) . "\n";
 
 ($minU < $maxU) || die
     "--minU ($minU)must be less than --maxU ($maxU).\n";
@@ -894,10 +933,10 @@ my %cp1252 = (
 sub getUTF8local {
     my ($n, $sep) = @_;
     if (!defined $sep) { $sep = "%"; }
-    my $utf8 = Encode::encode('utf8', chr($n));
+    my $utf8form= Encode::encode('utf8', chr($n));
     my $ux = ();
-    for (my $i=0; $i<length($utf8); $i++) {
-        $ux .= sprintf("%s%02x", $sep, ord(substr($utf8,$i,1)));
+    for (my $i=0; $i<length($utf8form); $i++) {
+        $ux .= sprintf("%s%02x", $sep, ord(substr($utf8form,$i,1)));
     }
     return($ux);
 }
@@ -1045,7 +1084,8 @@ sub findMatchingCharacters {
         elsif ($listFormat eq "LITERAL") {             # DEFAULT
             printf("%s  %s  %s\n", uDisp($i), chr($i), $iname);
         }
-        elsif ($listFormat eq "STRING") {
+        elsif ($listFormat eq "STRING") {              # Printed below
+            #print(chr($i));
             $s .= ($i == 0x27) ? "\\'" : chr($i);
         }
         elsif ($listFormat eq "PERL") {
@@ -1076,10 +1116,10 @@ sub findMatchingCharacters {
             print $rec;
         }
         else {
-            die "Unknown --listFormat '$listFormat'.\n";
+            die "Unknown --listFormat '$listFormat'. \n";
         }
     }
-    if ($listFormat eq "LITERAL") {
+    if ($listFormat eq "STRING") {
         print("    '" . $s . "'\n");
     }
 
@@ -1137,15 +1177,15 @@ sub showOne {
         pline("Bases:", $bases);
     }
 
-    if ($utf8) {
-        my $utf = getUTF8local($n2 ? $n2:$n, "\\x");
-        my $uri = getUTF8local($n2 ? $n2:$n, "%");
+    if ($utf8) {  # Show UTF info
+        my $utfForm = getUTF8local($n2 ? $n2:$n, "\\x");
+        my $uriForm = getUTF8local($n2 ? $n2:$n, "%");
         my $okURI = (index($URIchars, $c) >= 0) ? 1:0;
         my $spURI = (index($URIspecials, $c) >= 0) ? 1:0;
-        if ($okURI) { $uri = "ok as literal"; }
-        elsif ($spURI) { $uri = "special"; }
+        if ($okURI) { $uriForm = "ok as literal"; }
+        elsif ($spURI) { $uriForm = "special"; }
         pline("Unicode:", sprintf(
-            "%s, utf8 %s, URI (%s)", uDisp($n), $utf, $uri));
+            "%s, utf8 %s, URI (%s)", uDisp($n), $utfForm, $uriForm));
     }
 
     if ($entities) {
@@ -1719,6 +1759,19 @@ while (my $origName = shift) {
         if (!$n) {                          # ^J C-S
             if ($name =~ m/^(\^|C-)([A-Z])$/) {
                 $n = index($upper, $2) + 1;
+            }
+        }
+        if (!$n) {                          # %e2809c
+            if ($name =~ m/^%([0-9A-F]+)$/i) {
+                if (length($name) % 2 == 0) {
+                    warn "%utf8 must have even length after '%'.\n";
+                }
+                else {
+                    my $uriForm = substr($name,1);
+                    $uriForm =~ s/(..)/%$1/g;
+                    my $txt = Encode::decode('utf8', uri_unescape($uriForm));
+                    $n = ord(substr($txt,0,1));
+                }
             }
         }
 
