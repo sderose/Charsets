@@ -235,7 +235,7 @@ my %spaceMap = (
     "\n" => sjdUtils::getColorString('blue'),
     #"\s" => sjdUtils::getColorString('/magenta'),
 );
-my $offSequence = sjdUtils::getColorString('default')
+my $offSequence = sjdUtils::getColorString('default');
 
 sub colorizeWhiteSpace {
     my ($s) = @_;
@@ -260,14 +260,12 @@ if ($verbose) {
     warn "Testing colors:\n";
     for my $x (keys %spaceMap) {
         my $y = $spaceMap{$x};
-        warn "    $sHello$offSequence\n";
+        warn sprintf("    %sHello%sSequence\n", $x, $y);
     }
-
 }
 
 while (my $file = shift) {
-    my $fh;
-    open($fh, "<$file") || die "Can't find file '$file'.\n";
+    open(my $fh, "<$file") || die "Can't find file '$file'.\n";
     if ($iencoding) {
         binmode($fh, $iencoding);
     }
