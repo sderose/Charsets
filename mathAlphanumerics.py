@@ -17,12 +17,13 @@ if PY3:
 
 __metadata__ = {
     'title'        : "mathAlphanumerics.py",
+    'description'  : "Map Latin, Greek, and digits to special math variants.",
     'rightsHolder' : "Steven J. DeRose",
     'creator'      : "http://viaf.org/viaf/50334488",
     'type'         : "http://purl.org/dc/dcmitype/Software",
     'language'     : "Python 2.7.6",
     'created'      : "<2006-10-04",
-    'modified'     : "2020-08-27",
+    'modified'     : "2021-02-18",
     'publisher'    : "http://github.com/sderose",
     'license'      : "https://creativecommons.org/licenses/by-sa/3.0/"
 }
@@ -38,24 +39,32 @@ You can just pipe Unicode text through this like, with options for
 the desired script to translate (`--script`,
 and the Unicode range (`--font` because that's how it's being used).
 
-    cat eggs.txt | mathAlphanumerics --script Latin --font 'BOLD ITALIC'
+    cat eggs.txt | mathAlphanumerics.py --script Latin --font 'BOLD ITALIC'
+
+You can test on a sample phrase:
+
+    mathAlphanumerics.py --script Latin --font 'FRAKTUR' --sample "Spam and eggs"
+
 
 Or you can call the package from Python in two ways::
 
-    import mathAlphanumerics.py
+    import mathAlphanumerics
     s2 = mathAlphanumerics.convert(text,
             script="Latin", font="Mathematical Bold")
-
 
     xtab = mathAlphanumerics.getTranslateTable(
         'Latin', 'Mathematical Sans-serif Bold Italic')
     s = s.translate(xtab)
 
-To see a list of the various names available for the selected
-`--script`, (for example, "SANS-SERIF BOLD ITALIC"), with a sample of each and
-the code point where each starts:
+The "scripts" known are "Latin", "Greek", and "Digits" (each has a different
+selection of available "font" variations).
+To see a list of the "fonts" available for the selected
+`--script`
 
-    mathAlphanumerics.py --show -v
+    mathAlphanumerics.py --script Greek --show
+
+Add `-v` to also display a sample of each, and
+the code point where each starts.
 
 '''Note:''' This will only work is your display medium supports Unicode,
 and the exact results depend on the font(s) in use. Even then, a few
@@ -242,51 +251,8 @@ My `ord --math` will display a list of these characters.
 
 =Known bugs and Limitations=
 
-==Inherent issues==
-
-If the display environment doesn't handle Unicode, or the font in use has
-problems with any of the characters needed, the result may not be ideal.
-
-Unicode intents most of these characters for special mathematical uses, such
-as ensuring that you get the fancy "R" conventionally use to refer to the set
-of all real numbers (which takes too long write out in full). Using these
-characters for formatting is a little weird. But Gæð a wyrd swa hio scel.
-
-Monospace fonts for Unicode, may not really make all the characters the same
-width; so horizontal alignment may creep off. "FULLWIDTH" may pose similar
-problems.
-
-"MONOSPACE" is not very distinctive on terminals that always use monospace
-anyway.
-
-"SANS-SERIF" is not very distinctive if your default font is that way, too.
-
-"SCRIPT" may look a lot like italic, especially to the unpracticed eye.
-
-Sets such as MATHEMATICAL ITALIC are generally defined in Unicode as a contiguous range; but occasionally one or a few members are somewhere else
-entirely (such as MATHEMATICAL ITALIC SMALL H), and the "expected" slot among
-the rest of the letter is left undefined. In practice, this often means that
-Unicode fonts do not define quite the same "look" to the exceptional characters.
-
-The implementation here knows where
-the ranges start, and then has a list of "exceptions" (in a class variable
-of that name). There is an edge case when the ''first'' character of the
-range does not exist, or exists but is exceptional. In such cases, the code
-treats the range as beginning at where the first character *would* be if it
-were not missing or an exception. This ''may'' lead to problems if your data
-contains that character.
-
-For example, PARENTHESIZED DIGIT ONE is U+2474, so we would expect the ZERO
-at U+2473. But U+2473 is CIRCLED NUMBER TWENTY. This package should takes the
-exceptions into account when building a translation table, so everything should
-be ok when the translation table is used -- at that point the "fake" value is
-not involved.
-
-Characters with diacritics must be decomposed first. To do this in Python:
-
-    import unicodedata
-    s = unicodedata.normalize('NFD', s)
-
+You can't specify "font"-names with re-ordered tokens. For example,
+"BOLD FRAKTUR" (regardless of case) works, but not "FRAKTUR BOLD".
 
 ==Script-specific issues
 
@@ -324,28 +290,68 @@ epsilon (U+03F5), theta (U+03D1), kappa (U+03F0),
 phi (U+03D5), rho (U+03F1), and pi (U+03D6).
 They are not supported here (yet).
 
+==Issues outside the script's control==
+
+If the display environment doesn't handle Unicode, or the font in use has
+problems with any of the characters needed, the result may not be ideal.
+
+Unicode intends most of these characters for special mathematical uses, such
+as ensuring that you get the fancy "R" conventionally used to refer to the set
+of all real numbers (which takes too long write out in full). Using these
+characters for formatting is a little weird. But Gæð a wyrd swa hio scel.
+
+Monospace fonts for Unicode may not always display with all the characters the
+same width. "FULLWIDTH" may pose similar problems.
+Also, "MONOSPACE" is not very distinctive on terminals that always use monospace
+anyway.
+
+"SANS-SERIF" is not very distinctive if your default font is that way.
+
+"SCRIPT" may look a lot like italic, especially to the unpracticed eye.
+
+Sets such as MATHEMATICAL ITALIC are generally defined in Unicode as a contiguous
+range, but occasionally one or a few members are somewhere else
+(such as MATHEMATICAL ITALIC SMALL H), and the "expected" slot among
+the rest of the letter is left undefined. In practice, this also means that
+Unicode fonts do not always define quite the same "look" to those  characters.
+
+The implementation here knows where
+the ranges start, and then has a list of "exceptions" (in a class variable
+of that name). There is an edge case when the ''first'' character of the
+range does not exist, or exists but is exceptional. In such cases, the code
+treats the range as beginning at where the first character *would* be if it
+were not missing or an exception. This ''may'' lead to problems if your data
+contains that character.
+
+For example, PARENTHESIZED DIGIT ONE is U+2474, so we would expect the ZERO
+at U+2473. But U+2473 is CIRCLED NUMBER TWENTY. This package takes the
+exceptions into account when building a translation table. When the character
+is entirely missing (as in this example), the "basic" character (in this
+case "1") is left unchanged (it is not even added to the translation table.
+
+Characters with diacritics must be decomposed first, because the specialized
+"fonts" do not generally include composed characters. To decompose
+(that is, to split off the diacritic to a separate overstruck character),
+do this in Python:
+
+    import unicodedata
+    s = unicodedata.normalize('NFD', s)
+
 
 =Notes=
 
-Using Unicode Mathematical character to achieve formatting may be slightly odd,
+Using Unicode Mathematical characters to achieve formatting may be slightly odd,
 but alternatives are limited given current terminal and shell technology,
 which typically support Unicode but not font-changes or
-effects (other than ANSI terminal color and effect escapes, which are quite
-limited).
+effects (other than ANSI terminal color and effect escapes).
 
-Not all of the variant alphabets are contiguous blocks of characters, or
-even complete.
-This script maps the discontiguous cases anyway, using an "exceptions" table
-(if it fails, that's a bug). If the target character does not exist,
-the source character is left unchanged.
-
-There are some additional scripts and forms that are not supported:
+Some additional scripts and forms are not supported:
 
     Some squared CJK
     Parenthesized ideographs, Hangul, and Korean characters.
-    Circled italic latin C, R
-    Double-Struck Italic D, e, i, j
-    Squared Latin Small Letter D
+    Circled italic latin (missing C, R)
+    Double-Struck Italic (missing D, e, i, j)
+    Squared Latin (only Small Letter D?)
     Old Italic letters at U+10300 and following
     circled katakana U+032d0
     some circled hangul and ideographs U+3260
@@ -387,6 +393,7 @@ Debug new (hashless) way of doing colors.
 Support complete upper/lower/digit translation tables. Add `--test`.
 Add support for in-pipe translation.
 * 2020-09-03: Improve translation-table construction.
+* 2021-02-18: Fix bug that dropped part of translate tables.
 
 
 =To do=
@@ -412,9 +419,9 @@ overline. There's even COMBINING ENCLOSING CIRCLE (and SQUARE).
         I => I
         J ?                                        ???
         K ?                                        ???
-        U+0a780 LATIN CAPITAL LETTER TURNED L
-            U+02142 TURNED SANS-SERIF CAPITAL L
-        U+0019c LATIN CAPITAL LETTER TURNED M
+        L => U+0a780 LATIN CAPITAL LETTER TURNED L
+        #U+02142 TURNED SANS-SERIF CAPITAL L
+        M => U+0019c LATIN CAPITAL LETTER TURNED M
         N => N
         O => O
         P =>                                        ??? eth?
@@ -423,76 +430,102 @@ overline. There's even COMBINING ENCLOSING CIRCLE (and SQUARE).
         S => S
         T =>                                        ???
         U => U+2229 intersection?
-        U+00245 LATIN CAPITAL LETTER TURNED V
+        V => U+00245 LATIN CAPITAL LETTER TURNED V
         W =>                                        ???
         X => X
-        U+02144 TURNED SANS-SERIF CAPITAL Y
+        Y => U+02144 TURNED SANS-SERIF CAPITAL Y
+        Z =>                                        ???
 
         --- lowercase ---
-        U+00250 LATIN SMALL LETTER TURNED A
+        a => U+00250 LATIN SMALL LETTER TURNED A
         b => q
-        U+02184 LATIN SMALL LETTER REVERSED C
+        c => U+02184 LATIN SMALL LETTER REVERSED C
         d => p
-        U+001dd LATIN SMALL LETTER TURNED E (or e => schwa)
-        U+0214e TURNED SMALL F
-        U+01d77 LATIN SMALL LETTER TURNED G
-        U+00265 LATIN SMALL LETTER TURNED H
-        U+01d09 LATIN SMALL LETTER TURNED I
+        e => U+001dd LATIN SMALL LETTER TURNED E (or e => schwa)
+        f => U+0214e TURNED SMALL F
+        g => U+01d77 LATIN SMALL LETTER TURNED G
+        h => U+00265 LATIN SMALL LETTER TURNED H
+        i => U+01d09 LATIN SMALL LETTER TURNED I
         j => medial s?
-        U+0029e LATIN SMALL LETTER TURNED K
-        U+0a781 LATIN SMALL LETTER TURNED L
-        U+0026f LATIN SMALL LETTER TURNED M
+        k => U+0029e LATIN SMALL LETTER TURNED K
+        l => U+0a781 LATIN SMALL LETTER TURNED L
+        m => U+0026f LATIN SMALL LETTER TURNED M
         n => u
         o = o
         p => d
         q => b
-        U+00279 LATIN SMALL LETTER TURNED R
+        r => U+00279 LATIN SMALL LETTER TURNED R
         s = s
-        U+00287 LATIN SMALL LETTER TURNED T
+        t => U+00287 LATIN SMALL LETTER TURNED T
         u => n
-        U+0028c LATIN SMALL LETTER TURNED V
-        U+0028d LATIN SMALL LETTER TURNED W
+        v => U+0028c LATIN SMALL LETTER TURNED V
+        w => U+0028d LATIN SMALL LETTER TURNED W
         x = x
-        U+0028e LATIN SMALL LETTER TURNED Y
+        y => U+0028e LATIN SMALL LETTER TURNED Y
         z = z
 
 * Possibly add reversed (horizontally)
     --- uppercase ---
+    A => A
+    B =>                                    ???
     C => U+02183 ROMAN NUMERAL REVERSED ONE HUNDRED
-    U+0018e LATIN CAPITAL LETTER REVERSED E
+    D =>
+    E => U+0018e LATIN CAPITAL LETTER REVERSED E
+    F =>
+    G =>
+    H =>
     I => I
-    U+02143 REVERSED SANS-SERIF CAPITAL L
+    J =>
+    K =>
+    L => U+02143 REVERSED SANS-SERIF CAPITAL L
     M => M
+    N =>
     O => O
+    P =>
+    Q =>
+    R =>
+    S =>
     T => T
     U => U
     V => V
     W => W
     X => X
     Y => Y
+    Z =>
 
     --- lowercase ---
+    a =>
     b => d
-    U+02184 LATIN SMALL LETTER REVERSED C
+    c => U+02184 LATIN SMALL LETTER REVERSED C
     d => b
-    U+00258 LATIN SMALL LETTER REVERSED E
+    e => U+00258 LATIN SMALL LETTER REVERSED E
+    f =>
+    g =>
+    h =>
     i => i
+    j =>
+    k =>
     l => l
     m => m?
     n => n?
     o => o
     p => q
     q => p
+    r =>
+    s =>
+    t =>
     u => u?
     v => v
     w => w
     x => x
+    y =>
+    z =>
 
-* Hook up smallCapMap (missing Q and X
+* Hook up smallCapMap (missing Q and X)
 
 * Possibly add superscript
-    U+02071 SUPERSCRIPT LATIN SMALL LETTER I
-    U+0207f SUPERSCRIPT LATIN SMALL LETTER N
+    i => U+02071 SUPERSCRIPT LATIN SMALL LETTER I
+    n => U+0207f SUPERSCRIPT LATIN SMALL LETTER N
 
 * Hook up subscriptMap
 
@@ -527,7 +560,6 @@ def warn(lvl, msg):
 # See also bin/data/unicodeLatinAlphabets.py
 #
 class mathAlphanumerics:
-
     oneHotFeatures = [
         'Fullwidth', 'Script', 'Fraktur', 'Double-Struck', 'Sans-serif',
         'Monospace', 'Parenthesized', 'Circled', 'Squared',
@@ -713,7 +745,7 @@ class mathAlphanumerics:
         0X1D549: 0X211D,  # MATHEMATICAL DOUBLE-STRUCK CAPITAL R
         0X1D551: 0X2124,  # MATHEMATICAL DOUBLE-STRUCK CAPITAL Z
 
-        # Missing or misplaced zeros in digit sets (re-check)
+        # Missing or displaced zeros in digit sets (re-check)
         0x0245f: 0x024ea,  # CIRCLED DIGIT ZERO
         0x02774: 0x024ff,  # DINGBAT NEGATIVE CIRCLED DIGIT ZERO
         0x024f4: None,     # DOUBLE CIRCLED DIGIT ZERO
@@ -746,7 +778,7 @@ class mathAlphanumerics:
         'c': 0x01d04,  # LATIN LETTER SMALL CAPITAL C
         'd': 0x01d05,  # LATIN LETTER SMALL CAPITAL D
         'e': 0x01d07,  # LATIN LETTER SMALL CAPITAL E
-        'f': 0x0a730,  # LATIN LETTER SMALL CAPITAL F  (far)
+        'f': 0x0a730,  # LATIN LETTER SMALL CAPITAL F  (far) Unicode 5.1 (2008)
         'g': 0x00262,  # LATIN LETTER SMALL CAPITAL G  (far)
         'h': 0x0029c,  # LATIN LETTER SMALL CAPITAL H  (far)
         'i': 0x0026a,  # LATIN LETTER SMALL CAPITAL I  (far)
@@ -757,9 +789,9 @@ class mathAlphanumerics:
         'n': 0x00274,  # LATIN LETTER SMALL CAPITAL N  (far)
         'o': 0x01d0f,  # LATIN LETTER SMALL CAPITAL O
         'p': 0x01d18,  # LATIN LETTER SMALL CAPITAL P
-        #'q': None,
+        'q': 0x0A7Af,  # LATIN LETTER SMALL CAPITAL Q  (far) Unicode 11.0 (2018?)
         'r': 0x00280,  # LATIN LETTER SMALL CAPITAL R  (far)
-        's': 0x0a731,  # LATIN LETTER SMALL CAPITAL S  (far)
+        's': 0x0a731,  # LATIN LETTER SMALL CAPITAL S  (far) Unicode 5.1 (2008)
         't': 0x01d1b,  # LATIN LETTER SMALL CAPITAL T
         'u': 0x01d1c,  # LATIN LETTER SMALL CAPITAL U
         'v': 0x01d20,  # LATIN LETTER SMALL CAPITAL V
@@ -803,9 +835,16 @@ class mathAlphanumerics:
 
     # combining diacriticals marks has aeioucdhmrtvx
 
+    # See https://en.wikipedia.org/wiki/Unicode_subscripts_and_superscripts
+    # Combining Diacritical Marks Supplement has most of the rest, but
+    #     we'd need to insert something to place them over
+    # Phonetic Extensions and  Phonetic Extensions Supplement have a bunch
     superscriptMap = {  # and +-=()
+        #'a':  Feminine ordinal indicator
         'i': 0x02071,
         'n': 0x0207f,
+        #'o':  Masculine ordinal indicator
+        #'v':  In LAtin Extended-C
     }
 
     # TODO: Finish alternate sets that are trickier.
@@ -857,7 +896,7 @@ class mathAlphanumerics:
                 (script))
 
     @staticmethod
-    def convert(ss, script="Latin", font='Bold'):
+    def convert(ss, script="Latin", font='BOLD'):
         xtab = mathAlphanumerics.getTranslateTable(script, font)
         return ss.translate(xtab)
 
@@ -892,27 +931,35 @@ class mathAlphanumerics:
         uTgtStart, lTgtStart, dTgtStart, _ = tbl[font]
         src = tgt = u''
         if (uTgtStart):
-            ss, tt = mathAlphanumerics.makePartialXtab(
+            srcPart,  tgtPart = mathAlphanumerics.makePartialXtab(
                 uSrcStart, uSrcEnd, uTgtStart)
-            src += ss; tgt += tt
+            src += srcPart; tgt += tgtPart
+        warn(1, "uppercase table for %s:\n    %s\n    %s" %
+            (font, src, tgt))
+
         if (lTgtStart):
-            ss, tt = mathAlphanumerics.makePartialXtab(
+            srcPart,  tgtPart = mathAlphanumerics.makePartialXtab(
                 lSrcStart, lSrcEnd, lTgtStart)
-            src += ss; tgt += tt
+            src += srcPart; tgt += tgtPart
+        warn(1, "both-case table for %s:\n    %s\n    %s" %
+            (font, src, tgt))
+
         if (dTgtStart):
-            ss, tt = mathAlphanumerics.makePartialXtab(
+            srcPart,  tgtPart = mathAlphanumerics.makePartialXtab(
                 dSrcStart, dSrcEnd, dTgtStart)
-            src += ss; tgt += tt
-        xtab = str.maketrans(ss, tt)
+            src += srcPart; tgt += tgtPart
+        warn(1, "full table for %s:\n    %s\n    %s" %
+            (font, src, tgt))
+        xtab = str.maketrans(src, tgt)
         return xtab
 
     @staticmethod
     def makePartialXtab(srcStart, srcEnd, tgtStart):
         """This takes the actual first and last character codes. I noticed
-        too late that this is a bit unlike the usual Python "end+1". I may
+        too late that this is unlike the usual Python "end+1". I may
         fix it sometime.
-        @return the 2 strings, which caller can make an xtab from, or pass
-        to something like 'tr', or whatever.
+        @return 'from' and 'to' strings. Caller can make an xtab from them,
+        or pass them to something like 'tr', or whatever.
         """
         srcTab = tgtTab = u""
         tgtCode = tgtStart
@@ -945,7 +992,7 @@ class mathAlphanumerics:
         "Jackdaws love my big sphinx of quartz",
         "Pack my box with five dozen liquor jugs",
         "The quick onyx goblin jumps over the lazy dwarf",
-        "Cwm fjord bank glyphs vext quiz",
+        "Cwm fjord bank glyphs vext quiz",  # Perfect
         # = "Symbols in a mountain hollow on the bank of an inlet
         # vexed an eccentric person."
         "How razorback-jumping frogs can level six piqued gymnasts!",
@@ -1125,20 +1172,22 @@ if __name__ == "__main__":
             messageIssued = True
         return buf
 
-    def testXtabs(altList, sample=None):
+    def testXtabs(script, altList, sample=None):
         """Given one of the lists, like mathAlphanumerics.LatinFontDict, set up
         translate tables and print the result on a sample sentence.
         """
-        if (not sample): sentence = getRandomSentence()
+        print("Testing xtabs for script '%s'." % (script))
+        if (not sample): sample = getRandomSentence()
 
         for k in (sorted(altList.keys())):
+            print("=== %s" % (k))
             if (altList[k] is None):
                 print("%-50s    DOES NOT EXIST" % (k))
                 continue
             xtab = mathAlphanumerics.getTranslateTable(args.script, k)
-            print('    ' + sentence.upper().translate(xtab))
-            print('    ' + sentence.lower().translate(xtab))
-            print('    ' + '0123456789'.translate(xtab))
+            print('    Upper:' + sample.upper().translate(xtab))
+            print('    Lower:' + sample.lower().translate(xtab))
+            print('    Digit:' + '0123456789'.translate(xtab))
 
     def getRandomSentence():
         import random
@@ -1174,19 +1223,21 @@ if __name__ == "__main__":
         showAlternates(fonts, args.missing)
         if (not args.verbose): print("(to see samples, use -v)")
 
+    elif (args.test):
+        testXtabs(args.script, fonts, sample=args.sample)
+
     elif (args.sample):
         args.font = args.font.title()
-        print("\nSample conversion for %s '%s':" % (scr, args.font))
+        print("\nSample conversion for script '%s', font '%s':" %
+            (scr, args.font))
         if (args.sample is None):
             args.sample = getRandomSentence()
         txt = args.sample
         if (txt == '' or txt == '*'): txt = getRandomSentence()
         s = mathAlphanumerics.convert(txt,
             script=args.script, font=args.font)
-        print('    ' + txt + "\n    " + s)
-
-    elif (args.test):
-        testXtabs(fonts)
+        print('    Original:  ' + txt +
+            "\n    Converted: " + s)
 
     else:  # translate stdin
         if (sys.stdin.isatty()):

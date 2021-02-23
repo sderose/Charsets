@@ -8,7 +8,7 @@
 #Punctuation_Initial
 #
 ULQuotes = {
-    0x000AB:  "LEFT-POINTING DOUBLE ANGLE QUOTATION MARK *",
+    0x000AB:  "LEFT-POINTING DOUBLE ANGLE QUOTATION MARK",
     0x02018:  "LEFT SINGLE QUOTATION MARK",
     0x0201A:  "SINGLE LOW-9 QUOTATION MARK",
     0x0201C:  "LEFT DOUBLE QUOTATION MARK",
@@ -25,7 +25,7 @@ ULQuotes = {
 #Punctuation_Final
 #
 URQuotes = {
-    0x000BB:  "RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK *",
+    0x000BB:  "RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK",
     0x02019:  "RIGHT SINGLE QUOTATION MARK",
     0x0201B:  "SINGLE HIGH-REVERSED-9 QUOTATION MARK",
     0x0201D:  "RIGHT DOUBLE QUOTATION MARK",
@@ -42,9 +42,9 @@ URQuotes = {
 }
 
 qPairs = {
-    # 'back':   [ 0x0060, 0x0060 ],  # GRAVE ACCENT
-    'splain':   [ 0x0027, 0x0027 ],  # Apostrophe / single quotation mark
-    'dplain':   [ 0x0022, 0x0022 ],  # Double quotation mark,
+    # 'back':   [ 0x0060, 0x0060 ],  # "GRAVE ACCENT",
+    'splain':   [ 0x0027, 0x0027 ],  # "APOSTROPHE",
+    'dplain':   [ 0x0022, 0x0022 ],  # "QUOTATION MARK",
     'single':   [ 0x2018, 0x2019 ],  # "SINGLE QUOTATION MARK",
     'double':   [ 0x201C, 0x201D ],  # "DOUBLE QUOTATION MARK",
     'sangle':   [ 0x2039, 0x203A ],  # "SINGLE ANGLE QUOTATION MARK",
@@ -65,11 +65,11 @@ qPairs = {
     'rdprime':  [ 0x2057, 0x301D ],  # "DOUBLE PRIME QUOTATION MARK",
         # = "QUADRUPLE PRIME"
 
-    'fullwidth':[ 0xFF02, 0xFF02 ],  # Fullwidth Quotation Mark
-    'scommaO':  [ 0x275B, 0x275C ],  # Heavy Single Turned Comma QM Ornament
-    'dcommaO':  [ 0x275D, 0x275E ],  # Heavy Double Turned Comma QM Ornament
-    'hangleO':  [ 0x276E, 0x276F ],  # Heavy Angle QM Ornament
-    'sshdcommonO':  [ 0x1F677, 0x1F678 ],  # Sans-serif Heavy Double Comma QM Ornament
+    'fullwidth':[ 0xFF02, 0xFF02 ],  # "FULLWIDTH QUOTATION MARK",
+    'scommaO':  [ 0x275B, 0x275C ],  # "HEAVY SINGLE TURNED COMMA QM ORNAMENT",
+    'dcommaO':  [ 0x275D, 0x275E ],  # "HEAVY DOUBLE TURNED COMMA QM ORNAMENT",
+    'hangleO':  [ 0x276E, 0x276F ],  # "HEAVY ANGLE QM ORNAMENT",
+    'sshdcommonO': [ 0x1F677, 0x1F678 ],  # "SANS-SERIF HEAVY DOUBLE COMMA QM ORNAMENT",
 }
 
 
