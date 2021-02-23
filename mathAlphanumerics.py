@@ -9,6 +9,7 @@
 from __future__ import print_function
 import sys
 import re
+import unicodedata
 
 PY2 = sys.version_info[0] == 2
 PY3 = sys.version_info[0] == 3
@@ -23,7 +24,7 @@ __metadata__ = {
     'type'         : "http://purl.org/dc/dcmitype/Software",
     'language'     : "Python 2.7.6",
     'created'      : "<2006-10-04",
-    'modified'     : "2021-02-18",
+    'modified'     : "2021-02-23",
     'publisher'    : "http://github.com/sderose",
     'license'      : "https://creativecommons.org/licenses/by-sa/3.0/"
 }
@@ -46,11 +47,14 @@ You can test on a sample phrase:
     mathAlphanumerics.py --script Latin --font 'FRAKTUR' --sample "Spam and eggs"
 
 
-Or you can call the package from Python in two ways::
+Or you can call the package from Python:
 
     import mathAlphanumerics
     s2 = mathAlphanumerics.convert(text,
-            script="Latin", font="Mathematical Bold")
+            script="Latin", font="Mathematical Bold", decompose=True)
+
+The `decompose` option separates diacritics from their base characters, so that the
+base characters can be converted.
 
     xtab = mathAlphanumerics.getTranslateTable(
         'Latin', 'Mathematical Sans-serif Bold Italic')
@@ -394,6 +398,7 @@ Support complete upper/lower/digit translation tables. Add `--test`.
 Add support for in-pipe translation.
 * 2020-09-03: Improve translation-table construction.
 * 2021-02-18: Fix bug that dropped part of translate tables.
+* 2021-02-23: Add option for Unicode normalization.
 
 
 =To do=
@@ -896,7 +901,12 @@ class mathAlphanumerics:
                 (script))
 
     @staticmethod
-    def convert(ss, script="Latin", font='BOLD'):
+    def convert(ss, script="Latin", font='BOLD', decompose=False):
+        """Convert a string to the requested variant.
+        """
+        if (decompose):
+            ss = unicodedata.normalize('NFD', ss)
+            warn(1, "Decomposed: %s" % (ss))
         xtab = mathAlphanumerics.getTranslateTable(script, font)
         return ss.translate(xtab)
 
@@ -1090,6 +1100,9 @@ if __name__ == "__main__":
             parser = argparse.ArgumentParser(description=descr)
 
         parser.add_argument(
+            "--decompose",    action='store_true',
+            help='If set, separate diacritics from their base characters.')
+        parser.add_argument(
             "--font",             type=str, default="ITALIC",
             help='Character variant to convert to. Default: all.')
         parser.add_argument(
@@ -1235,7 +1248,7 @@ if __name__ == "__main__":
         txt = args.sample
         if (txt == '' or txt == '*'): txt = getRandomSentence()
         s = mathAlphanumerics.convert(txt,
-            script=args.script, font=args.font)
+            script=args.script, font=args.font, decompose=args.decompose)
         print('    Original:  ' + txt +
             "\n    Converted: " + s)
 
@@ -1247,6 +1260,8 @@ if __name__ == "__main__":
         istream = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8')
         #sys.stdin.reconfigure(encoding='utf-8')
         for rec in istream:
-            print(rec.translate(xt))
+            rec2 = mathAlphanumerics.convert(rec,
+                script=args.script, font=args.font, decompose=args.decompose)
+            print(rec2)
 
     sys.exit()
