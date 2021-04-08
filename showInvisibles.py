@@ -1,14 +1,16 @@
 #!/usr/bin/env python
 #
 # showInvisibles: make control and whitespace chars visible.
+# 2007-01-1: Written by Steven J. DeRose.
 #
 from __future__ import print_function
 import sys
 import os
-import re
+import codecs
 import argparse
 
 from sjdUtils import sjdUtils
+import strfchr
 
 PY3 = sys.version_info[0] == 3
 if PY3:
@@ -21,13 +23,11 @@ __metadata__ = {
     'type'         : "http://purl.org/dc/dcmitype/Software",
     'language'     : "Python 2.7.6, 3.6",
     'created'      : "2007-01-16",
-    'modified'     : "2020-02-14",
+    'modified'     : "2021-04-08",
     'publisher'    : "http://github.com/sderose",
     'license'      : "https://creativecommons.org/licenses/by-sa/3.0/"
 }
 __version__ = __metadata__['modified']
-
-args = None
 
 def warn(msg):
     if (args.verbose): sys.stderr.write(msg+"\n")
@@ -35,23 +35,51 @@ def warn(msg):
 descr = """
 =Description=
 
-showinvisible [options]
+showinvisible.py [options]
 
 (Python version; also available in Perl)
 
 Make control characters and space visible by substituting the Unicode
 "control symbols" for them.
 Also make non-ASCII characters visible by substituting XML numeric
-character references (I<&#2022;> etc).
+character references (`&#2022;` etc).
 Can also colorize the changed characters.
 
 Useful for visualizing return/linefeed, space/tab, etc. Can also be used
 to escape undesired characters in a file to ease later processing (in that
-case, specify I<--nocolor -s>).
+case, specify `--nocolor -s`).
+
 
 =Known bugs and limitations=
 
-Options I<-b> and I<-u> are unfinished.
+Options `-b` and `-u` are unfinished.
+
+
+=Related commands=
+
+`ord`, `CharDisplay`. `strfchr.py`.
+
+
+=History=
+
+* 2007-01-16: Written by Steven J. DeRose.
+* 2007-12-31 sjd: Getopt, version, etc.
+* 2010-09-27 sjd: Cleanup, -base, -pad, -color, factor out makeCharRef().
+* 2011-01-24 sjd: Add control pictures and alternates. binmode STDOUT.
+* 2012-01-23 sjd: Fix -color and -base. Use sjdUtils.
+* Optimize color-escaping instead of doing on/off for every char.
+* 2012-01-23: Converted by perl2python.
+* 2012-01-25 sjd: Cleanup.
+* 2015-10-13: Update argparse usage. pylint.
+* 2021-04-08: Better option handling. Drop -s/leaveSpace for --spaceAs SELF.
+Hook up to new strfchr.py. Add lots of formats via strfchr.py.
+
+
+=To do=
+
+* Options for what to do with line-ends?
+* Support bgcolor (nice way to show whitespace chars).
+
 
 =Rights=
 
@@ -62,110 +90,16 @@ this license, see [http://creativecommons.org/licenses/by-sa/3.0].
 For the most recent version, see [http://www.derose.net/steve/utilities] or
 [http://github.com/sderose].
 
-=History=
-
-* 2007-01-16: Written by Steven J. DeRose.
-
-* 2007-12-31 sjd: Getopt, version, etc.
-
-* 2010-09-27 sjd: Cleanup, -base, -pad, -color, factor out makeCharRef().
-
-* 2011-01-24 sjd: Add control pictures and alternates. binmode STDOUT.
-
-* 2012-01-23 sjd: Fix -color and -base. Use sjdUtils.
-
-* Optimize color-escaping instead of doing on/off for every char.
-
-* 2012-01-23: Converted by perl2python.
-
-* 2012-01-25 sjd: Cleanup.
-
-* 2015-10-13: Update argparse usage. pylint.
-
-=To do=
-
-*     Options for what to do with line-ends?
-
-*     Compare to showInvisibles (no .py), and probably discard as obsolete.
 
 =Options=
 """
 
-###############################################################################
-# Process options
-#
-def processOptions():
-    parser = argparse.ArgumentParser(description=descr)
-
-    parser.add_argument(
-        "--backSlashes",      action='store_true',  default=True,
-        help='Use \\ hex-codes to display characters.')
-    parser.add_argument(
-        "--base",             type=int,             default=10,
-        help='Use base 10 or 16 for XML character references.')
-    parser.add_argument(
-        "--color",            action='store_true',
-        help='Colorize the formerely-invisible characters.')
-    parser.add_argument(
-        "--nocolor",          action='store_false', dest="color",
-        help='Turn off colorizing.')
-    parser.add_argument(
-        "--lfAs",             type=str,             default="LF",
-        help='Whether to show Line Feeds as LF: LF, or NL: NL symbol.')
-    parser.add_argument(
-        "--name",             action='store_true',
-        help='Show names for control chars, instead of entities or symbols.')
-    parser.add_argument(
-        "--pad",              type=int,             default=4,
-        help='How many digits (minimum) for XML numeric character references.')
-    parser.add_argument(
-        "--pics",             action='store_true',  default=True,
-        help='Use Unicode control pictures u\'2400... for control chars.')
-    parser.add_argument(
-        "--pix",              action='store_true',
-        help='Synonym for -pics.')
-    parser.add_argument(
-        "--quiet", "-q",      action='store_true',
-        help='Suppress most messages.')
-    parser.add_argument(
-        "-s",                 action='store_true',  dest='leaveSpaces',
-        help='Leave regular spaces (u\'0020) as-is.')
-    parser.add_argument(
-        "--spaceAs",          type=str,
-        help='Show spaces as: B: slashed b, U: serifed _, or SP: SP symbol.')
-    parser.add_argument(
-        "--uri",              action='store_true',
-        help='Show URI-style (%XX) escapes for invisible characters.')
-    parser.add_argument(
-        "--verbose", "-v",    action='count',       default=0,
-        help='Show more messages (repeatable).')
-    parser.add_argument(
-        "--version", action='version', version=__version__,
-        help='Display version information, then exit.')
-    parser.add_argument(
-        'files',              nargs=argparse.REMAINDER,
-        help='Path(s) to input file(s).')
-
-    args0 = parser.parse_args()
-    if (args0.verbose): print(args)
-
-    # Check arg values
-    #
-    if (not (args0.base==10 or args0.base==16)):
-        print("Can only do --base 10 or 16.")
-
-    args0.spaceAs = args0.spaceAs.upper()
-    if (not re.match(r'(B|U|SP)$', args0.spaceAs)):
-        print("--spaceAs must be B, U, or SP.")
-
-    args0.lfAs = args0.lfAs.upper()
-    if (not re.match(r'(LF|NL)$', args0.lfAs)):
-        print("--lfAs must be LF or NL.")
-    return(args0)
-
 
 ###############################################################################
 #
+spaceChoices = [ "B", "U", "SP", "SELF", ]
+lfChoices = [ "LF", "NL", "SELF", ]
+
 names = [
     "NUL", "SOH", "STX", "ETX", "EOT", "ENQ", "ACK", "BEL",
     "BS",  "HT",  "NL",  "VT",  "FF",  "CR",  "SO",  "SI",
@@ -181,7 +115,8 @@ backslashCodes = [
     "",    "\\t", "\\n", "\\v", "\\f", "\\r", "",    "",
     "",    "",    "",    "",    "",    "",    "",    "",
     "",    "",    "",    "\\e", "",    "",    "",    "",
-    "\\s"]
+    "\\s"
+]
 if (backslashCodes[32] != "\\s"):
     print("backslashCodes messed up.")
     exit(0)
@@ -192,38 +127,40 @@ if (os.environ["PYTHONIOENCODING"] != "utf_8"):
 
 
 ###############################################################################
-###############################################################################
 # Construct an XML numeric character reference to the given code point.
 # Use the appropriate args.base.
+# TODO: Expand to use choices from CharDisplay.py or strfchr.py.
 #
 def makeCharRef(n):
     if (args.base == 10):
-        theFm = '{0:0' + str(args.pad) + 'd}'
+        theFm = '{0:0' + str(args.width) + 'd}'
         ref = "&#" + theFm.format(n) + ";"
     else:
-        theFm = '{0:0' + str(args.pad) + 'x}'
+        theFm = '{0:0' + str(args.width) + 'x}'
         ref = "&#x" + theFm.format(n) + ";"
-    return(ref)
-
-
-###############################################################################
-# Symbols are available for control chars and space: decimal 00-32.
-#
-def getControlPic(charNum):
-    if (charNum == 32):
-        if (args.spaceAs == "B"):   return(unichr(0x2422))
-        elif (args.spaceAs == "U"): return(unichr(0x2423))
-        return(unichr(0x2420))
-    if (charNum == 10):
-        if (args.lfAs == "LF"):     return(unichr(0x240A))
-        return(unichr(0x2424))
-    return(unichr(0x2400 + charNum))
+    return ref
 
 
 ###############################################################################
 # Called only for chars <= 32
 # (could actually be called for everything, so we can catch \\, %, etc.)
 #
+def mapControlChar(charNum, what=""):
+    if (charNum == 32):
+        if (args.spaceAs == "SELF"): return(" ")
+        elif (args.spaceAs == "B"):  return(unichr(0x2422))
+        elif (args.spaceAs == "U"):  return(unichr(0x2423))
+        elif (args.spaceAs == "SP"): return(unichr(0x2420))
+        else: assert False, "Unsupported spaceAs value '%s'" % (args.spaceAs)
+    if (charNum == 10):
+        if (args.lfAs == "SELF"):   return("\n")
+        if (args.lfAs == "LF"):     return(unichr(0x240A))
+        if (args.lfAs == "NL"):     return(unichr(0x2424))
+        else: assert False, "Unsupported lfAs value '%s'" % (args.lfAs)
+    if (what=="ENTITY16"):
+        return unichr(0x2400 + charNum)
+    return strfchr.strfchr(charNum, what)
+
 def getNameForControl(n):
     rc = ""
     if (args.name):
@@ -242,19 +179,112 @@ def getNameForControl(n):
     return rc
 
 
-###############################################################################
+def doOneFile(path, fh):
+    nControls = nHigh = 0
+    colorState = 0
+
+    if (fh==sys.stdin and fh.isatty()):
+        sys.stderr.write("Waiting on STDIN...\n")
+    rec = fh.readline()
+    while (rec):
+        for i in (range(0, len(rec))):
+            c = rec[i]
+            o = ord(c)
+            toprint = ""
+            if (o < 32 or (o == 32 and args.spaceAs!="SELF")):
+                nControls += 1
+                if (args.pics): toprint = mapControlChar(o)
+                else: toprint = getNameForControl(o)
+            elif (o > 127):
+                nHigh += 1
+                toprint = makeCharRef(o)
+            if (toprint):
+                if (not colorState):
+                    print(cs, end='')
+                    colorState = 1
+                print(toprint, end="")
+            else:
+                if (colorState):
+                    print(ce, end="")
+                    colorState = 0
+                print(c, end="")
+        if (colorState):
+            print(ce, end="")
+            colorState = 0
+        print("")
+        rec = fh.readline()
+
+    if (not args.quiet): return
+    warn("File '%s': Control characters: %d, chars > 127: %d." %
+        (path, nControls, nHigh))
+
+
 ###############################################################################
 # Main
 #
-args = processOptions()
+oformatChoices = strfchr.__mnemonicMap__.keys()
 
-if (not sys.argv[0]):
-    fh = sys.stdin
-elif (os.path.isfile(sys.argv[0])):
-    fh = open(sys.argv[0], "r")
-else:
-    warn("Can't find file.")
-    sys.exit(0)
+def processOptions():
+    parser = argparse.ArgumentParser(description=descr)
+
+    # TODO: Combine these options into --oformat [x]
+    parser.add_argument(
+        "--backSlashes", action='store_true', default=True,
+        help='Use \\ hex-codes to display characters.')
+    parser.add_argument(
+        "--name", action='store_true',
+        help='Show names for control chars, instead of entities or symbols.')
+    parser.add_argument(
+        "--pics", "--pix", action='store_true', default=True,
+        help='Use Unicode control pictures (U+2400...) for control chars.')
+    parser.add_argument(
+        "--uri", action='store_true',
+        help='Show URI-style (%XX) escapes for invisible characters.')
+
+    parser.add_argument(
+        "--base", type=int, default=10, choices=[ 10, 16 ],
+        help='Use base 10 or 16 for XML character references.')
+    parser.add_argument(
+        "--color", action='store_true',
+        help='Colorize the formerely-invisible characters.')
+    parser.add_argument(
+        "--nocolor", action='store_false', dest="color",
+        help='Turn off colorizing.')
+    parser.add_argument(
+        "--iencoding", type=str, metavar="E", default="utf-8",
+        help="Assume this character coding for input. Default: utf-8.")
+    parser.add_argument(
+        "--lfAs", type=str, default="LF", choices=lfChoices,
+        help='Whether to show Line Feeds as SELF, LF: LF, or NL: NL symbol.')
+    parser.add_argument(
+        "--oformat", type=str, default="ENTITY16", choices=oformatChoices,
+        help="How to write out invisible characters.")
+    parser.add_argument(
+        "--quiet", "-q", action='store_true',
+        help='Suppress most messages.')
+    parser.add_argument(
+        "--spaceAs", type=str, default="SELF", choices = spaceChoices,
+        help='Show spaces as: SELF, B: slashed b, U: serifed _, or SP: SP symbol.')
+    parser.add_argument(
+        "--verbose", "-v", action='count', default=0,
+        help='Show more messages (repeatable).')
+    parser.add_argument(
+        "--version", action='version', version=__version__,
+        help='Display version information, then exit.')
+    parser.add_argument(
+        "--width", "--pad", type=int, default=4,
+        help='How many digits (minimum) for XML numeric character references.')
+
+    parser.add_argument(
+        'files', nargs=argparse.REMAINDER,
+        help='Path(s) to input file(s).')
+
+    args0 = parser.parse_args()
+    if (args0.verbose): print(args)
+    return args0
+
+
+args = processOptions()
 
 su = sjdUtils()
 cs = ""
@@ -265,45 +295,14 @@ if (args.color):
     if (args.verbose):
         print("Turned on " + cs + "color" + ce + ".")
 
-#print("lengths: " + str(len(cs)) + ", " + str(len(ce)))
-#print("test color: " + cs + "hello" + ce + " ok?")
+if (not sys.argv[0]):
+    doOneFile("[stdin]", sys.stdin)
+    sys.exit()
 
-# Do the real work
-#
-nControls = nHigh = 0
-colorState = 0
+for path0 in args.files:
+    if (not os.path.isfile(path0)):
+        warn("Can't find file '%s'." % (path0))
+    else:
+        with codecs.open(path0, "rb", encoding=args.iencoding) as fh0:
+            doOneFile(path0, fh0)
 
-rec = fh.readline()
-while (rec):
-    for i in (range(0,len(rec))):
-        c = rec[i]
-        o = ord(c)
-        toprint = ""
-        if (o < 32 or (o == 32 and not args.leaveSpaces)):
-            nControls += 1
-            if (args.pics): toprint = getControlPic(o)
-            else: toprint = getNameForControl(o)
-        elif (o > 127):
-            nHigh += 1
-            toprint = makeCharRef(o)
-        if (toprint):
-            if (not colorState):
-                print(cs, end='')
-                colorState = 1
-            print(toprint, end="")
-        else:
-            if (colorState):
-                print(ce, end="")
-                colorState = 0
-            print(c, end="")
-    if (colorState):
-        print(ce, end="")
-        colorState = 0
-    print("")
-    rec = fh.readline()
-
-if (not args.quiet):
-    warn("Done. Control characters: %d, chars > 127: %d." %
-        (nControls, nHigh))
-
-sys.exit(0)

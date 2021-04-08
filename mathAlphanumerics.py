@@ -22,7 +22,7 @@ __metadata__ = {
     'rightsHolder' : "Steven J. DeRose",
     'creator'      : "http://viaf.org/viaf/50334488",
     'type'         : "http://purl.org/dc/dcmitype/Software",
-    'language'     : "Python 2.7.6",
+    'language'     : "Python 2.7.6, 3.7",
     'created'      : "<2006-10-04",
     'modified'     : "2021-02-23",
     'publisher'    : "http://github.com/sderose",
@@ -408,6 +408,16 @@ you only get the full set of { roman, bold, italic, bold-italic } for
 plain and sans-serif.
 
 * Better testing for non-Latin digits.
+
+* Perhaps add feature to turn markup into fonts -- such as
+    <i> ITALIC
+    <b> BOLD
+    <tt> MONOSPACE
+         SANS SERIF
+    <sub> SUBSCRIPT
+    <sup> SUPERSCRIPT
+
+But what of FRAKTUR, DOUBLE-STRUCK, SCRIPT, FULLWIDTH, and the enclosed ones? <span?>
 
 * Possibly add combining characters such as underscore, strike-through, and
 overline. There's even COMBINING ENCLOSING CIRCLE (and SQUARE).

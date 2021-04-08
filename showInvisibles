@@ -5,6 +5,7 @@
 #
 use strict;
 use Getopt::Long;
+use HTML::Entities;
 
 use sjdUtils;
 use alogging;
@@ -17,7 +18,7 @@ our %metadata = (
     'type'         => "http://purl.org/dc/dcmitype/Software",
     'language'     => "Perl 5.18",
     'created'      => "2007-01-16",
-    'modified'     => "2020-11-19",
+    'modified'     => "2021-04-07",
     'publisher'    => "http://github.com/sderose",
     'license'      => "https://creativecommons.org/licenses/by-sa/3.0/"
 );
@@ -40,14 +41,12 @@ By default, literal spaces I<are not> replaced (but see I<-s> and I<--spaceAs>.
 Useful for visualizing return/linefeed, space/tab, etc. Can also be used
 to escape undesired characters in a file to ease later processing.
 
+By default, Unicode characters are converted to UTF-8, then the UTF-8 bytes
+are coded as \xNN. Set I<--oformat> to convert them to other forms.
 
 =head1 Options
 
 =over
-
-=item * B<--backslash>
-
-Show backslash-codes for control chars.
 
 =item * B<--color>
 
@@ -60,10 +59,24 @@ See also I<--whichColor>.
 Assume the input character encoding is I<e>.
 The output encoding is always UTF-8.
 
+=item * B<--oformat> [x]
+
+Choose a different way to represent the invisible characters.
+Taking BULLET (U+2022) as an example:
+  UPLUS: U+02022
+  UTF:   \xe2\x80\xa2
+  URI:   %e2%80%a2
+  DENT:  &#8226;
+  XENT:  &#x2022;
+  NENT:  &bull;  ("N" for named, per HTML 4. If unavailble, uses XENT)
+  PY4:   \u2022
+  PY8:   \U00002022
+  PYBR:  \x{2022}
+
 =item * B<--pics>
 
 Show Unicode control pictures instead of entities, for
-control characters and spaces (default).
+control characters and spaces (default). I<--no-pics> to turn off.
 
 =item * B<--quiet> OR B<-q>
 
@@ -94,6 +107,8 @@ Display spaces as:
   I<NL> (a little "NL", U+2440 -- the default)
 
 =item * B<--uri>
+
+Superceded by I<--oFormat URI>.
 
 Show URI-style C<%xx> escapes for control chars.
 However, not yet smart enough to convert high Unicode characters to
@@ -144,6 +159,7 @@ Optimize color-escaping instead of doing on/off for every char.
   2015-09-11: Drop -s, add --spaceAs OK, fix code points. --lfAs likewise.
   2019-11-16: Update color use.
   2020-11-19: New layout.
+  2021-04-07: Add --oformat and its various choices.
 
 
 =head1 To do
@@ -169,10 +185,10 @@ L<https://github.com/sderose>.
 ###############################################################################
 # Process options
 #
-my $backslash     = 0;
 my $color         = 0;
 my $iencoding     = "";
 my $lfAs          = "NL";
+my $oFormat       = "XENT";
 my $pics          = 1;
 my $quiet         = 0;
 my $spaceAs       = "OK";
@@ -182,11 +198,11 @@ my $whichColor    = "/yellow";
 
 Getopt::Long::Configure ("ignore_case");
 my $result = GetOptions(
-    "backslash!"        => \$backslash,
     "color!"            => \$color,
     "h|help|?"          => sub { system "perldoc $0"; exit; },
     "iencoding=s"       => \$iencoding,
     "lfAs=s"            => \$lfAs,
+    "oFormat=s"         => \$oFormat,
     "pics|pix!"         => \$pics,
     "q|quiet!"          => \$quiet,
     "spaceAs=s"         => \$spaceAs,
@@ -207,6 +223,20 @@ $spaceAs = uc($spaceAs);
 $lfAs = uc($lfAs);
 ($lfAs =~ m/^(LF|NL|OK)$/i) || (len($lfAs)==1) ||
     die "-lfAs must be 'LF' or 'NL' or 'OK'.\n";
+
+my %spaceCodes = (
+    "SP"       => chr(0x2420), # SP
+    "B"        => chr(0x2422), # B/
+    "U"        => chr(0x2423), # _
+    "OK"       => ' ',
+    "NBSP"     => chr(0x00A0), # Non-breaking space
+    );
+
+my %lfCodes = (
+    "LF"       => chr(0x240A),
+    "NL"       => chr(0x2424),
+    "OK"       => "\n",
+);
 
 my @names = ( # currently unused
     "NUL", "SOH", "STX", "ETX", "EOT", "ENQ", "ACK", "BEL",
@@ -241,8 +271,68 @@ sub colorizeWhiteSpace {
     my ($s) = @_;
     for my $x (keys %spaceMap) {
         my $y = $spaceMap{$x};
-        $s =~ s/($x)/$y$1$offSequence/g;
+        $s =~ s/($x+)/$y$1$offSequence/g;
     }
+}
+
+sub makeDisplayable {
+    # Convert just one character.
+    my ($c, $fmt) = @_;
+    if (index(" \t\r\n", $c) > -1)) {
+        if ($spaceAs eq "COLOR") { return $c; }
+        if ($c eq " " ) { return $spaceCodes{$spaceAs}; }
+        if ($c eq "\n") { return $lfCodes{$lfAs}; }
+    }
+    my $n = ord($c)
+    if ($n < 32 && $pics) {
+        return chr(0x2400 + $n);
+    }
+
+    if ($fmt eq "UPLUS") {                 # U+2022
+        return sprintf("U+%04x", $n);
+    }
+    elsif ($fmt eq "UTF") {                # \xe2\x80\xa2
+        return getUTF8local($n, "\\x");
+    }
+    elsif ($fmt eq "URI") {                # %e2%80%a2
+        return getUTF8local($n, "%");
+    }
+    elsif ($fmt eq "DENT") {               # &#8226;
+        return sprintf("&#%04x;", $n);
+    }
+    elsif ($fmt eq "XENT") {               # &#x2022;
+        ($n > 0xFFFF) && warn "Char out of range for \\x: $n.\n";
+        return sprintf("&#x%04x;", $n);
+    }
+    elsif ($fmt eq "NENT") {               # &bull;
+        my $buf = HTML::Entities::encode(chr($n));
+        if ($buf =~ m/^&#/) { $buf = sprintf("&#x%04x;", $n); }
+        return $buf;
+    }
+    elsif ($fmt eq "PY4") {                # \u2022
+        ($n > 0xFFFF) && warn "Char out of range for \\u: $n.\n";
+        return sprintf("\\u%04x", $n);
+    }
+    elsif ($fmt eq "PY8") {                # \U00002022
+        return sprintf("\\U%08x", $n);
+    }
+    elsif ($fmt eq "PYBR") {               # \x{2022}
+        return sprintf("\\x{%4x}", $n);
+    }
+    else {
+        die "Unknown --oformat '$fmt'.\n";
+    }
+}
+
+sub getUTF8local {  # From "ord" script
+    my ($n, $sep) = @_;
+    if (!defined $sep) { $sep = "%"; }
+    my $utf8form= Encode::encode('utf8', chr($n));
+    my $ux = ();
+    for (my $i=0; $i<length($utf8form); $i++) {
+        $ux .= sprintf("%s%02x", $sep, ord(substr($utf8form,$i,1)));
+    }
+    return($ux);
 }
 
 
@@ -271,16 +361,12 @@ while (my $file = shift) {
     }
 
     while (my $rec = <$fh>) {
-        if ($pics) {
-            if ($spaceAs eq "COLOR") {
-                $rec = colorizeWhiteSpace($rec);
-            }
-            else {
-                $rec = sjdUtils::showInvisibles($rec,"SYM", $spaceAs, $lfAs);
-            }
+        my $buf = "";
+        for (my $i=0; $i<len($rec); $i++) {
+            $buf .= makeDisplayable(substr($rec, $i, 1));
         }
-        elsif ($backslash) {
-            $rec = sjdUtils::showInvisibles($rec, "DFT", $spaceAs, $lfAs);
+        if ($spaceAs eq "COLOR") {
+            $rec = colorizeWhiteSpace($rec);
         }
         elsif ($uri) {
             $rec = sjdUtils::escapeURI($rec, "DFT", $spaceAs, $lfAs);
