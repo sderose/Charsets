@@ -7,7 +7,8 @@ from __future__ import print_function
 import sys
 import codecs
 import re
-
+from collections import defaultdict
+from unicodedata import normalize
 from PowerWalk import PowerWalk, PWType
 
 PY2 = sys.version_info[0] == 2
@@ -34,7 +35,6 @@ try:
 except ValueError:
     wideBuild = False
 
-
 __metadata__ = {
     'title'        : "isASCII.py",
     "description"  : "Check character set/encoding of a file(s).",
@@ -43,7 +43,7 @@ __metadata__ = {
     'type'         : "http://purl.org/dc/dcmitype/Software",
     'language'     : "Python 3.7",
     'created'      : "2020-11-18",
-    'modified'     : "2021-04-08",
+    'modified'     : "2021-04-09",
     'publisher'    : "http://github.com/sderose",
     'license'      : "https://creativecommons.org/licenses/by-sa/3.0/"
 }
@@ -60,34 +60,44 @@ option to test for other character sets).
 
     isASCII.py [options] [files]
 
-By default, the script reports the location and code point of every undesired
-character. To suppress this and just see totals, use `-q`.
+With `--charset [x], can verify for other sets of acceptable characters:
+'ascii', 'lower', 'upper', 'alpha', 'alnum', 'latin1', 'latin-1', 'xmlchars'.
+
+The script can report (for each file):
+
+* The location and code point of every undesired character (turn off with `-q`).
+* Total number of occurrences of each undesired character (turn on with `--counts`).
+* "ASCII" or "non-ASCII", following by ": " and the path (turn off with `--no-flag`).
+
+`--normalize` can be used to convert to any of the Unicode normal forms before
+checking the individual characters. However, after doing so column numbers apply to
+the normalized form, which will sometimes not be the same as the original.
 
 Remember that a file's ''encoding'' is not the same as the ''character set''
-used. For
-example, a UTF-8 or UCS-2 encoded file, might happen to only contain characters that are included in ASCII or Latin-1.
+used. For example, a UTF-8 or UCS-2 encoded file, might happen
+to only contain characters that are included in ASCII or Latin-1.
 
 
 =Related Commands=
 
 My `XmlRegexes.py` provides XML character-set checking code.
 
-My `countChars` generates an atlas of what characters occur in a given file(s).
+My `countChars` generates an atlas of what characters occur in a given file(s),
+with frequencies, organized by plane, block, script, ....
 
-My `ord` and `CharDisplay.py` provide information on Unicode characters.
+My `ord`, `CharDisplay.py`, and `strfchr.py` provide information on Unicode characters.
 
 
 =Known bugs and Limitations=
 
 The Unicode Byte-Order Mark (aka U+0FEFF, aka `ZERO WIDTH NO-BREAK SPACE`),
-is not in most `--charsets`, but you probably don't care, so it's ignored.
-To see if it occurs, use `--v`.
+is not in most `--charsets` is reported, which you may or may not want.
 
 
 =History=
 
 * 2020-11-18: Written by Steven J. DeRose.
-* 2021-04-08: Fix driver bug.
+* 2021-04-08f: Fix driver bug. Add counting, -q message, --counts, --noflag.
 
 
 =To do=
@@ -110,7 +120,6 @@ or [https://github.com/sderose].
 
 =Options=
 """
-
 
 
 ###############################################################################
@@ -165,19 +174,27 @@ def doOneFile(path):
             sys.stderr.write("Cannot open '%s':\n    %s" %
                 (e), stat="readError")
             return 0
-        warn(0, "Starting file '%s'." % (path))
+        if (not args.quiet): warn(0, "Starting file '%s'." % (path))
 
     recnum = 0
     nBad = 0
+    charCounts = defaultdict(int)
     for rec in fh.readlines():
         recnum += 1
+        if (args.normalize != "NONE"):
+            rec = normalize(args.normalize, rec)
         for i in range(len(rec)):
             c = rec[i]
-            if (c == u'\uFEFF'):
-                warn(1, "Unicode BOM")
+            if (args.allow and c in args.allow):    # Exception per --allow
                 continue
-            if (args.allow and c in args.allow): continue
-            if (args.charset == 'lower'):
+            if (c == u'\uFEFF'):                    # Ignore BOM
+                warn(0, "Unicode BOM found at record %d, column %d." % (recnum, i))
+                continue
+
+            # Check against whatever set of ok characters user chose
+            if (args.charset == 'ascii'):
+                if (isascii(c)): continue  # Srsly, not in Python until 3.7?
+            elif (args.charset == 'lower'):
                 if (c.islower()): continue
             elif (args.charset == 'upper'):
                 if (c.isupper()): continue
@@ -185,8 +202,6 @@ def doOneFile(path):
                 if (c.isalpha()): continue
             elif (args.charset == 'alnum'):
                 if (c.isalnum()): continue
-            elif (args.charset == 'ascii'):
-                if (isascii(c)): continue  # Srsly, not in Python until 3.7?
             elif (args.charset == 'latin1' or args.charset == 'latin-1'):
                 if (islatin1(c)): continue
             elif (args.charset == 'xmlchars'):
@@ -196,6 +211,7 @@ def doOneFile(path):
                 sys.exit()
 
             nBad += 1
+            charCounts[c] += 1
             if (not args.quiet):
                 print("    Record %6d, column %4d: char 0x%05x (d%06d) '%s'" %
                 (recnum, i, ord(c), ord(c), c))
@@ -204,7 +220,13 @@ def doOneFile(path):
                 break
 
     fh.close()
-    return(nBad)
+    if (args.counts):
+        for c in sorted(charCounts.keys()):
+            print("  U+%05x (d%6d) '%s':  %6d" %
+                (ord(c), ord(c), c, charCounts[c]))
+    if (not args.noflag):
+        print("%sASCII: %s" % ("non-" if nBad>0 else "", path))
+    return(nBad, charCounts)
 
 def islatin1(s):
     if (s==""): return False  # To be like str.isxxx()
@@ -235,27 +257,37 @@ if __name__ == "__main__":
             parser = argparse.ArgumentParser(description=descr)
 
         parser.add_argument(
-            "--allow",            type=str,
+            "--allow", type=str,
             help='Extra characters to allow, beyond --charset.')
         parser.add_argument(
-            "--iencoding",        type=str, metavar='E', default="utf-8",
-            help='Assume this character coding for input. Default: utf-8.')
-        parser.add_argument(
-            "--max",              type=int, default=0,
-            help='Stop each file after this many errors.')
-        parser.add_argument(
-            "--quiet", "-q",      action='store_true',
-            help='Suppress most messages.')
-        parser.add_argument(
-            "--charset",          type=str, choices=
-            [ 'ascii', 'lower', 'upper', 'alpha', 'alnum',
+            "--charset", type=str,
+            choices=[ 'ascii', 'lower', 'upper', 'alpha', 'alnum',
               'latin1', 'latin-1', 'xmlchars' ], default='ascii',
             help='What set of characters to look for exceptions to.')
         parser.add_argument(
-            "--unicode",          action='store_const',  dest='iencoding',
+            "--counts", action='store_true',
+            help='Show counts of bad characters (per file).')
+        parser.add_argument(
+            "--normalize", type=str, default="NONE",
+            choices=[ 'NFC', 'NFD', 'NFKC', 'NFKD' ],
+            help='Do Unicode normalization of the specified kind first.')
+        parser.add_argument(
+            "--iencoding", type=str, metavar='E', default="utf-8",
+            help='Assume this character coding for input. Default: utf-8.')
+        parser.add_argument(
+            "--max", type=int, default=0,
+            help='Stop each file after this many errors.')
+        parser.add_argument(
+            "--noflag", "--no-flag", action='store_true',
+            help='Suppress the ASCII/non-ASCII line for each file.')
+        parser.add_argument(
+            "--quiet", "-q", action='store_true',
+            help='Suppress most messages.')
+        parser.add_argument(
+            "--unicode", action='store_const', dest='iencoding',
             const='utf8', help='Assume utf-8 for input files.')
         parser.add_argument(
-            "--verbose", "-v",    action='count',       default=0,
+            "--verbose", "-v", action='count', default=0,
             help='Add more messages (repeatable).')
         parser.add_argument(
             "--version", action='version', version=__version__,
@@ -264,7 +296,7 @@ if __name__ == "__main__":
         PowerWalk.addOptionsToArgparse(parser)
 
         parser.add_argument(
-            'files',             type=str,
+            'files', type=str,
             nargs=argparse.REMAINDER,
             help='Path(s) to input file(s)')
 
@@ -274,12 +306,11 @@ if __name__ == "__main__":
 
     ###########################################################################
     #
-    fileCount = 0
     nBadFiles = nBadChars = 0
     args = processOptions()
 
     if (len(args.files) == 0):
-        warn(0, "isASCII.py: No files specified....")
+        nBad0, charCounts0 = doOneFile("")
         sys.exit()
 
     pw = PowerWalk(args.files, open=False, close=False,
@@ -287,13 +318,12 @@ if __name__ == "__main__":
     pw.setOptionsFromArgparse(args)
     for path0, fh0, what0 in pw.traverse():
         if (what0 != PWType.LEAF): continue
-        fileCount += 1
-        nBadInFile = doOneFile(path0)
-        if (nBadInFile):
-            warn(1, "Found %d bad chars in file '%s'." %
-                (nBadInFile, path0))
+        nBad0, charCounts0 = doOneFile(path0)
+        if (nBad0):
+            warn(1, "Found %d bad chars in file '%s'." % (nBad0, path0))
             nBadFiles += 1
-            nBadChars += nBadInFile
+            nBadChars += nBad0
+
     if (not args.quiet):
         warn(0, "%d files checked, %d chars in %d files not in '%s'.\n" %
             (pw.getStat('regular'), nBadChars, nBadFiles, args.charset))
