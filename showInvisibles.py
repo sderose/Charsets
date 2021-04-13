@@ -71,8 +71,8 @@ Options `-b` and `-u` are unfinished.
 * 2012-01-23: Converted by perl2python.
 * 2012-01-25 sjd: Cleanup.
 * 2015-10-13: Update argparse usage. pylint.
-* 2021-04-08: Better option handling. Drop -s/leaveSpace for --spaceAs SELF.
-Hook up to new strfchr.py. Add lots of formats via strfchr.py.
+* 2021-04-08ff: Better option handling. Drop -s/leaveSpace for --spaceAs SELF.
+Hook up to new strfchr.py. Add lots of formats from there.
 
 
 =To do=
@@ -117,19 +117,13 @@ backslashCodes = [
     "",    "",    "",    "\\e", "",    "",    "",    "",
     "\\s"
 ]
-if (backslashCodes[32] != "\\s"):
-    print("backslashCodes messed up.")
-    exit(0)
-
-if (os.environ["PYTHONIOENCODING"] != "utf_8"):
-    print("PYTHONIOENCODING is not utf_8.")
-    exit(0)
+assert (backslashCodes[32] == "\\s"), "BackslashCodes messed up."
+assert os.environ["PYTHONIOENCODING"] == "utf_8", "PYTHONIOENCODING not utf_8."
 
 
 ###############################################################################
 # Construct an XML numeric character reference to the given code point.
 # Use the appropriate args.base.
-# TODO: Expand to use choices from CharDisplay.py or strfchr.py.
 #
 def makeCharRef(n):
     if (args.base == 10):
@@ -146,6 +140,8 @@ def makeCharRef(n):
 # (could actually be called for everything, so we can catch \\, %, etc.)
 #
 def mapControlChar(charNum, what=""):
+    if (args.spaceUnchanged and chr(charNum).isspace()):
+        return chr(charNum)
     if (charNum == 32):
         if (args.spaceAs == "SELF"): return(" ")
         elif (args.spaceAs == "B"):  return(unichr(0x2422))
@@ -157,47 +153,41 @@ def mapControlChar(charNum, what=""):
         if (args.lfAs == "LF"):     return(unichr(0x240A))
         if (args.lfAs == "NL"):     return(unichr(0x2424))
         else: assert False, "Unsupported lfAs value '%s'" % (args.lfAs)
+
+    if (args.pics):
+        return chr(0x2400 + charNum)
     if (what=="ENTITY16"):
         return unichr(0x2400 + charNum)
+    if (args.name):
+        if (charNum > len(names)):
+            warn("Control U+%04x out of range for names -- check code." % (charNum))
+        return "*%s*" % (names[charNum])
+    if (args.backSlashes and backslashCodes[charNum]):
+        return backslashCodes[charNum]
+    if (args.uri):
+        return "%02x" % (charNum)
     return strfchr.strfchr(charNum, what)
 
-def getNameForControl(n):
-    rc = ""
-    if (args.name):
-        if (n > len(names)):
-            warn("Control #" + n + " out of range for names -- check code.")
-        rc = "*" + names[n] + "*"
-    elif (args.backSlashes):
-        if (backslashCodes[n]):
-            rc = backslashCodes[n]
-        else:
-            rc = makeCharRef(n)
-    elif (args.uri):
-        rc = "%02x" % (n)
-    else:
-        rc = makeCharRef(n)
-    return rc
 
-
+###############################################################################
+#
 def doOneFile(path, fh):
     nControls = nHigh = 0
     colorState = 0
 
-    if (fh==sys.stdin and fh.isatty()):
-        sys.stderr.write("Waiting on STDIN...\n")
     rec = fh.readline()
     while (rec):
         for i in (range(0, len(rec))):
             c = rec[i]
             o = ord(c)
             toprint = ""
-            if (o < 32 or (o == 32 and args.spaceAs!="SELF")):
+            if (o < 32):
                 nControls += 1
-                if (args.pics): toprint = mapControlChar(o)
-                else: toprint = getNameForControl(o)
+                toprint = mapControlChar(o)
             elif (o > 127):
                 nHigh += 1
                 toprint = makeCharRef(o)
+
             if (toprint):
                 if (not colorState):
                     print(cs, end='')
@@ -263,6 +253,9 @@ def processOptions():
         "--quiet", "-q", action='store_true',
         help='Suppress most messages.')
     parser.add_argument(
+        "-spaceUnchanged", action='store_true',
+        help='Leave whitespace as-is.')
+    parser.add_argument(
         "--spaceAs", type=str, default="SELF", choices = spaceChoices,
         help='Show spaces as: SELF, B: slashed b, U: serifed _, or SP: SP symbol.')
     parser.add_argument(
@@ -295,7 +288,9 @@ if (args.color):
     if (args.verbose):
         print("Turned on " + cs + "color" + ce + ".")
 
-if (not sys.argv[0]):
+if (not args.files):
+    if (sys.stdin.isatty()):
+        sys.stderr.write("Waiting on STDIN...\n")
     doOneFile("[stdin]", sys.stdin)
     sys.exit()
 

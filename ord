@@ -509,7 +509,7 @@ Warn if env LANG not utf-8. Recognize html entity names, C-J, ^J, etc.
 
 =item * 2020-09-03: Clean up. Add warning for I<--findString> w/ bad chars.
 
-=item * 2020-11-30: Support hex UTF-9 input.
+=item * 2020-11-30: Support hex UTF-8 input.
 
 =back
 

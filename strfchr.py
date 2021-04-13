@@ -6,7 +6,7 @@
 import sys
 import re
 #import string
-#import unicodedata
+import unicodedata
 
 from CharDisplay import getCharInfo
 from alogging import ALogger
@@ -45,15 +45,10 @@ Will produce lines you can paste into a Python `dict` definition, to create
 a map from literal non-ASCII Latin-1 characters, to tuples consisting
 of their integer code point, TEX expression, and full Unicode name.
 
-To get the list of %-codes, use `strfchr --help-codes`.
+To get the list of %-codes, use `strfchr --help-codes` (as you might
+expect, "%%" can also be used, to get a literal percent-sign).
 
 You can use it from the command-line, or from code.
-
-
-=To Do=
-
-* Incorporate into ord or CharDisplay?
-* Option to escape quotes, backslash, etc. in generated output.
 
 
 =Related Commands=
@@ -64,19 +59,21 @@ You can use it from the command-line, or from code.
 
 =Known bugs and Limitations=
 
-Infinished.
+Should display better values for properties, like YES/NO.
+
+
+=To Do=
+
+* Incorporate into `ord` or `CharDisplay`?
+* Option to escape quotes, backslash, etc. in generated output.
+* Move the TEX support into `html2latex.py`?
+* Options for minwidth, hex case, lfAs, spaceAs, controlAs.
 
 
 =History=
 
   2021-04-08: Written by Steven J. DeRose.
 
-
-=To do=
-
-Move the main functionality into CharDisplay.py, and rename?
-Split the TEX support to something separate.
-Options for minwidth, hex case, lfAs, spaceAs, controlAs, True/False/None as.
 
 
 =Rights=
@@ -105,7 +102,7 @@ or [https://github.com/sderose].
 __infoItems__ = {
     # name:          (isRep, example),
     #----------------------------------
-    "LITERAL":       ( 1, "[a bullet char]" ),
+    "LITERAL":       ( 1, chr(0x00E2)),
 
     # Code point based
     "SLASH0":        ( 1, "\\x{e2}" ),  # ["v" for variable-length]
@@ -142,19 +139,20 @@ __infoItems__ = {
     "PLANENAME":     ( 0, "Basic Multilingual" ),
     "SCRIPTNAME":    ( 0, "Common" ),
 
-    "NFC":           ( 0, "" ),
-    "NFD":           ( 0, "" ),
-    "NFKC":          ( 0, "" ),
-    "NFKD":          ( 0, "" ),
+    "NFC":           ( 0, unicodedata.normalize("NFC", chr(0xE2)) ),
+    "NFD":           ( 0, unicodedata.normalize("NFD", chr(0xE2)) ),
+    "NFKC":          ( 0, unicodedata.normalize("NFKC", chr(0xE2)) ),
+    "NFKD":          ( 0, unicodedata.normalize("NFKD", chr(0xE2)) ),
 
     "EAWIDTH":       ( 0, "A" ),
     "WIDTH":         ( 0, "" ),
     "NUMERICVALUE":  ( 0, "" ),
-    "ISNUMERIC":     ( 0, "" ),
-    "ISBIDI":        ( 0, "" ),
-    "ISCOMBINING":   ( 0, "" ),
-    "ISURI":         ( 0, "" ),
-    "MIRROR":        ( 0, "" ),
+    "ISNUMERIC":     ( 0, "NO" ),
+    "ISBIDI":        ( 0, "NO" ),
+    "ISCOMBINING":   ( 0, "NO" ),
+    "ISCOMBINED":    ( 0, "YES" ),
+    "ISURI":         ( 0, "NO" ),
+    "MIRROR":        ( 0, "NO" ),
 }
 
 __mnemonicMap__ = {
@@ -203,12 +201,15 @@ __mnemonicMap__ = {
     "#": "ISNUMERIC",
     #"": "ISBIDI",
     #"": "ISCOMBINING",
+    #"": "ISCOMBINED",
     #"": "ISURI",
     #"": "MIRROR",
 }
+__name2mnemonic__ = {}
 for k0, v0 in __mnemonicMap__.items():
     assert v0 in __infoItems__.keys()
     assert len(__infoItems__[v0]) == 2
+    __name2mnemonic__[v0] = k0
 
 # Selected Unicode combining chars
 # https://github.com/sderose/Charsets/Unicode/asPython/blob/master/combining.py
@@ -374,7 +375,6 @@ def strfchr(n:Union[str, int], fmt:str) -> str:
     cmapper = partial(mapperFunc, theCodepoint=n)
     return re.sub(r"%(.)", cmapper, fmt)
 
-
 def mapperFunc(mat, theCodepoint:int) -> str:
     fmtCode = mat.group(1)
     if (fmtCode == "%"): return "%"
@@ -386,6 +386,9 @@ def mapperFunc(mat, theCodepoint:int) -> str:
 __cinfoCache__ = {}
 
 def codePointToEncoding(codePoint:int, what:str) -> str:
+    """Given a character's code point, and what mnemonic or named
+    form/property you want, get that value.
+    """
     if (codePoint in __cinfoCache__):
         cinfo = __cinfoCache__[codePoint]
     else:
@@ -394,11 +397,11 @@ def codePointToEncoding(codePoint:int, what:str) -> str:
     # Allow mnemonics
     if (what in __mnemonicMap__): what = __mnemonicMap__[what]
 
-    if (what == "LITERAL"):                # [a bullet char]
+    if (what == "LITERAL"):                # ...
         return chr(codePoint)
 
     elif (what == "SLASH0"):               # \\x{e2}
-        return "\\x{%4x}" % (codePoint)
+        return "\\x{%x}" % (codePoint)
     elif   (what == "SLASH2"):             # \\xe2
         if (codePoint <= 0xFF): return "\\x%02x" % (codePoint)
         return gefFallback(codePoint)
@@ -457,13 +460,13 @@ def codePointToEncoding(codePoint:int, what:str) -> str:
     elif (what == "SCRIPTNAME"):       # "Common" ),
         assert False
 
-    elif (what == "NFC"):              # "" ),
+    elif (what == "NFC"):              # ... ),
         return cinfo['NFC']
-    elif (what == "NFD"):              # "" ),
+    elif (what == "NFD"):              # ... ),
         return cinfo['NFD']
-    elif (what == "NFKC"):             # "" ),
+    elif (what == "NFKC"):             # ... ),
         return cinfo['NFKC']
-    elif (what == "NFKD"):             # "" ),
+    elif (what == "NFKD"):             # ... ),
         return cinfo['NFKD']
 
     elif (what == "EAWIDTH"):          # "A" ),
@@ -472,15 +475,17 @@ def codePointToEncoding(codePoint:int, what:str) -> str:
         assert False
     elif (what == "NUMERICVALUE"):     # "" ),
         assert False
-    elif (what == "ISNUMERIC"):        # "" ),
+    elif (what == "ISNUMERIC"):        # "NO" ),
         assert False
-    elif (what == "ISBIDI"):           # "" ),
+    elif (what == "ISBIDI"):           # "NO" ),
         return cinfo['bidi']
-    elif (what == "ISCOMBINING"):      # "" ),
+    elif (what == "ISCOMBINING"):      # "NO" ),
         return cinfo['combining']
-    elif (what == "ISURI"):            # "" ),
+    elif (what == "ISCOMBINED"):       # "YES" ),
+        return cinfo['combined']
+    elif (what == "ISURI"):            # "NO" ),
         assert False
-    elif (what == "MIRROR"):           # "" ),
+    elif (what == "MIRROR"):           # "NO" ),
         return cinfo['mirror']
 
     else:
@@ -493,7 +498,7 @@ def gefFallback(codePoint):
 
 ###############################################################################
 #
-def getTexEquivalent(codePoint):  # TODO: Finish
+def getTexEquivalent(codePoint):  # TODO: Finish, move to html2latex.py
     return "\\x{%04x}" % (codePoint)
 
 # Following started from utf8tobibtex.py
@@ -542,8 +547,13 @@ charInfo = [
 
 
 def showCodes():
+    print("List of %-codes for format strings (U+00E2 as example):")
     for k, v in __infoItems__.items():
-        print('    "%%%s":  %-16s %s' % (k, v[0], v[1]))
+        try:
+            mn = "%" + __name2mnemonic__[k]
+        except KeyError:
+            mn = chr(0x2205)  # Empty set
+        print('    %2s:  %-16s %s %s' % (mn, k, v[0], v[1]))
     return
 
 
@@ -563,11 +573,14 @@ if __name__ == "__main__":
             parser = argparse.ArgumentParser(description=descr)
 
         parser.add_argument(
+            "--format", type=str, metavar="F", default="%8 %4 %2 %0 %N (URI %F)",
+            help="Assume this character coding for input. Default: utf-8.")
+        parser.add_argument(
             "--iencoding", type=str, metavar="E", default="utf-8",
             help="Assume this character coding for input. Default: utf-8.")
         parser.add_argument(
             "--help-codes", action="store_true",
-            help="Display a list of %-codes and exit.")
+            help="Display a list of %%-codes and exit.")
         parser.add_argument(
             "--quiet", "-q", action="store_true",
             help="Suppress most messages.")
@@ -586,7 +599,13 @@ if __name__ == "__main__":
             help="Path(s) to input file(s)")
 
         args0 = parser.parse_args()
+
+        if (args0.help_codes):
+            showCodes()
+            sys.exit()
+
         return(args0)
+
 
     ###########################################################################
     #
@@ -596,14 +615,10 @@ if __name__ == "__main__":
         showCodes()
         sys.exit()
 
-    if (len(args.files) == 0):
-        lg.fatal("strfchr.py: No files specified....")
-
-    pw = PowerWalk(args.files, open=False, close=False,
-        encoding=args.iencoding)
-    pw.setOptionsFromArgparse(args)
-    for path0, fh0, what0 in pw.traverse():
-        if (what0 != PWType.LEAF): continue
-        assert False  # doOneFile(path0)
-    if (not args.quiet):
-        lg.warning0("strfchr.py: Done, %d files.\n" % (pw.getStat("regular")))
+    if (sys.stdin.isatty()):
+        print("Format string in effect is: %s" % (args.format))
+        print("Enter some text (^D to exit)...")
+    for rec in sys.stdin.readlines():
+        for i, c in enumerate(rec):
+            n = ord(c)
+            print("  %2d: U+%04x '%s': %s" % (i, n, c, strfchr(n, fmt=args.format)))
