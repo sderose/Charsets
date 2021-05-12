@@ -116,7 +116,7 @@ UTF-8 and then URI-escape that UTF-8.
 
 =item * B<--verbose> OR B<-v>
 
-Add more detailed messages (doesn't do much at the moment).
+Add more detailed messages.
 
 =item * B<--version>
 
@@ -212,7 +212,7 @@ my $result = GetOptions(
         die "Version of $VERSION_DATE, by Steven J. DeRose.\n";
     },
     "whichColor=s"      => \$whichColor,
-    );
+);
 
 ($result) || die "Bad options.\n";
 
@@ -230,7 +230,7 @@ my %spaceCodes = (
     "U"        => chr(0x2423), # _
     "OK"       => ' ',
     "NBSP"     => chr(0x00A0), # Non-breaking space
-    );
+);
 
 my %lfCodes = (
     "LF"       => chr(0x240A),
@@ -243,7 +243,8 @@ my @names = ( # currently unused
     "BS",  "HT",  "NL",  "VT",  "FF",  "CR",  "SO",  "SI",
     "DLE", "DC1", "DC2", "DC3", "DC4", "NAK", "SYN", "ETB",
     "CAN", "EM",  "SUB", "ESC", "FS",  "GS",  "RS",  "US",
-    "SP");
+    "SP"
+);
 
 my $con = my $coff = "";
 if ($color) {
@@ -278,12 +279,12 @@ sub colorizeWhiteSpace {
 sub makeDisplayable {
     # Convert just one character.
     my ($c, $fmt) = @_;
-    if (index(" \t\r\n", $c) > -1)) {
+    if (index(" \t\r\n", $c) > -1) {
         if ($spaceAs eq "COLOR") { return $c; }
         if ($c eq " " ) { return $spaceCodes{$spaceAs}; }
         if ($c eq "\n") { return $lfCodes{$lfAs}; }
     }
-    my $n = ord($c)
+    my $n = ord($c);
     if ($n < 32 && $pics) {
         return chr(0x2400 + $n);
     }
@@ -355,10 +356,8 @@ if ($verbose) {
 }
 
 while (my $file = shift) {
-    open(my $fh, "<$file") || die "Can't find file '$file'.\n";
-    if ($iencoding) {
-        binmode($fh, $iencoding);
-    }
+    open(my $fh, "<$file") || die "File '$file' could not be opened.\n";
+    ($iencoding) && binmode($fh, $iencoding);
 
     while (my $rec = <$fh>) {
         my $buf = "";
@@ -372,7 +371,7 @@ while (my $file = shift) {
             $rec = sjdUtils::escapeURI($rec, "DFT", $spaceAs, $lfAs);
         }
         if ($color) {
-            $rec =~ s/(\\x[0-9a-f][0-9a-f]|[^[:ascii:]]+)/$con$1$coff/g;
+            $rec =~ s/(\\x[0-9a-f][0-9a-f]|[^[:ascii:]]+)/$con$1$coff/gi;
         }
         print "$rec\n";
     } # EOF

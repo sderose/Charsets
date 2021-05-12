@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 #
-# makeCharChart
+# makeCharChart: Display info on range of Unicode code points.
+# 2013-04-24: Written by Steven J. DeRose.
 #
 from __future__ import print_function
 import sys, argparse
@@ -20,6 +21,7 @@ lg = ALogger(1)
 
 __metadata__ = {
     'title'        : "makeCharChart.py",
+    'description'  : "Display info on range of Unicode code points.",
     'rightsHolder' : "Steven J. DeRose",
     'creator'      : "http://viaf.org/viaf/50334488",
     'type'         : "http://purl.org/dc/dcmitype/Software",
@@ -30,6 +32,7 @@ __metadata__ = {
     'license'      : "https://creativecommons.org/licenses/by-sa/3.0/"
 }
 __version__ = __metadata__['modified']
+
 
 descr="""
 =Usage=
@@ -58,6 +61,7 @@ be given as decimal, 0x hex, or 0 octal. Each row of the chart will begin
 at a character whose code point is a multiple of the number of columns shown
 per row (''--perRow'', default 16).
 
+
 =Related commands=
 
 `dumpx`, `od` -- show files in hex and other forms
@@ -70,6 +74,7 @@ Doesn't do anything special for fullwidth characters in text mode.
 
 Probably should offer octal, too. Maybe full `CharDisplay.py` layout?
 
+
 =Rights=
 
 Copyright 2013 by Steven J. DeRose. This work is licensed under a Creative Commons
@@ -79,95 +84,18 @@ this license, see [http://creativecommons.org/licenses/by-sa/3.0].
 For the most recent version, see [http://www.derose.net/steve/utilities] or
 [http://github.com/sderose].
 
+
 =History=
 
 * Written 2013-04-24 by Steven J. DeRose.
-
 * 2014-10-28: Renamed from showASCIIChart. Support Unicode, HTML, options.
-
 * 2020-02-14: New layout, lint, allow hex and octal option values.
 Move sep line to right place. Fix HTML.
+
 
 =Options=
 """
 
-###############################################################################
-#
-def anyInt(x):
-    return int(x, 0)
-
-def processOptions():
-    from MarkupHelpFormatter import MarkupHelpFormatter
-    parser = argparse.ArgumentParser(
-        description=descr, formatter_class=MarkupHelpFormatter
-    )
-
-    parser.add_argument(
-        "--badChar",          type=anyInt, metavar='M', default=ord('?'),
-        help='Code point of char to print for unprintables.')
-    parser.add_argument(
-        "--blankRows",        type=anyInt, metavar='N', default=8,
-        help='Insert a blank line after every N rows.')
-    parser.add_argument(
-        "--decimal",          action='store_true',
-        help='Show decimal code point under each character.')
-    parser.add_argument(
-        "--entity",           type=str, metavar='X', default="",
-        choices = [ "dec", "hex" ],
-        help='Include a row with HTML/XML numeric character references, ' +
-        'in "dec" or "hex".')
-    parser.add_argument(
-        "--format",           type=str, metavar='F', default="text",
-        choices = [ "text", "html" ],
-        help='What format to write the data in ("text" or "html").')
-    parser.add_argument(
-        "--min",              type=anyInt, metavar='M', default=0,
-        help='First code point to include in display.')
-    parser.add_argument(
-        "--max",              type=anyInt, metavar='M', default=255,
-        help='Last code point to include in display.')
-    parser.add_argument(
-        "--oencoding",        type=str, metavar='E',
-        help='Use this character set for output files.')
-    parser.add_argument(
-        "--perCell",          type=anyInt, metavar='C', default=4,
-        help='Number of spaces to allow for each column of the chart.')
-    parser.add_argument(
-        "--perRow",           type=anyInt, metavar='R', default=16,
-        help='Number of code points to show in each row of the chart.')
-    parser.add_argument(
-        "--quiet", "-q",      action='store_true',
-        help='Suppress most messages.')
-    parser.add_argument(
-        "--ucategory",        action='store_true',
-        help='Show Unicode character-category mnemonics under characters.')
-    parser.add_argument(
-        "--utf8",             action='store_true',
-        help='Show UTF-8 hexadecimal under each character.')
-    parser.add_argument(
-        "--verbose", "-v",    action='count',       default=0,
-        help='Add more messages (repeatable).')
-    parser.add_argument(
-        "--version",          action='version',
-        version='Version of '+__version__,
-        help='Display version information, then exit.')
-
-    args0 = parser.parse_args()
-    lg.setVerbose(args0.verbose)
-
-    if (args0.min>=args0.max or args0.min<0 or args0.max>0x1FFFF):
-        lg.fatal("--min and/or --max out of range.")
-
-    # Make sure cells are wide enough for utf display (check dec/hex too?)
-    if (args0.utf8 and (
-        args0.max >= 0x0000080 and args0.perCell<4 or
-        args0.max >= 0x0000800 and args0.perCell<6 or
-        args0.max >= 0x0010000 and args0.perCell<8 or
-        args0.max >= 0x0200000 and args0.perCell<10 or
-        args0.max >= 0x4000000 and args0.perCell<12)):
-        lg.error("--perCell width of %d is too narrow for --utf8 of --max %d." %
-            (args0.perCell, args0.max))
-    return args0
 
 def printable(i):
     if (i<=32):
@@ -190,6 +118,7 @@ def getUClass(u):
     """
     ucat  = unicodedata.category(u)
     return ucat
+
 
 ###############################################################################
 #
@@ -271,6 +200,7 @@ def makeHTMLCell(s):
     c = "<td>%s</td>" % (s)
     return c
 
+
 ###############################################################################
 def doText():
     theStart = int(args.min / args.perRow)
@@ -335,9 +265,86 @@ def makeTextCell(s):
 
 
 ###############################################################################
-###############################################################################
 # Main
 #
+def anyInt(x):
+    return int(x, 0)
+
+def processOptions():
+    try:
+        from BlockFormatter import BlockFormatter
+        parser = argparse.ArgumentParser(
+            description=descr, formatter_class=BlockFormatter)
+    except ImportError:
+        parser = argparse.ArgumentParser(description=descr)
+
+    parser.add_argument(
+        "--badChar",          type=anyInt, metavar='M', default=ord('?'),
+        help='Code point of char to print for unprintables.')
+    parser.add_argument(
+        "--blankRows",        type=anyInt, metavar='N', default=8,
+        help='Insert a blank line after every N rows.')
+    parser.add_argument(
+        "--decimal",          action='store_true',
+        help='Show decimal code point under each character.')
+    parser.add_argument(
+        "--entity",           type=str, metavar='X', default="",
+        choices = [ "dec", "hex" ],
+        help='Include a row with HTML/XML numeric character references, ' +
+        'in "dec" or "hex".')
+    parser.add_argument(
+        "--format",           type=str, metavar='F', default="text",
+        choices = [ "text", "html" ],
+        help='What format to write the data in ("text" or "html").')
+    parser.add_argument(
+        "--min",              type=anyInt, metavar='M', default=0,
+        help='First code point to include in display.')
+    parser.add_argument(
+        "--max",              type=anyInt, metavar='M', default=255,
+        help='Last code point to include in display.')
+    parser.add_argument(
+        "--oencoding",        type=str, metavar='E',
+        help='Use this character set for output files.')
+    parser.add_argument(
+        "--perCell",          type=anyInt, metavar='C', default=4,
+        help='Number of spaces to allow for each column of the chart.')
+    parser.add_argument(
+        "--perRow",           type=anyInt, metavar='R', default=16,
+        help='Number of code points to show in each row of the chart.')
+    parser.add_argument(
+        "--quiet", "-q",      action='store_true',
+        help='Suppress most messages.')
+    parser.add_argument(
+        "--ucategory",        action='store_true',
+        help='Show Unicode character-category mnemonics under characters.')
+    parser.add_argument(
+        "--utf8",             action='store_true',
+        help='Show UTF-8 hexadecimal under each character.')
+    parser.add_argument(
+        "--verbose", "-v",    action='count',       default=0,
+        help='Add more messages (repeatable).')
+    parser.add_argument(
+        "--version",          action='version',
+        version='Version of '+__version__,
+        help='Display version information, then exit.')
+
+    args0 = parser.parse_args()
+    lg.setVerbose(args0.verbose)
+
+    if (args0.min>=args0.max or args0.min<0 or args0.max>0x1FFFF):
+        lg.fatal("--min and/or --max out of range.")
+
+    # Make sure cells are wide enough for utf display (check dec/hex too?)
+    if (args0.utf8 and (
+        args0.max >= 0x0000080 and args0.perCell<4 or
+        args0.max >= 0x0000800 and args0.perCell<6 or
+        args0.max >= 0x0010000 and args0.perCell<8 or
+        args0.max >= 0x0200000 and args0.perCell<10 or
+        args0.max >= 0x4000000 and args0.perCell<12)):
+        lg.error("--perCell width of %d is too narrow for --utf8 of --max %d." %
+            (args0.perCell, args0.max))
+    return args0
+
 args = processOptions()
 
 if (args.oencoding):

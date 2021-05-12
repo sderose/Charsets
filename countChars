@@ -1,6 +1,6 @@
 #!/usr/bin/env perl -w
 #
-# countChars: Find and report what characters occur in a file.
+# countChars: Find and report what characters occur.
 #
 use strict;
 use Getopt::Long;
@@ -15,6 +15,7 @@ use alogging;
 
 our %metadata = (
     'title'        => "countChars",
+    'description'  => "Find and report what characters occur.",
     'rightsHolder' => "Steven J. DeRose",
     'creator'      => "http://viaf.org/viaf/50334488",
     'type'         => "http://purl.org/dc/dcmitype/Software",
@@ -39,23 +40,26 @@ such as \n, &#65;, \uBEEF, etc.
 By default (see I<--count>), reports the total number of occurrences of
 all characters, and the number of character instances for
 each Unicode "Script" and "Block". To sort by number of occurrences (rank)
-instead of character code point frequency, use I<--rank>.
+instead of character code point frequency, use I<--rank>. To suppress
+reporting for the ASCII printable characters (known as the "G0" set),
+use I<--no-includeg0>
 
 B<Note>: Be sure to set the character encoding if applicable,
 using I<--unicode>, I<--cp1252>, or I<--iencoding> (see also I<--listEncodings>).
 If you don't specify an encoding, it will make the best of things,
 which basically means use bytes raw.
 
-For example, to run this over the merged OANC corpus:
+For example, to run this over all the I</txt> files under the current
+directory, but ignoring all characters between pointy-brackets:
 
-    countChars -r -strip '<[^>]+>' written_* >charCounts.txt
+    countChars -r -istrip '<[^>]+>' *.txt
 
 By default, this script only detects literal characters (see I<--literals>).
-However, there are options for catching many alternate representations
-(see next section).
+However, there are options for catching many alternate representations such
+as \\n, \\xA0, &#160;, U+00A0, etc. (see next section).
 
-Can also report each individual instance of characters in a given range or
-ranges (see I<--instances>).
+Use I<--instances> to report each individual instance of characters
+in a given range or ranges.
 
 To restrict processing to certain parts of each record,
 see I<--strip>, I<--columns>, and L<Options for TabularFormats> below).
@@ -143,9 +147,9 @@ Show a table of how many times each char was found (see also I<--rank>).
 
 =item * B<--cp1252>
 
-Synonym for I<--iencoding encoding(cp1252)>, and also
-shows mnemonics for MS code page 1252 x80-x9F chars (these code points
-are not assigned to graphical characters in most other character sets).
+Sets I<--iencoding encoding(cp1252)>, and also
+shows mnemonics for MS code page 1252, which uses 0x80-0x9F as graphical
+characters rather than control characters as in other character sets).
 
 =item * B<--fields> I<f>
 
@@ -169,8 +173,8 @@ appeared (this is good for finding characters you didn't want).
 =item * B<fixBadUTF8>
 
 Requires I<--iencoding utf8> (or the synonymous I<--unicode>).
-Makes a pre-pass over every record, to turn any byte sequences that are not
-valid UTF8, into a substitute character (default "?").
+Makes a pre-pass over every record, to turn any byte sequence that is not
+valid UTF8 into a substitute character (default "?").
 
 =item * B<--g1names>
 
@@ -321,6 +325,7 @@ For CSV-ish files, the most significant options are I<fieldSep>.
 F<DATA/UnicodeSamples/utf8sampler.txt> -- a sample of utf8 with a wide variety
 of blocks represented.
 
+
 =head1 Related commands
 
 =over
@@ -332,12 +337,7 @@ of blocks represented.
 Convert a number to multiple bases, and to ASCII or utf8.
 
 =item * C<chr> and C<ord> convert between code point numbers and characters.
-
-=item * C<iconv> Convert text from one encoding to another.
-Also use C<iconv -f utf8 [file]> to check for invalid utf8.
-
-=item * L<http://people.w3.org/rishida/scripts/uniview/conversion> has a nice
-gadget to convert between many possible representations of unicode.
+There is other related functionality in C<CharDisplay.py> and C<strfchr.py>.
 
 =item * C<makeUnicodeData> can generate a file in various forms that includes
 examples of all the characters in a given range and their properties.
@@ -345,6 +345,12 @@ examples of all the characters in a given range and their properties.
 =item * C<TabularFormats.pm> provides support for the I<--fields> option.
 This is included if the package is available, but only gives a warning otherwise,
 so C<countChars> can continue to run, just without the relevant options.
+
+=item * C<iconv> Convert text from one encoding to another.
+Also use C<iconv -f utf8 [file]> to check for invalid utf8.
+
+=item * L<http://people.w3.org/rishida/scripts/uniview/conversion> has a nice
+gadget to convert between many possible representations of unicode.
 
 =back
 
@@ -417,7 +423,7 @@ Fix --fcol/--lcol to --columns x-y. Add %byScript, %byBlock. Fix \f, \v.
 Add $expandingAnything, and save subr call if not in effect. Ditch --ascii.
 
 =item * 2012-09-19 sjd: Report % for representation form, Script, and Block.
-    Profile. Most time spend in Unicode::UCD::_search, so made --ustats option.
+Profile. Most time spend in Unicode::UCD::_search, so made --ustats option.
 
 =item * 2012-11-08 sjd: Check chars>127 for utf8 and count, display both ways?
 
@@ -473,9 +479,10 @@ from mis-identified charset (say, quotes, etc).
 
 =back
 
+
 =head1 Ownership
 
-This script was formerly known as 'nonascii'.
+This script was formerly known as C<nonascii>.
 
 Copyright 2006-2020, Steven J. DeRose.
 This work is licensed under a Creative Commons
@@ -1066,7 +1073,7 @@ sub tryOtherForms {
 } # tryOtherForms
 
 
-# Indirect though here, because charblock seems to think FEFF is part of
+# Indirect through here, because charblock seems to think U+FEFF is part of
 # Arabic Presentation Forms-B.
 #
 sub getCharBlockName {
@@ -1074,6 +1081,7 @@ sub getCharBlockName {
     ($i == 0xFEFF) && return "[SPECIAL: Byte order mark]";
     return charblock($i) || "???";
 }
+
 
 ###############################################################################
 # If needed, extract some context and print it. Also record the event.
@@ -1451,7 +1459,6 @@ sub convertBackslashCode { # returns the ord, not the character itself.
     if ($result) { return($result); }
     return(undef);
 }
-
 
 # Make a hash of the standard HTML entity names, mapping each to its code point.
 # Although we don't handle named entities in general, we do catch these.
