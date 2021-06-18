@@ -100,7 +100,7 @@ For Latin:
 
     'SQUARED'                      UPPER
     'NEGATIVE SQUARED'             UPPER
-    'REGIONAL INDICATOR SYMBOL'    UPPER
+    'REGIONAL INDICATOR SYMBOL'    UPPER (???)
     'NEGATIVE CIRCLED'             UPPER
     'SUPERSCRIPT'                  DIGITS (alphabet unfinished)
     'SUBSCRIPT'                    DIGITS (alphabet unfinished)
@@ -260,6 +260,9 @@ You can't specify "font"-names with re-ordered tokens. For example,
 
 ==Script-specific issues
 
+I'm note sure what 'REGIONAL INDICATOR SYMBOL' is for -- it comes up as
+flags on some systems; if that's normal it should be dropped here.
+
 Many scripts that use accented Latin or Greek characters, do not have accents
 on all characters. So if you don't decompose first (discussed above), you'll
 get only '''some''' of the characters translated.
@@ -274,13 +277,12 @@ Superscript, subscript, turned, and strikethrough are not finished.
 
 Non-Latin digit series are not well integrated or tested.
 
-Numbers beyond single digit values (such as for roman numerals,
-circled numbered, etc.) are not supported.
+Numbers > 9 (such as for roman numerals, circled numbers, etc.) are not supported.
 
 "Modifier letters" are not supported.
 
 This package does not provide a way to translate the various alternate
-set back to plain Latin or Greek or Digits. However, this can be done
+sets back to plain Latin or Greek or Digits. However, this can be done
 pretty well with Unicode "compatibility decomposition":
 
     import unicodedata
@@ -300,9 +302,18 @@ If the display environment doesn't handle Unicode, or the font in use has
 problems with any of the characters needed, the result may not be ideal.
 
 Unicode intends most of these characters for special mathematical uses, such
-as ensuring that you get the fancy "R" conventionally used to refer to the set
-of all real numbers (which takes too long write out in full). Using these
-characters for formatting is a little weird. But Gæð a wyrd swa hio scel.
+as ensuring that you get the fancy "R" (U+0211d), which is used to refer to
+the set of real numbers because the set takes too long write out in full. Using
+these characters for formatting is a little weird. But Gæð a wyrd swa hio scel.
+
+Sets such as MATHEMATICAL ITALIC are generally defined in Unicode as a contiguous
+range, but occasionally one or a few members are somewhere else
+(such as MATHEMATICAL ITALIC SMALL H), and the "expected" slot among
+the rest of the letter is left undefined. In practice, this also means that
+Unicode fonts do not always define quite the same "look" to those  characters.
+It strikes me that leaving those slots blank is mainly useful because it
+slightly simplifies programs like this: ones that want to translate the entire
+block rather than particular characters like
 
 Monospace fonts for Unicode may not always display with all the characters the
 same width. "FULLWIDTH" may pose similar problems.
@@ -312,12 +323,6 @@ anyway.
 "SANS-SERIF" is not very distinctive if your default font is that way.
 
 "SCRIPT" may look a lot like italic, especially to the unpracticed eye.
-
-Sets such as MATHEMATICAL ITALIC are generally defined in Unicode as a contiguous
-range, but occasionally one or a few members are somewhere else
-(such as MATHEMATICAL ITALIC SMALL H), and the "expected" slot among
-the rest of the letter is left undefined. In practice, this also means that
-Unicode fonts do not always define quite the same "look" to those  characters.
 
 The implementation here knows where
 the ranges start, and then has a list of "exceptions" (in a class variable
@@ -616,7 +621,7 @@ class mathAlphanumerics:
 
         'SQUARED':                    ( 0x1f130, None,    None,    '' ),
         'NEGATIVE SQUARED':           ( 0x1f170, None,    None,    '' ),
-        'REGIONAL INDICATOR SYMBOL':  ( 0x1f1e6, None,    None,    '' ),
+        'REGIONAL INDICATOR SYMBOL':  ( 0x1f1e6, None,    None,    '' ),  # ???
         'NEGATIVE CIRCLED':           ( 0x1f150, None,    None,    '' ),  # 0x02775 ???
         'SUPERSCRIPT':                ( None,    None,    0x02070, '123' ),
         'SUBSCRIPT':                  ( None,    None,    0x02080, '' ),
@@ -1136,7 +1141,7 @@ if __name__ == "__main__":
             "--show",             action='store_true',
             help='List all fonts for the chosen script. Add -v for samples.')
         parser.add_argument(
-            "--test",             action='store_true',
+            "--test", "--list",   action='store_true',
             help='Test getTranslateTable().')
         parser.add_argument(
             "--verbose", "-v",    action='count', default=0,
@@ -1203,14 +1208,20 @@ if __name__ == "__main__":
         if (not sample): sample = getRandomSentence()
 
         for k in (sorted(altList.keys())):
-            print("=== %s" % (k))
             if (altList[k] is None):
                 print("%-50s    DOES NOT EXIST" % (k))
                 continue
             xtab = mathAlphanumerics.getTranslateTable(args.script, k)
+            firstOrd = ord("A".translate(xtab))
+            if (firstOrd != ord("A")):
+                print("=== %s ('A' -> U+%04x)" % (k, firstOrd))
+            else:
+                print("=== %s ('A' not available)" % (k))
             print('    Upper:' + sample.upper().translate(xtab))
             print('    Lower:' + sample.lower().translate(xtab))
-            print('    Digit:' + '0123456789'.translate(xtab))
+            digits = '0123456789'.translate(xtab)
+            if (digits == '0123456789'): digits = "[not available]"
+            print('    Digit:' + digits)
 
     def getRandomSentence():
         import random

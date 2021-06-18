@@ -1,4 +1,4 @@
-fullWidthExpr = r'\x{FF01}-\x{FF60}\x{FFE0}-\x{FFE6}
+fullWidthExpr = r"\x{FF01}-\x{FF60}\x{FFE0}-\x{FFE6}"
 
 fullWidth = {
     0x0ff01: 'FULLWIDTH EXCLAMATION MARK',

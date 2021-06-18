@@ -11,6 +11,7 @@ import os
 import unicodedata
 import html
 from html.entities import codepoint2name  # name2codepoint
+from urllib.parse import quote as urlquote
 import xml
 from enum import Enum
 from subprocess import check_output
@@ -19,6 +20,7 @@ from subprocess import check_output
 from CharDisplay import getCharInfo
 # TODO Fix
 from CharDisplay import myCodepoint2script, myCodepoint2block, unicodeCategories, unixJargon
+import CharDisplay
 
 import DomExtensions
 from alogging import ALogger
@@ -99,6 +101,13 @@ Need to integrate Sebastian et al's excellent data from
 
 =To Do=
 
+* Check and add [X]ID_Start / [X]ID_Continue [http://unicode.org/reports/tr31/]
+[http://unicode.org/reports/tr31/]
+* Add a property(s) that gets you an ascified or latin1ified version, say:
+    if (c.isASCII() and c.isPrint()): return literal
+    elif (ord(c) <= 0xFF): return "\\x%02x" % ord(c)
+    elif (ord(c) < = 0xFFFF): return "\\u%04x" % ord(c)
+    else: eturn "\\x{%x}" % ord(c)
 * Integrate with `ord` or `CharDisplay`?
 * Finish TEX &c. support
 * Options for minwidth, hex case, lfAs, spaceAs, controlAs.
@@ -361,7 +370,7 @@ class UDBEntry(dict):
 ###############################################################################
 # https://www.unicode.org/Public/5.2.0/ucdxml/
 # https://www.unicode.org/reports/tr44/
-class UnicodeDBAccess:
+class UnicodeDBAccess:  # TODO: Unfinished
     NORMATIVE_FILES = [
     ]
 
@@ -375,7 +384,7 @@ class UnicodeDBAccess:
         #FILENAME2 = "ucd.unihan.flat.xml"
         EXPECTEDFIELDS = 15
         _TYPES = [ ]
-        charEntries = {}
+        #charEntries = {}
 
         lastN = 0
         docEl = xml.dom.minidom.parse(path)
@@ -392,8 +401,8 @@ class UnicodeDBAccess:
             UdbEntry()
 
 
-
 ###############################################################################
+# Shorthand used by classes Sebastian and CharInfo
 #
 class InfoValues(Enum):
     P = "Property"
@@ -404,17 +413,106 @@ class InfoValues(Enum):
     X = "None"
     S = "In Sebastian file"
 
+P = InfoValues.P
+F = InfoValues.F
+f = InfoValues.f
+C = InfoValues.C
+c = InfoValues.c
+X = InfoValues.X
+S = InfoValues.S
+
+
+###############################################################################
+#
+class Sebastian(dict):
+    """Add in information from Sebastian Rahtz et al's great DB mapping
+    chars across various representations.
+    TODO: Finish the Sebastian mappings.
+    """
+    propNames = {
+        "ACS":          ( F, X,    S,  str, "freq:61", ),
+        "AIP":          ( F, X,    S,  str, "freq:394", ),
+        "AMS":          ( F, X,    S,  str, "freq:526", ),
+        "APS":          ( F, X,    S,  str, "freq:463", ),
+        "Elsevier":     ( F, X,    S,  str, "freq:745", ),
+        "IEEE":         ( F, X,    S,  str, "freq:223", ),
+        "Springer":     ( F, X,    S,  str, "freq:30", ),
+        "Wolfram":      ( F, X,    S,  str, "freq:695", ),
+        "afii":         ( F, X,    S,  str, "freq:1170", ),
+        "bmp":          ( F, X,    S,  str, "freq:24", ),
+        #"character":    ( F, X,    S,  str, "freq:5646", ),
+        "charlist":     ( P, X,    S,  str, "freq:1", ),
+        "comment":      ( P, X,    S,  str, "freq:210", ),
+        "desc":         ( P, X,    S,  str, "freq:3974", ),
+        "description":  ( P, X,    S,  str, "freq:5646", ),
+        "elsrender":    ( F, X,    S,  str, "freq:50", ),
+        #"entity":       ( F, X,    S,  str, "freq:3975", ),
+        "entitygroups": ( P, X,    S,  str, "freq:1", ),
+        "font":         ( P, X,    S,  str, "freq:560", ),
+        "group":        ( P, X,    S,  str, "freq:5", ),
+        "latex":        ( F, X,    S,  str, "freq:2480", ),
+        "mathlatex":    ( F, X,    S,  str, "freq:198", ),
+        "mathvariant":  ( F, X,    S,  str, "freq:13", ),
+        "mathvariants": ( F, X,    S,  str, "freq:1", ),
+        "set":          ( F, X,    S,  str, "freq:56", ),
+        "surrogate":    ( F, X,    S,  str, "freq:1016", ),
+        "varlatex":     ( F, X,    S,  str, "freq:18", ),
+        "xref":         ( P, X,    S,  str, "freq:63", ),
+        #"@image":       ( F, X,    S,  str, "freq:1442", ),
+        #"@mode":        ( F, X,    S,  str, "freq:4321", ),
+        #"@type":        ( F, X,    S,  str, "freq:4321", ),
+    }
+
+
+    def __init__(self, path:str=None):
+        super(Sebastian, self).__init__()
+        self.sourceUrl = "https://www.w3.org/Math/characters/unicode.xml"
+        if (path is None):
+            self.path = os.path.join(os.environ["HOME"], ".strfchr", "unicode.xml")
+        else:
+            self.path = path
+        self.loadData()
+
+    def loadData(self):
+        if (not os.path.exists(self.path)):
+            check_output([ "curl", self.sourceUrl, ">>", self.path ])
+        if (not os.path.exists(self.path)):
+            lg.fatal("Could not download data from '%s'." % (self.sourceUrl))
+        DomExtensions.DomExtensions.patchDom()
+        xdoc = xml.dom.minidom.parse(self.path)
+
+        charList = xdoc.getChild("charlist")
+        nChars = 0
+        for charEl in charList.childNodes:
+            if (charEl.nodeName != "character"): continue
+            idVal = charEl.getAttribute("id")
+            dec = charEl.getAttribute("dec")
+            assert idVal[0]=="U" and idVal[1:].isdigit()
+            assert int(idVal[1:].lstrip("0")) == int(dec)
+            ci = CharInfo(int(dec))
+            for propEl in charEl.childNodes:
+                if propEl.nodeType != xml.dom.Node.ELEMENT_NODE: continue
+                prop = propEl.nodeName
+                if (prop not in CharInfo.__infoItems__ or
+                    CharInfo.__infoItems__[prop][2]!="C"):
+                    assert False, "Unexpected prop '%s'." % (prop)
+                propVal = propEl.innerText()
+                ci.setProp(prop, propVal)
+                # TODO: A few have attributes....
+            #d = charEl.getChild("description")
+            #d_unicode = d.getAttribute("unicode")
+            #d_text = d.innerText()
+            nChars += 1
+
+
+###############################################################################
+#
 class CharInfo:
     """Store, look up, calculate, and return various properties of a char.
+    These are my own names, and combine Unicode intrinsic properties, with
+    ways you might want to see them (for example, the code point itself
+    is available in various based, the literal in UTF-8, etc.)
     """
-    P = InfoValues.P
-    F = InfoValues.F
-    f = InfoValues.f
-    C = InfoValues.C
-    c = InfoValues.c
-    X = InfoValues.X
-    S = InfoValues.S
-
     __infoItems__ = {  # cf CharDisplay.charProperties
         # Properties (vs. representations)
         "BLOCKNAME":   ( P, X,    0,   str,  "General Punctuation" ),
@@ -472,42 +570,6 @@ class CharInfo:
         "CONTROLPIC":  ( f, c,    0,   str,  "[Unicode CONTROL PICTUREs]" ),
 
         # Ones that requires lookup, not calculation
-
-
-    }
-
-    __extendedItems__ = {  # From Sebastian's file
-        "ACS":          ( F, X,    S,  str, "freq:61", ),
-        "AIP":          ( F, X,    S,  str, "freq:394", ),
-        "AMS":          ( F, X,    S,  str, "freq:526", ),
-        "APS":          ( F, X,    S,  str, "freq:463", ),
-        "Elsevier":     ( F, X,    S,  str, "freq:745", ),
-        "IEEE":         ( F, X,    S,  str, "freq:223", ),
-        "Springer":     ( F, X,    S,  str, "freq:30", ),
-        "Wolfram":      ( F, X,    S,  str, "freq:695", ),
-        "afii":         ( F, X,    S,  str, "freq:1170", ),
-        "bmp":          ( F, X,    S,  str, "freq:24", ),
-        #"character":    ( F, X,    S,  str, "freq:5646", ),
-        "charlist":     ( P, X,    S,  str, "freq:1", ),
-        "comment":      ( P, X,    S,  str, "freq:210", ),
-        "desc":         ( P, X,    S,  str, "freq:3974", ),
-        "description":  ( P, X,    S,  str, "freq:5646", ),
-        "elsrender":    ( F, X,    S,  str, "freq:50", ),
-        #"entity":       ( F, X,    S,  str, "freq:3975", ),
-        "entitygroups": ( P, X,    S,  str, "freq:1", ),
-        "font":         ( P, X,    S,  str, "freq:560", ),
-        "group":        ( P, X,    S,  str, "freq:5", ),
-        "latex":        ( F, X,    S,  str, "freq:2480", ),
-        "mathlatex":    ( F, X,    S,  str, "freq:198", ),
-        "mathvariant":  ( F, X,    S,  str, "freq:13", ),
-        "mathvariants": ( F, X,    S,  str, "freq:1", ),
-        "set":          ( F, X,    S,  str, "freq:56", ),
-        "surrogate":    ( F, X,    S,  str, "freq:1016", ),
-        "varlatex":     ( F, X,    S,  str, "freq:18", ),
-        "xref":         ( P, X,    S,  str, "freq:63", ),
-        #"@image":       ( F, X,    S,  str, "freq:1442", ),
-        #"@mode":        ( F, X,    S,  str, "freq:4321", ),
-        #"@type":        ( F, X,    S,  str, "freq:4321", ),
     }
 
     def __init__(self, wh):
@@ -520,9 +582,15 @@ class CharInfo:
             self.n = ord(wh)
         self.setCharInfo()
 
+    def setProp(self, k, value):
+        if (k not in CharInfo.__infoItems__ and
+            k not in Sebastian.propNames):
+            raise KeyError("Unknown character property '%s'." % (k))
+        self.__setattr__(k, value)
+
     def getitem(self, k):
         if (k not in CharInfo.__infoItems__ and
-            k not in CharInfo.__extendedItems__):
+            k not in Sebastian.propNames):
             raise KeyError("Unknown character property '%s'." % (k))
 
     # For forms we can easily calculate, use properties.
@@ -567,7 +635,7 @@ class CharInfo:
     def HEXENTITY(self): return "&#x%04x;" % (self.n)
     @property
     def NAMEDENTITY(self):
-        nam = cinfo["entNamed"]
+        nam = codePointToDatum(self.n, "entNamed")
         if (nam): return nam
         return getFallback(self)
 
@@ -590,13 +658,16 @@ class CharInfo:
         myBytes = self.c.encode("utf-8")
         for b in myBytes: buf += "%02x" % (b)
         return buf
+
     @property
     def URL(self): urlquote(self.c.encode("utf-8"))
+
     @property
     def MNEMONIC(self):
         if (self.n <= 0x20): return C0names[self.n]
         if (0x80 <= self.n <= 0x9F): return C1names[self.n-0x80]
         return getFallback(self)
+
     @property
     def CONTROLPIC(self):
         if (self.n <= 0x20): return chr(0x2400+self.n)
@@ -607,10 +678,10 @@ class CharInfo:
     # pylint: disable=W0201
     #
     def setCharInfo(self):
-        """Gather a lot of info about the given code point.
+        """Gather a lot of info about the given code point, and store
+        in self.xxxx
         See https://docs.python.org/2/library/unicodedata.html
         """
-        c = self.c
         n = self.n
         if (n > 0xFFFFF):
             self.ERROR = "[Out of range]"
@@ -650,13 +721,14 @@ class CharInfo:
 
         # Properties
         #
-        self.ISURI = n<128 and re.match(CharDisplay.okInUriExpr, c)
-        # ISFPI
+        # TODO: Add XIDENTSTART, XIDENTCONTINUE
+        self.ISFPI = CharDisplay.okInFPI(self.n)
+        self.ISURI = CharDisplay.okInURI(self.n)
         self.ISBIDI = unicodedata.bidirectional(self.c)
         self.COMBINING = unicodedata.combining(self.c)
         self.EAWIDTH = unicodedata.east_asian_width(self.c)
         self.ISMIRROR = unicodedata.mirrored(self.c)
-        # MIRROROF
+        # TODO: Add MIRROROF
 
         self.DECOMP = unicodedata.decomposition(self.c)
         self.NFC = unicodedata.normalize("NFC",  self.c)
@@ -668,51 +740,9 @@ class CharInfo:
 
 
 ###############################################################################
-#
-
-class Sebastian(dict):
-    def __init__(self, path:str=None):
-        #super(dict, self).__init__()
-        self.sourceUrl = "https://www.w3.org/Math/characters/unicode.xml"
-        if (path is None):
-            self.path = os.path.join(os.environ["HOME"], ".strfchr", "unicode.xml")
-        else:
-            self.path = path
-        self.loadData()
-
-    def loadData(self):
-        if (not os.path.exists(self.path)):
-            check_output([ "curl", self.sourceUrl, ">>", self.path ])
-        if (not os.path.exists(self.path)):
-            lg.fatal("Could not download data from '%s'." % (self.sourceUrl))
-        DomExtensions.patchDom()
-        xdoc = xml.dom.minidom.parse(self.path)
-
-        charList = xdoc.getChild("charlist")
-        nChars = 0
-        for charEl in charList.childNodes:
-            if (charEl.nodeName != "character"): continue
-            idVal = charEl.getAttribute("id")
-            dec = charEl.getAttribute("dec")
-            assert idVal[0]=="U" and idVal[1:].isdigit()
-            assert int(idVal[1:].lstrip("0")) == int(dec)
-            ci = CharInfo(int(dec))
-            for propEl in charEl.childNodes:
-                if propEl.nodeType != xml.dom.Node.ELEMENT_NODE: continue
-                prop = propEl.nodeName
-                if (prop not in CharInfo.__infoItems__ or
-                    CharInfo.__infoItems__[prop][2]!="C"):
-                    assert False, "Unexpected prop '%s'." % (prop)
-                propVal = propEl.innerText()
-                ci.setprop(prop, propVal)
-                # TODO: A few have attributes....
-            d = charEl.getChild("description")
-            d_unicode = d.getAttribute("unicode")
-            d_text = d.innerText()
-            nChars += 1
-
-
-###############################################################################
+# Define single-character mnemonics to support in format-strings.
+# For example, indicate that the literal character is to be insierted with "%l".
+# You can also say %{LITERAL}, though.
 #
 __mnemonicMap__ = {
     "l": "LITERAL",
@@ -721,6 +751,7 @@ __mnemonicMap__ = {
     "4": "SLASH4",
     "8": "SLASH8",
 
+    # Capitals are the same as lowers here, but "packaged" as XML entities".
     "D": "DECENTITY",
     "X": "HEXENTITY",
     "N": "NAMEDENTITY",
@@ -764,6 +795,7 @@ __mnemonicMap__ = {
     #"": "ISURI",
     #"": "ISMIRROR",
 }
+
 __name2mnemonic__ = {}
 for k0, v0 in __mnemonicMap__.items():
     if (v0 not in CharInfo.__infoItems__.keys()):
@@ -928,9 +960,9 @@ for td in __texDiacritics__:
 def entityToTex(eref:str) -> str:
     """
     """
-    c = html.decode(eref)
-    if (len(c) != 1): raise KeyError()
-    decomp = unicodedata.normalize("NFKD", c)
+    ec = html.unescape(eref)
+    if (len(ec) != 1): raise KeyError()
+    decomp = unicodedata.normalize("NFKD", ec)
     buf = ""
     for part in decomp:
         if (part in combinersKnownInTex):
@@ -1135,7 +1167,6 @@ charInfo = [
     ( r"þ", r"{\\th}" ),
  ]
 
-
 def showCodes():
     print("""List of %-codes for format strings (U+00E2 as example).
     P/F: Property or Format?         Calc: Can be easily derived
@@ -1173,11 +1204,11 @@ if __name__ == "__main__":
             "--format", "-f", type=str, metavar="F", default=DFT_FORMAT,
             help="Specify what to print, using %%_ and/or %%{___} codes.")
         parser.add_argument(
+            "--help-codes", "--list-codes", action="store_true",
+            help="Display a list of %%-codes and names, and exit.")
+        parser.add_argument(
             "--iencoding", type=str, metavar="E", default="utf-8",
             help="Assume this character coding for input. Default: utf-8.")
-        parser.add_argument(
-            "--help-codes", action="store_true",
-            help="Display a list of %%-codes and names, and exit.")
         parser.add_argument(
             "--max", type=anyInt, metavar="N",
             help="If this and --min are set, show codepoints in that range.")

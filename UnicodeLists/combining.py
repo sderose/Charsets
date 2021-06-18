@@ -1,3 +1,4 @@
+import re
 combiningCharsExpr = re.compile(
     r'[' +
     r'\x{0300}-\x{036f}\x{0483}-\x{0489}\x{07eb}-\x{07f3}' +
@@ -6,7 +7,7 @@ combiningCharsExpr = re.compile(
     r'\x{2de0}-\x{2dff}\x{3099}-\x{309a}\x{a66f}-\x{a69f}' + # cyr, bamum
     r'\x{a6f0}-\x{a6f1}\x{a8e0}-\x{a8f1}\x{fe20}-\x{fe26}' + # devanagri
     r'\x{101fd}\x{1d165}-\x{1d172}\x{1d17b}-\x{1d1ad}' +
-    r'\x{1d242}-\x{1d244}
+    r'\x{1d242}-\x{1d244}' +
     ']', flags=re.UNICODE)
 
 combiningChars = {

@@ -22,7 +22,7 @@ __metadata__ = {
 __version__ = __metadata__['modified']
 
 descr = """
-=head1 Description
+=Description=
 
 Collects fonts from the directories where MacOS keeps them, and makes
 an HTML file with a sample of each.
@@ -30,9 +30,9 @@ an HTML file with a sample of each.
 The list could be shortened by leaving out files that are variants of a single
 font-family, or ones that Browsers don't seem to use.
 
-=head1 Related Commands
+=Related Commands=
 
-=head1 Known bugs and Limitations
+=Known bugs and Limitations=
 
 =Rights=
 
@@ -44,7 +44,7 @@ For further information on this license, see
 For the most recent version, see [http://www.derose.net/steve/utilities]
 or [https://github.com/sderose].
 
-=head1 Options
+=Options=
 """
 
 
