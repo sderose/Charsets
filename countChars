@@ -1,6 +1,7 @@
 #!/usr/bin/env perl -w
 #
 # countChars: Find and report what characters occur.
+# 2006-04-27: Written by Steven J. DeRose.
 #
 use strict;
 use Getopt::Long;
@@ -37,29 +38,32 @@ Finds and reports on what characters occur in I<files> (or STDIN), and
 how often. It can handle many encodings, and many "escaped" representations
 such as \n, &#65;, \uBEEF, etc.
 
-By default (see I<--count>), reports the total number of occurrences of
+By default, reports the total number of occurrences of
 all characters, and the number of character instances for
 each Unicode "Script" and "Block". To sort by number of occurrences (rank)
 instead of character code point frequency, use I<--rank>. To suppress
 reporting for the ASCII printable characters (known as the "G0" set),
-use I<--no-includeg0>
+use I<--no-includeg0>. To suppress all reporting of character counts
+(leaving just summaries by representation type, range, script, and block),
+use I<--no-count>.
 
 B<Note>: Be sure to set the character encoding if applicable,
 using I<--unicode>, I<--cp1252>, or I<--iencoding> (see also I<--listEncodings>).
-If you don't specify an encoding, it will make the best of things,
+If you don't specify an encoding, it will guess,
 which basically means use bytes raw.
 
-For example, to run this over all the I</txt> files under the current
+For example, to run this over all the I<.txt> files under the current
 directory, but ignoring all characters between pointy-brackets:
 
-    countChars -r -istrip '<[^>]+>' *.txt
+    countChars -r --istrip '<[^>]+>' *.txt
 
 By default, this script only detects literal characters (see I<--literals>).
 However, there are options for catching many alternate representations such
 as \\n, \\xA0, &#160;, U+00A0, etc. (see next section).
 
 Use I<--instances> to report each individual instance of characters
-in a given range or ranges.
+in a given range or ranges. This is often useful after running general
+statistics, to find and fix individual problem cases.
 
 To restrict processing to certain parts of each record,
 see I<--strip>, I<--columns>, and L<Options for TabularFormats> below).
@@ -1516,4 +1520,3 @@ BEGIN {
         return($cp1252Names[$n] || "???");
     }
 } # END
-
