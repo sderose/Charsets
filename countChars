@@ -359,6 +359,7 @@ gadget to convert between many possible representations of unicode.
 =back
 
 
+
 =head1 Known bugs and limitations
 
 Produces excessive warnings on invalid utf8.
@@ -383,6 +384,33 @@ Color hyph/space/dash/quote green; non-word-chars outside ascii
 `--first` appears to be broken.
 
 `--noascii` appears to be broken.
+
+
+
+=head1 To do
+
+=over
+
+=item * Report rank of character by frequency.
+
+=item * Identify HTML named entities
+
+=item * Option to insert literal (or entity or \\x) in output chart.
+
+=item * Catch and complain about undetected UTF8, unicode coding errors (done?).
+
+=item * Watch for common errors, like Mac/Win char sequences that arise
+from mis-identified charset (say, quotes, etc).
+
+=item * Lose local escaping and entities tables.
+
+=item * Support colorizing in I<--instances> reporting.
+
+=item * Trap SIGINT and report partial results.
+
+=item * Port to Python.
+
+=back
 
 
 =head1 History
@@ -460,30 +488,6 @@ handle from 1 to 5 hex digits, not just exactly 4.
 =back
 
 
-=head1 To do
-
-=over
-
-=item *     Identify HTML named entities
-
-=item *     Option to insert literal (or entity or \\x) in output chart.
-
-=item *     Catch and complain about undetected UTF8, unicode coding errors (done?).
-
-=item * Watch for common errors, like Mac/Win char sequences that arise
-from mis-identified charset (say, quotes, etc).
-
-=item *     Lose local escaping and entities tables.
-
-=item *     Support colorizing in I<--instances> reporting.
-
-=item *     Trap SIGINT and report partial results.
-
-=item *     Port to Python.
-
-=back
-
-
 =head1 Ownership
 
 This script was formerly known as C<nonascii>.
@@ -496,6 +500,7 @@ this license, see L<http://creativecommons.org/licenses/by-sa/3.0/>.
 For the most recent version, see L<http://www.derose.net/steve/utilities/> or
 L<https://github/com/sderose/Charsets>.
 
+
 =cut
 
 
@@ -503,14 +508,14 @@ my $badUTFsubstitute = "?";       # See --fixBadUTF8 option
 
 # Kinds of representations to catch
 #
-my $css             = 0;    # Catch CSS-escaped characters
-my $ents            = 0;    # Catch HTML named entities?
-my $javascript      = 0;    # Catch JavaScript-escaped characters
-my $literals        = 1;    # Detect literal characters?
-my $perl            = 0;    # Catch Perl/C/etc backslashes
-my $upop            = 0;    # Catch Unicode U'xxxx and U+xxxx notation
-my $uri             = 0;    # Catch URI %-escapes?
-my $xml             = 0;    # Catch XML numeric character references?
+my $css               = 0;       # Catch CSS-escaped characters
+my $ents              = 0;       # Catch HTML named entities?
+my $javascript        = 0;       # Catch JavaScript-escaped characters
+my $literals          = 1;       # Detect literal characters?
+my $perl              = 0;       # Catch Perl/C/etc backslashes
+my $upop              = 0;       # Catch Unicode U'xxxx and U+xxxx notation
+my $uri               = 0;       # Catch URI %-escapes?
+my $xml               = 0;       # Catch XML numeric character references?
 
 # General options
 #
@@ -750,11 +755,11 @@ if ($oencoding eq "utf-8") {
 my $UNK = "-?";
 
 my @C0names = (
-          "NUL", "SOH", "STX", "ETX", "EOT", "ENQ", "ACK", "BEL",
-          "BS ", "HT ", "LF ", "VT ", "FF ", "CR ", "SO ", "SI ",
-          "DLE", "DC1", "DC2", "DC3", "DC4", "NAK", "SYN", "ETB",
-          "CAN", "EM ", "SUB", "ESC", "FS ", "GS ", "RS ", "US ",
-          "SP ");
+	"NUL", "SOH", "STX", "ETX", "EOT", "ENQ", "ACK", "BEL",
+	"BS ", "HT ", "LF ", "VT ", "FF ", "CR ", "SO ", "SI ",
+	"DLE", "DC1", "DC2", "DC3", "DC4", "NAK", "SYN", "ETB",
+	"CAN", "EM ", "SUB", "ESC", "FS ", "GS ", "RS ", "US ",
+	"SP ");
 
 my @C1names = (
     "PAD", "HOP",  "BPH", "NBH", "IND", "NEL", "SSA", "ESA", # x80-
