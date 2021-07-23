@@ -149,13 +149,13 @@ GetOptions(%getoptHash) || die("Bad options.\n");
 use XmlTuples;
 
 my $c0HashRef = my $c1HashRef = my $macHashRef = undef;
-    my $xt = new XmlTuples(getC0Data());
-    $c0HashRef = $xt->getAllAsHash("Hex");
-    ($verbose) && warn "c0hashRef: $c0HashRef.\n";
-    $xt = new XmlTuples(getC1Data());
-    $c1HashRef = $xt->getAllAsHash("Hex");
-    $xt = new XmlTuples(getMacRomanData());
-    $macHashRef = $xt->getAllAsHash("Hex");
+my $xt = new XmlTuples(getC0Data());
+$c0HashRef = $xt->getAllAsHash("Hex");
+($verbose) && warn "c0hashRef: $c0HashRef.\n";
+$xt = new XmlTuples(getC1Data());
+$c1HashRef = $xt->getAllAsHash("Hex");
+$xt = new XmlTuples(getMacRomanData());
+$macHashRef = $xt->getAllAsHash("Hex");
 
 # These data hashes can be accessed via getCharInfo(hashRef, n, item).
 my $c0Ref = getC0Data2();
@@ -164,7 +164,6 @@ my $cp1252Ref = getcp1252Data2();
 my $macRef = getMacRomanData2();
 
 
-###############################################################################
 ###############################################################################
 # MAIN
 #
@@ -224,7 +223,6 @@ while (my $arg = shift) {
 exit;
 
 
-###############################################################################
 ###############################################################################
 #
 sub doOneChar {
@@ -348,9 +346,6 @@ sub getBases {
 }
 
 
-
-###############################################################################
-###############################################################################
 ###############################################################################
 # Maintain arrays of names for the C0 and C1 control characters
 # (See chart at bottom)
@@ -684,6 +679,7 @@ sub getC0Data {
 @);
 } # getC0Data
 
+
 ###############################################################################
 # PAD, HOP, and SGCI are listed as "XXX" in Unicode (acc. Wikipedia).
 #
@@ -798,9 +794,6 @@ sub getC1Data {
 } # getC1Data
 
 
-
-###############################################################################
-###############################################################################
 ###############################################################################
 # Without XSV.
 # Make a hash by hexcode, with an array of data items (see comment below).
@@ -859,6 +852,7 @@ sub getC0Data2 {
     }
     return(\%c0d);
 } # getC0Data2
+
 
 ###############################################################################
 # PAD, HOP, and SGCI are unassigned in Unicode (acc. Wikipedia),
@@ -960,6 +954,7 @@ sub getcp1252Data2 {
     return(\%cp1252d);
 } # getcp1252Data2
 
+
 ###############################################################################
 # See http://en.wikipedia.org/wiki/Mac_OS_Roman
 #
@@ -969,6 +964,7 @@ sub getMacRomanData2 {
     my $qm = ' quotation mark';
     my %mac = (
     #       [ Lit        Hex   UEquiv  EntName   Descr
+    ####### C1 #######
     0x80 => [ chr(0x80), 0x80, 0x00C4, "Auml",   $uc.'A with diaeresis', ],
     0x81 => [ chr(0x81), 0x81, 0x00C5, "Aring",  $uc.'A with ring above', ],
     0x82 => [ chr(0x82), 0x82, 0x00C7, "Ccedil", $uc.'C with cedilla', ],
@@ -1001,6 +997,7 @@ sub getMacRomanData2 {
     0x9D => [ chr(0x9D), 0x9D, 0x00F9, "ugrave", $lc.'u with grave', ],
     0x9E => [ chr(0x9E), 0x9E, 0x00FB, "ucirc",  $lc.'u with circumflex', ],
     0x9F => [ chr(0x9F), 0x9F, 0x00FC, "uuml",   $lc.'u with diaeresis', ],
+    ####### G1 #######
     0xA0 => [ chr(0xA0), 0xA0, 0x2020, "dagger", 'Dagger', ],
     0xA1 => [ chr(0xA1), 0xA1, 0x00B0, "deg",    'Degree sign', ],
     0xA2 => [ chr(0xA2), 0xA2, 0x00A2, "cent",   'Cent sign', ],
@@ -1103,8 +1100,6 @@ sub getMacRomanData2 {
 
 
 
-###############################################################################
-###############################################################################
 ###############################################################################
 #
 
