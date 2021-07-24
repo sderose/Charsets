@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 #
-# showCharsInPythonClass
+# showCharsInPythonClass: Retrieve lists of characters by category (Ll, etc).
+# 2015-03-31: Written by Steven J. DeRose.
 #
 from __future__ import print_function
 import sys, argparse
@@ -15,12 +16,13 @@ if PY3:
 
 __metadata__ = {
     'title'        : "showUnicodeCharsInClass.py",
+    'description'  : "Retrieve lists of characters by category (Ll, etc).",
     'rightsHolder' : "Steven J. DeRose",
     'creator'      : "http://viaf.org/viaf/50334488",
     'type'         : "http://purl.org/dc/dcmitype/Software",
     'language'     : "Python 2.7.6, 3.6",
     'created'      : "2015-03-31",
-    'modified'     : "2020-02-14",
+    'modified'     : "2021-07-24",
     'publisher'    : "http://github.com/sderose",
     'license'      : "https://creativecommons.org/licenses/by-sa/3.0/"
 }
@@ -33,6 +35,7 @@ Display all Unicode characters in a given numeric range, that are in a given
 Unicode character category.
 
 Use ''--showCategories'' to get a list of the category mnemonics.
+
 
 =Output formats available=
 
@@ -93,10 +96,12 @@ a [...] group:
 Ranges of contiguous characters are combined via "-". Characters are encoded
 using the smallest hex escape they can (probably should add a `--width` option).
 
+
 =Related Commands=
 
 `ord`, `mathAlphanumerics`, `countChars`,
 `makeCharChart.py`, `getCharsByScript`.
+
 
 =Known bugs and Limitations=
 
@@ -109,13 +114,20 @@ Long lines with <--format bracket> are not wrapped.
 
 Should have a way to find all chars matching some regex (but see `ord`).
 
+
+=To do=
+
+* Output option to call CharDisplay.py. Or just integrate this whole thing as a search
+option there.
+
+
 =History=
 
-* 2015-03-31: Written. Copyright by Steven J. DeRose.
-
+* 2015-03-31: Written by Steven J. DeRose.
 * 2018-11-07: Cleanup, move to Python 3.
-
 * 2020-02-14: New layout. Lint.
+* 2021-07-24: Allow requesting multiple categories.
+
 
 =Rights=
 
@@ -126,8 +138,10 @@ this license, see http://creativecommons.org/licenses/by-sa/3.0/.
 For the most recent version, see [http://www.derose.net/steve/utilities] or
 [http://github.com/sderose].
 
+
 =Options=
 """
+
 
 ###############################################################################
 # http://www.fileformat.info/info/unicode/category/index.htm
@@ -181,43 +195,41 @@ def processOptions():
         parser = argparse.ArgumentParser(description=descr)
 
     parser.add_argument(
-        '--find',             type=str,
+        '--find', type=str,
         help='Retrieve characters whose formal names match this regex.')
     parser.add_argument(
-        '--first',            type=any_int, default=32,
+        '--first', type=any_int, default=32,
         help='First code point to check.')
 
     oChoices = [ "chart", "xsv", "bycode", "byname", "bracket" ]
     parser.add_argument(
-        '--format',            type=str, default="chart",
-        choices=oChoices,
+        '--format', type=str, default="chart", choices=oChoices,
         help='How to arrange the output. Choices: ' + str(oChoices))
     parser.add_argument(
-        '--last',             type=any_int, default=65535,
+        '--last', type=any_int, default=65535,
         help='Last code point to check.')
     parser.add_argument(
-        "--metaregex",        action='store_true',
+        "--metaregex", action='store_true',
         help='With --bracket, make a regex to expand \\p{xx} to a []-group.')
     parser.add_argument(
-        "--quiet", "-q",      action='store_true',
+        "--quiet", "-q", action='store_true',
         help='Suppress most messages.')
     parser.add_argument(
-        "--showCategories",      action='store_true',
+        "--showCategories", action='store_true',
         help='Display the 2-letter codes and their meanings.')
     parser.add_argument(
-        "--verbose", "-v",    action='count',       default=0,
+        "--verbose", "-v", action='count', default=0,
         help='Add more messages (repeatable).')
     parser.add_argument(
-        "--version",          action='version',     version='Version of '+__version__,
+        "--version", action='version', version='Version of '+__version__,
         help='Display version information, then exit.')
 
     parser.add_argument(
-        'charCategory',          type=str, default="", nargs='?',
-        help='2-letter abbreviation for character category to display.')
+        'charCategories', type=str, default="", nargs=argparse.REMAINDER,
+        help='1- or 2-letter abbreviation(s) for character category(s) to display.')
 
     args0 = parser.parse_args()
     return(args0)
-
 
 def makeEsc(nn, literals=False):
     """Make the smallest hex-escape for the character. If requested, use
@@ -235,8 +247,16 @@ def makeEsc(nn, literals=False):
     if (nn<65536):                  return("\\u%04x" % (nn))
     return("\\U%08x" % (nn))
 
-
-###############################################################################
+def inAnyRequestedCategory(uchar:str):
+    """Check whether the given character is in any of the categories (1- or 2-letter)
+    requested by the user.
+    """
+    thisCat = unicodedata.category(uchar)
+    for ccat in args.charCategories:
+        if thisCat.startswith(ccat): return True
+    return False
+    
+    
 ###############################################################################
 # Main
 #
@@ -249,11 +269,14 @@ if (args.showCategories):
         print("    %2s: %s" % (chc, unicodeCategories[chc]))
     sys.exit()
 
-if (args.charCategory not in unicodeCategories):
-    sys.stderr.write("Unknown cateogory mnemonic '%s'." % (args.charCategory))
+if (not args.charCategories):
+    sys.stderr.write("No cateogory mnemonic(s) requested. Use --showCategories for a list.\n")
     sys.exit()
 
-ccat = args.charCategory
+for ccat in args.charCategories:
+    if (ccat in unicodeCategories): continue
+    sys.stderr.write("Unknown cateogory mnemonic '%s'." % (ccat))
+    sys.exit()
 
 #ex = r'\d'                      # yes
 ex = r'[\p{Letter}]'            # no
@@ -262,13 +285,15 @@ ex = r'[\p{Letter}]'            # no
 
 cex = re.compile(ex, re.U)
 
+if (args.format == "chart"):
+    print("    codept lit cat  Unicode name")
+    
 brack = u'['
-n = 0
+nFound = 0
 lastOne = -99
 inARange = False
 for codePoint in range(args.first, args.last+1):
     c = unichr(codePoint)
-    flag = 0
     try:
         nm = unicodedata.name(c)
     except ValueError as e:
@@ -276,20 +301,19 @@ for codePoint in range(args.first, args.last+1):
 
     gotOne = False
     if (args.find):
-        if (re.search(args.find, nm, re.I)): gotOne = True
+        if (not re.search(args.find, nm, re.I)): continue
     else:
-        if (unicodedata.category(c).startswith(ccat)):
-            gotOne = True
+        if (not inAnyRequestedCategory(c)): continue
 
-    if (not gotOne): continue
-
-    n += 1
-    if (args.format == "chart"):
-        print("    U+%04x '%s' (%-2s) (%d) %s" %
-            (codePoint, c, unicodedata.category(c), int(bool(flag)), nm))
+    theCat = unicodedata.category(c)
+    nFound += 1
+    
+    if (args.format == "chart"):  # the default
+        print("    U+%04x '%s' (%-2s) %s" %
+            (codePoint, c, theCat, nm))
     elif (args.format == "xsv"):
         print("<Rec Hex='%04x' Cat='%s' Name='%s' />" %
-            (codePoint, unicodedata.category(c), nm))
+            (codePoint, theCat, nm))
     elif (args.format == "bycode"):
         print("    %-12s: '%s'," % (makeEsc(codePoint), nm))
     elif (args.format == "byname"):
@@ -322,8 +346,11 @@ if (args.format == "bracket"):
     print(brack)
 
 if (not args.quiet):
-    sys.stderr.write("Done. %d of %d characters [u+%04x:u+%04x]\n" %
-        (n, args.last-args.first+1, args.first, args.last+1))
-    qual = "    in category %s (%s)" % (ccat, unicodeCategories[ccat])
-    if (args.find): qual = "    matching /%s/" % (args.find)
-    print(qual)
+    sys.stderr.write("Done. %d of %d characters [u+%04x:u+%04x] in categories:\n" %
+        (nFound, args.last-args.first+1, args.first, args.last+1))
+    qual = ""
+    for ccat in args.charCategories:
+        qual += "    %-2s (%s)\n" % (ccat, unicodeCategories[ccat])
+    if (args.find):
+         qual = "    matching /%s/\n" % (args.find)
+    print(qual, end="")

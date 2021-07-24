@@ -1,12 +1,14 @@
 #!/usr/bin/perl -w
 #
-# ord: By Steven J. DeRose, 2007-10.
+# ord: Display information about Unicode characters.
+# 2007-10: Written by Steven J. DeRose.
 #
 use strict;
 use Getopt::Long;
 use charnames ':full';
 use Unicode::UCD 'charscript';
 use Unicode::UCD 'charblock';
+use Unicode::UCD 'charinfo';
 use HTML::Entities;
 use Encode;
 use URI::Escape;
@@ -15,12 +17,13 @@ use URI::Escape;
 
 our %metadata = (
     'title'        => "ord",
+    'description'  => "Display information about Unicode characters.",
     'rightsHolder' => "Steven J. DeRose",
     'creator'      => "http://viaf.org/viaf/50334488",
     'type'         => "http://purl.org/dc/dcmitype/Software",
     'language'     => "Perl 5.18",
     'created'      => "2007-10",
-    'modified'     => "2020-11-30",
+    'modified'     => "2021-07-24",
     'publisher'    => "http://github.com/sderose",
     'license'      => "https://creativecommons.org/licenses/by-sa/3.0/"
 );
@@ -29,6 +32,7 @@ our $VERSION_DATE = $metadata{'modified'};
 =pod
 
 =encoding utf8
+
 
 =head1 Usage
 
@@ -430,6 +434,7 @@ For C<--pairs>, in addition to a list of keywords, the code has a list of charac
 
 Does not offer information on Unicode categories such as
 "Nd" ("Number, Decimal Digit") and so on. See C<showUnicodeCharsInClass.py>.
+See L<https://www.perl.com/pub/2012/05/perlunicook-get-character-categories.html/>
 
 Reports look a little weird in the case of combining characters. Especially if
 you search for just the combining characters, and print them out as
@@ -510,6 +515,8 @@ Warn if env LANG not utf-8. Recognize html entity names, C-J, ^J, etc.
 =item * 2020-09-03: Clean up. Add warning for I<--findString> w/ bad chars.
 
 =item * 2020-11-30: Support hex UTF-8 input.
+
+=item * 2021-07-24: Add character categories.
 
 =back
 
@@ -1216,7 +1223,7 @@ sub showOne {
 
 sub pline {
     my ($label, $data) = @_;
-    printf("    %-16s %s\n", $label, $data || "");
+    printf("    %-18s %s\n", $label, $data || "");
 }
 
 sub showUnicodeInfo {
@@ -1230,6 +1237,7 @@ sub showUnicodeInfo {
     }
     else {
         pline("Unicode Name:",    charnames::viacode($n) || "-NOT FOUND-");
+        pline("Unicode Category:",charinfo($n)->{category} || "-NOT FOUND-");
         pline("Unicode Script: ", charscript(uDisp($n)));
         pline("Unicode Block:  ", charblock($n));
     }
