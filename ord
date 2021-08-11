@@ -12,6 +12,7 @@ use Unicode::UCD 'charinfo';
 use HTML::Entities;
 use Encode;
 use URI::Escape;
+use POSIX;
 
 #use sjdUtils;  # getUTF8(), isUnicodeCodePoint() are copied locally.
 
@@ -159,11 +160,12 @@ not defined.
 
 Show code points in binary.
 
-=item * B<--chart>
+=item * B<--chart> I<name>
 
-Show a chart of character values and mnemonics.
-See also I<--c0>, I<--c1>, I<--g0>, I<--g1>, I<--digits>,
-and I<--math> for partial charts.
+Show info for all the characters in the named range (c0, g0, c1, g1, ascii, or latin1, 
+greek, hebrew, cyrillic, and several others).
+See also I<--c0>, I<--c1>, I<--g0>, I<--g1>, I<--table>, I<--digits>,
+and I<--math> for other kinds of charts.
 Charts are not affected by I<--minU> or I<maxU>.
 
 =item * B<--cp1252>
@@ -381,6 +383,12 @@ Synonym for I<--findRegex>.
 
 Show short names for characters.
 
+=item * B<--table> I<name>
+
+Show a compact table of characters in the named range (c0, g0, c1, g1, ascii, or latin1).
+See also I<--c0>, I<--c1>, I<--g0>, I<--g1>, I<--table>, I<--digits>,
+and I<--math> for other kinds of displayts.
+
 =item * B<--typing>
 
 For non-ASCII characters, show how to key it (not yet supported, and of course
@@ -518,6 +526,8 @@ Warn if env LANG not utf-8. Recognize html entity names, C-J, ^J, etc.
 
 =item * 2021-07-24: Add character categories.
 
+=item * 2021-08-05: Add --table, re-do --chart.
+
 =back
 
 
@@ -584,7 +594,7 @@ setupMathAlphabets();
 # Option defaults
 #
 my $binary      = 0;
-my $chart       = 0;
+my $chart       = "";
 my $cp1252      = 0;
 my $decimal     = 1;
 my $digits      = 0;
@@ -610,6 +620,7 @@ my $pyFunction  = 'chr';
 my $quiet       = 0;
 my $short       = 0;
 my $typing      = 1;
+my $table       = "";
 my $utf8        = 1;
 my $verbose     = 0;
 
@@ -620,7 +631,7 @@ my $verbose     = 0;
 Getopt::Long::Configure ("ignore_case");
 my $result = GetOptions(
     "binary!"             => \$binary,
-    "c|chart"             => \$chart,
+    "c|chart=s"           => \$chart,
     "cp1252!"             => \$cp1252,
     "c0"                  => \$C0,
     "c1"                  => \$C1,
@@ -648,6 +659,7 @@ my $result = GetOptions(
     "pyFunction=s"        => \$pyFunction,
     "q|quiet!"            => \$quiet,
     "short!"              => \$short,
+    "table=s"             => \$table,
     "typing!"             => \$typing,
     "utf8!"               => \$utf8,
     "v|verbose+"          => \$verbose,
@@ -982,10 +994,30 @@ sub pyDisp {
 
 
 ###############################################################################
+# Display info for all the characters in a given range.
 #
-sub showChart {
+my %namedRanges = (
+	"c0"     => [   0, 31 ],
+    "g0"     => [  32, 127 ],
+    "c1"     => [ 128, 159 ],
+    "g1"     => [ 160, 255 ],
+    "ascii"  => [   0, 127 ],
+    "latin1" => [   0, 255 ],
+    "LatinxA"    	=> [ 0x0100, 0x017F ],
+    "LatinxB"    	=> [ 0x0180, 0x024F ],
+    "IPA"    => [ 0x0250, 0x02AF ],
+    "Combining"    			=> [ 0x0300, 0x036F ],
+    "Greek"    				=> [ 0x0370, 0x03FF ],
+    "Cyrillic"    			=> [ 0x0400, 0x04FF ],
+    "Armenian"    			=> [ 0x0530, 0x058F ],
+    "Hebrew"    			=> [ 0x0590, 0x05FF ],
+    "Arabic"    			=> [ 0x0600, 0x06FF ],
+    "Syriac"    			=> [ 0x0700, 0x074F ],
+);
+
+sub showRange {
     my ($sectionName) = @_;
-    ($verbose) && warn "Arg to showChart: $sectionName.\n";
+    ($verbose) && warn "Arg to showRange: $sectionName.\n";
     print "Character mnemonics and names:\n";
 
     if ($sectionName eq "c0") {
@@ -1019,7 +1051,34 @@ sub showChart {
             showOne($n);
         }
     }
-} # showChart
+} # showRange
+
+
+###############################################################################
+# Display info for all the characters in a given range.
+#
+sub showTable {
+    my ($first, $last) = @_;
+	my $perRow = 16;
+	my $f = $perRow * int(($first+0.0)/$perRow);
+	my $l = ($perRow * ceil(($last+0.0)/$perRow)) - 1;
+	
+	my $buf = "          ";
+	for (my $i=0; $i<$perRow; $i++) {
+		$buf .= sprintf("%4x", $i);
+	}
+	print("$buf\n");
+	for (my $i=$f; $i<$l; $i+=$perRow) {
+		$buf = sprintf(" U+%05x: ", $i);
+		for (my $j=0; $j<$perRow; $j++) {
+			my $n = $i+$j;
+			if ($n <= 32) { $n += 0x2400; }  # Control pictures
+			my $c = chr($n);
+			$buf .= sprintf("   %s", $c);
+		}
+		print("$buf\n");
+	}
+}
 
 
 ###############################################################################
@@ -1695,17 +1754,20 @@ if ($ENV{"LANG"} !~ m/UTF-?8/i) {
     warn "Warning: LANG environment variable does not mention UTF-8.\n";
 }
 
-if ($C0)       { showChart("c0"); exit; }
-if ($G0)       { showChart("g0"); exit; }
-if ($C1)       { showChart("c1"); exit; }
-if ($G1)       { showChart("g1"); exit; }
 if ($chart) {
-    showChart("c0");
-    showChart("g0");
-    showChart("c1");
-    showChart("g1");
+    showRange($chart);
     exit;
 }
+if ($table) {
+	my $rgRef = $namedRanges{$table};
+	my @rg = @{$rgRef};
+	showTable($rg[0], $rg[1]);
+    exit;
+}
+if ($C0) { showRange("c0"); exit; }
+if ($G0) { showRange("g0"); exit; }
+if ($C1) { showRange("c1"); exit; }
+if ($G1) { showRange("g1"); exit; }
 if ($digits) {
     showDigits();
     exit;
