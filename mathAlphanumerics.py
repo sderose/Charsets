@@ -1116,17 +1116,19 @@ if __name__ == "__main__":
 
         parser.add_argument(
             "--decompose",    action='store_true',
-            help='If set, separate diacritics from their base characters.')
+            help="""If set, separate diacritics from their base characters. With this,
+Latin or Greek characters with diacritics should work, even though Unicode does not
+provide Mathematical and similar variants for most of them.""")
         parser.add_argument(
             "--font",             type=str, default="ITALIC",
-            help='Character variant to convert to. Default: all.')
+            help='Character variant to convert to. Default: ITALIC.')
         parser.add_argument(
             "--indeosperamus",    action='store_true',
             help='Use actual Latin for sample sentences.')
         parser.add_argument(
             "--missing",          type=anyInt, default=0x2623,
             help=('Show this code point for undefined characters. ' +
-            'Default: biohazar (U+2623).'))
+            'Default: biohazard (U+2623).'))
         parser.add_argument(
             "--quiet", "-q",      action='store_true',
             help='Suppress most messages.')
