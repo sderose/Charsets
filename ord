@@ -162,10 +162,16 @@ Show code points in binary.
 
 =item * B<--chart> I<name>
 
-Show info for all the characters in the named range (c0, g0, c1, g1, ascii, or latin1, 
-greek, hebrew, cyrillic, and several others).
-See also I<--c0>, I<--c1>, I<--g0>, I<--g1>, I<--table>, I<--digits>,
-and I<--math> for other kinds of charts.
+Show info for all the characters in a named range chosen from:
+c0, g0, c1, g1, ASCII, Latin1, LatinxA (for Latin Extended A), LatinxB, IPA, Combining, 
+Greek, Cyrillic, Armenian, Hebrew, Arabic, Syriac.
+Ask if you want others, or just add an entry to '%namedRanges'.
+
+The range can also be given as two (decimal or hex) integers,
+separated by non-word characters (such as  '-', ':', '...', ', ', etc.).
+See also I<--c0>, I<--c1>, I<--g0>, I<--g1> (which are just synonyms for I<--chart> with
+the corresponding value.
+See also I<--table>, I<--digits>, and I<--math> for other kinds of charts.
 Charts are not affected by I<--minU> or I<maxU>.
 
 =item * B<--cp1252>
@@ -187,7 +193,7 @@ Display code points in decimal (default).
 =item * B<--digits>
 
 Show a chart with of Unicode digits.
-Some of these are font/style variations, similar to the alphabets
+Some of these are font/style variations, similar to the "MATHEMATICAL" alphabets
 listable using I<--math>; others are digits from non-Latin writing systems.
 See also I<--chart>.
 
@@ -387,7 +393,7 @@ Show short names for characters.
 
 Show a compact table of characters in the named range (c0, g0, c1, g1, ascii, or latin1).
 See also I<--c0>, I<--c1>, I<--g0>, I<--g1>, I<--table>, I<--digits>,
-and I<--math> for other kinds of displayts.
+and I<--math> for other kinds of displays. See also I<--chart> for a different layout.
 
 =item * B<--typing>
 
@@ -603,8 +609,10 @@ my $findBlock   = 0;
 my $findRegex   = 0;
 my $findSet     = 0;
 my $findString  = 0;
-my $C0 = my $C1 = 0;
-my $G0 = my $G1 = 0;
+my $C0          = 0;
+my $C1          = 0;
+my $G0          = 0;
+my $G1          = 0;
 my $hex         = 1;
 my $iconv       = 0;
 my $jargon      = 1;
@@ -997,22 +1005,22 @@ sub pyDisp {
 # Display info for all the characters in a given range.
 #
 my %namedRanges = (
-	"c0"     => [   0, 31 ],
-    "g0"     => [  32, 127 ],
-    "c1"     => [ 128, 159 ],
-    "g1"     => [ 160, 255 ],
-    "ascii"  => [   0, 127 ],
-    "latin1" => [   0, 255 ],
-    "LatinxA"    	=> [ 0x0100, 0x017F ],
-    "LatinxB"    	=> [ 0x0180, 0x024F ],
-    "IPA"    => [ 0x0250, 0x02AF ],
-    "Combining"    			=> [ 0x0300, 0x036F ],
-    "Greek"    				=> [ 0x0370, 0x03FF ],
-    "Cyrillic"    			=> [ 0x0400, 0x04FF ],
-    "Armenian"    			=> [ 0x0530, 0x058F ],
-    "Hebrew"    			=> [ 0x0590, 0x05FF ],
-    "Arabic"    			=> [ 0x0600, 0x06FF ],
-    "Syriac"    			=> [ 0x0700, 0x074F ],
+    "c0"        => [ 0x0000, 0x001F ],
+    "g0"        => [ 0x0020, 0x007F ],
+    "c1"        => [ 0x0080, 0x009F ],
+    "g1"        => [ 0x00A0, 0x00FF ],
+    "ascii"     => [ 0x0000, 0x007F ],
+    "latin1"    => [ 0x0000, 0x00FF ],
+    "LatinxA"   => [ 0x0100, 0x017F ],
+    "LatinxB"   => [ 0x0180, 0x024F ],
+    "IPA"       => [ 0x0250, 0x02AF ],
+    "Combining" => [ 0x0300, 0x036F ],
+    "Greek"     => [ 0x0370, 0x03FF ],
+    "Cyrillic"  => [ 0x0400, 0x04FF ],
+    "Armenian"  => [ 0x0530, 0x058F ],
+    "Hebrew"    => [ 0x0590, 0x05FF ],
+    "Arabic"    => [ 0x0600, 0x06FF ],
+    "Syriac"    => [ 0x0700, 0x074F ],
 );
 
 sub showRange {
@@ -1053,31 +1061,64 @@ sub showRange {
     }
 } # showRange
 
+sub showRange2 {
+    my ($sec) = @_;
+    my $min = 0x0000;
+    my $max = 0x001F;
+    $sec = lc($sec);
+    if (defined $namedRanges{$sec}) {
+        #printf("entry: '%s'...'%s'\n", $namedRanges{$sec}->[0], $namedRanges{$sec}->[1]);
+        $min = $namedRanges{$sec}->[0];
+        $max = $namedRanges{$sec}->[1];
+    }
+    elsif ($sec =~ /^\s*(0?x?[0-9a-f]+)\W+(0?x?[0-9a-f]+)\s*$/) {
+        #printf("Parsed '$chart' to '$1' and '$2'.\n");
+        $min = $1;
+        $max = $2;
+        $min = ($min =~ m/^0/) ? oct($min) : int($min);
+        $max = ($max =~ m/^0/) ? oct($max) : int($max);
+        #printf("Parsed '$chart' to $min and $max.\n");
+    }
+    else {
+        print "Can't parse --chart choice '$sec'.\n";
+        return;
+    }
+    printf("Character mnemonics and names for chars in %s [U+%05x...U+%05x]:\n", 
+        $sec, $min, $max);
+    if ($max < $min) {
+        print "    ******* Range is out of order *******\n";
+        return;
+    }
+    for (my $n=$min; $n<=$max; $n++) {
+        showOne($n);
+    }
+} # showRange
+
 
 ###############################################################################
 # Display info for all the characters in a given range.
 #
 sub showTable {
     my ($first, $last) = @_;
-	my $perRow = 16;
-	my $f = $perRow * int(($first+0.0)/$perRow);
-	my $l = ($perRow * ceil(($last+0.0)/$perRow)) - 1;
-	
-	my $buf = "          ";
-	for (my $i=0; $i<$perRow; $i++) {
-		$buf .= sprintf("%4x", $i);
-	}
-	print("$buf\n");
-	for (my $i=$f; $i<$l; $i+=$perRow) {
-		$buf = sprintf(" U+%05x: ", $i);
-		for (my $j=0; $j<$perRow; $j++) {
-			my $n = $i+$j;
-			if ($n <= 32) { $n += 0x2400; }  # Control pictures
-			my $c = chr($n);
-			$buf .= sprintf("   %s", $c);
-		}
-		print("$buf\n");
-	}
+    my $perRow = 16;
+    my $f = $perRow * int(($first+0.0)/$perRow);
+    my $l = ($perRow * ceil(($last+0.0)/$perRow)) - 1;
+    
+    my $buf = "          ";
+    for (my $i=0; $i<$perRow; $i++) {
+        $buf .= sprintf("%4x", $i);
+    }
+    print("$buf\n");
+    for (my $i=$f; $i<$l; $i+=$perRow) {
+        $buf = sprintf(" U+%05x: ", $i);
+        for (my $j=0; $j<$perRow; $j++) {
+            my $n = $i+$j;
+            if ($n <= 32) { $n += 0x2400; }  # Control pictures
+            my $c = chr($n);
+            $buf .= sprintf("   %s", $c);
+        }
+        print("$buf\n");
+    }
 }
 
 
@@ -1755,19 +1796,19 @@ if ($ENV{"LANG"} !~ m/UTF-?8/i) {
 }
 
 if ($chart) {
-    showRange($chart);
+    showRange2($chart);
     exit;
 }
+if ($C0) { showRange2("c0"); exit; }
+if ($G0) { showRange2("g0"); exit; }
+if ($C1) { showRange2("c1"); exit; }
+if ($G1) { showRange2("g1"); exit; }
 if ($table) {
-	my $rgRef = $namedRanges{$table};
-	my @rg = @{$rgRef};
-	showTable($rg[0], $rg[1]);
+    my $rgRef = $namedRanges{$table};
+    my @rg = @{$rgRef};
+    showTable($rg[0], $rg[1]);
     exit;
 }
-if ($C0) { showRange("c0"); exit; }
-if ($G0) { showRange("g0"); exit; }
-if ($C1) { showRange("c1"); exit; }
-if ($G1) { showRange("g1"); exit; }
 if ($digits) {
     showDigits();
     exit;
