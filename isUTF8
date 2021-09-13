@@ -59,7 +59,7 @@ if (!scalar(@ARGV)) {
     die "No file(s) specified.\n";
 }
 
-while(my $file = shift) {
+while (my $file = shift) {
     (-f $file) || die "Can't find input file '$file'.\n";
     open $fh, "<$file" || die "Failed to open input file '$file'.\n";
     $totFiles++;
