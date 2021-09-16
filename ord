@@ -24,7 +24,7 @@ our %metadata = (
     'type'         => "http://purl.org/dc/dcmitype/Software",
     'language'     => "Perl 5.18",
     'created'      => "2007-10",
-    'modified'     => "2021-07-24",
+    'modified'     => "2021-09-13",
     'publisher'    => "http://github.com/sderose",
     'license'      => "https://creativecommons.org/licenses/by-sa/3.0/"
 );
@@ -71,6 +71,8 @@ An HTML 4 or XML special-character entity name, such as "nbsp".
 
 a numeric code point, in octal, decimal, or hex,
 e.g. C<012>, C<10>, or C<0xB9>.
+However, a single decimal digit is taken as a request for information on that ASCII
+character, not on the (C0 control) character at a code point from U+0000-0x0009.
 
 =item * ord [mnemonic]
 
@@ -164,7 +166,7 @@ Show code points in binary.
 
 Show info for all the characters in a named range chosen from:
 c0, g0, c1, g1, ASCII, Latin1, LatinxA (for Latin Extended A), LatinxB, IPA, Combining, 
-Greek, Cyrillic, Armenian, Hebrew, Arabic, Syriac.
+Greek, Cyrillic, Armenian, Hebrew, Arabic, Syriac, ControlPic (symbols for control characters).
 Ask if you want others, or just add an entry to '%namedRanges'.
 
 The range can also be given as two (decimal or hex) integers,
@@ -465,13 +467,29 @@ C<mathAlphanumerics.py> -- class to map Latin, Greek, digits to alternate
 forms such as Mathematical double-struck, etc.
 
 
-=head1 Ownership
+=head1 To do
 
-This work by Steven J. DeRose is licensed under a Creative Commons
-Attribution-Share Alike 3.0 Unported License. For further information on
-this license, see L<http://creativecommons.org/licenses/by-sa/3.0/>.
+=over
 
-For the most recent version, see L<http://www.derose.net/steve/utilities/>.
+=item * Tweak --table to accept numeric range like --chart.
+
+=item * Port to Python, using my C<CharDisplay.py> package.
+
+=item * Make `--listFormat` apply to the main list, not just `-f`.
+
+=item * Integrate remainder of C<chr> command functionality:
+Allow numbers on command line. Compare/sync report format.
+
+=item * Way to print/export remaining Unicode char properties.
+
+=item * Add I<--typing> show how to key on various systems?
+
+=item * Make I<find> on names match regardless of token order. Cf
+Joel Kalvesmaki, '''A New \\u: Extending XSLT
+Regular Expressions for Unicode.''' Balisage (2020).
+[https://www.balisage.net/Proceedings/vol25/html/Kalvesmaki01/BalisageVol25-Kalvesmaki01.html]
+
+=back
 
 
 =head1 History
@@ -534,39 +552,22 @@ Warn if env LANG not utf-8. Recognize html entity names, C-J, ^J, etc.
 
 =item * 2021-08-05: Add --table, re-do --chart.
 
-=back
-
-
-=head1 To do
-
-=over
-
-=item * Port to Python, using my C<CharDisplay.py> package.
-
-=item * Make `--listFormat` apply to the main list, not just `-f`.
-
-=item * Add a `--listFormat` value to just produce a string of the literals.
-
-=item * Integrate remainder of C<chr> command functionality:
-Allow numbers on command line. Compare/sync report format.
-
-=item * Way to print/export remaining Unicode char properties.
-
-=item * C<--listFormat> option to create Python Enum with names based on
-actual character names. Camel or snake case? Extend Enum to do minimum
-unique prefix? (Do all this after Python port).
-
-=item * Add I<--typing> show how to key on various systems?
-
-=item * Add a way to do I<--find> for a given range (e.g.,
-I<--min>, I<--max> and some always-true test).
-
-=item * Make I<find> on names match regardless of token order. Cf
-Joel Kalvesmaki, '''A New \\u: Extending XSLT
-Regular Expressions for Unicode.''' Balisage (2020).
-[https://www.balisage.net/Proceedings/vol25/html/Kalvesmaki01/BalisageVol25-Kalvesmaki01.html]
+=item * 2021-09-13: Clean up --chart, make it allow explicit int...int ranges, 
+ignore case for name lookups, have more named ranges.
 
 =back
+
+
+=head1 Rights
+
+Copyright 2007-11-22 by Steven J. DeRose. This work is licensed under a
+Creative Commons Attribution-Share Alike 3.0 Unported License.
+For further information on this license, see
+L<https://creativecommons.org/licenses/by-sa/3.0>.
+
+For the most recent version, see L<http://www.derose.net/steve/utilities> or
+L<https://github.com/sderose>.
+
 
 =cut
 
@@ -1004,62 +1005,25 @@ sub pyDisp {
 ###############################################################################
 # Display info for all the characters in a given range.
 #
-my %namedRanges = (
-    "c0"        => [ 0x0000, 0x001F ],
-    "g0"        => [ 0x0020, 0x007F ],
-    "c1"        => [ 0x0080, 0x009F ],
-    "g1"        => [ 0x00A0, 0x00FF ],
-    "ascii"     => [ 0x0000, 0x007F ],
-    "latin1"    => [ 0x0000, 0x00FF ],
-    "LatinxA"   => [ 0x0100, 0x017F ],
-    "LatinxB"   => [ 0x0180, 0x024F ],
-    "IPA"       => [ 0x0250, 0x02AF ],
-    "Combining" => [ 0x0300, 0x036F ],
-    "Greek"     => [ 0x0370, 0x03FF ],
-    "Cyrillic"  => [ 0x0400, 0x04FF ],
-    "Armenian"  => [ 0x0530, 0x058F ],
-    "Hebrew"    => [ 0x0590, 0x05FF ],
-    "Arabic"    => [ 0x0600, 0x06FF ],
-    "Syriac"    => [ 0x0700, 0x074F ],
+my %namedRanges = (  # Do lookups in all lower case.
+    "c0"          => [ 0x0000, 0x001f ],
+    "g0"          => [ 0x0020, 0x007f ],
+    "c1"          => [ 0x0080, 0x009f ],
+    "g1"          => [ 0x00a0, 0x00ff ],
+    "ascii"       => [ 0x0000, 0x007f ],
+    "latin1"      => [ 0x0000, 0x00ff ],
+    "latinxa"     => [ 0x0100, 0x017f ],
+    "latinxb"     => [ 0x0180, 0x024f ],
+    "ipa"         => [ 0x0250, 0x02af ],
+    "combining"   => [ 0x0300, 0x036f ],
+    "greek"       => [ 0x0370, 0x03ff ],
+    "cyrillic"    => [ 0x0400, 0x04ff ],
+    "armenian"    => [ 0x0530, 0x058f ],
+    "hebrew"      => [ 0x0590, 0x05ff ],
+    "arabic"      => [ 0x0600, 0x06ff ],
+    "syriac"      => [ 0x0700, 0x074f ],
+    "controlpics" => [ 0x2400, 0x2426 ],
 );
-
-sub showRange {
-    my ($sectionName) = @_;
-    ($verbose) && warn "Arg to showRange: $sectionName.\n";
-    print "Character mnemonics and names:\n";
-
-    if ($sectionName eq "c0") {
-        print "C0 range:\n";
-        for (my $n=0; $n<scalar @C0names; $n++) {
-            print("\n");
-            showOne($n);
-        }
-    }
-
-    if ($sectionName eq "g0") {
-        print "G0 range:\n";
-        for (my $n=32; $n<128; $n++) {
-            print("\n");
-            showOne($n);
-        }
-    }
-
-    if ($sectionName eq "c1") {
-        print "\nC1 range:\n";
-        for (my $n=128; $n<160; $n++) {
-            print("\n");
-            showOne($n);
-        }
-    }
-
-    if ($sectionName eq "g1") {
-        print "\nG1 range:\n";
-        for (my $n=160; $n<255; $n++) {
-            print("\n");
-            showOne($n);
-        }
-    }
-} # showRange
 
 sub showRange2 {
     my ($sec) = @_;
@@ -1080,7 +1044,8 @@ sub showRange2 {
         #printf("Parsed '$chart' to $min and $max.\n");
     }
     else {
-        print "Can't parse --chart choice '$sec'.\n";
+        print "Can't parse --chart choice '$sec'. Named choices include: " .
+            join(", ", keys(%namedRanges)) . ".\n";
         return;
     }
     printf("Character mnemonics and names for chars in %s [U+%05x...U+%05x]:\n", 
@@ -1092,11 +1057,11 @@ sub showRange2 {
     for (my $n=$min; $n<=$max; $n++) {
         showOne($n);
     }
-} # showRange
+}
 
 
 ###############################################################################
-# Display info for all the characters in a given range.
+# Display info for all the characters in a given range in a grid.
 #
 sub showTable {
     my ($first, $last) = @_;
@@ -1123,7 +1088,7 @@ sub showTable {
 
 
 ###############################################################################
-# Make a nicely-formatted form of the binary code point.
+# Make a nicely-formatted binary display of the code point.
 #
 sub getBinary {
     my ($n) = @_;
@@ -1292,7 +1257,7 @@ sub showOne {
         if ($okURI) { $uriForm = "ok as literal"; }
         elsif ($spURI) { $uriForm = "special"; }
         pline("Unicode:", sprintf(
-            "%s, utf8 %s, URI (%s)", uDisp($n), $utfForm, $uriForm));
+            "%s, utf8 %s, URI (%s), Python %s", uDisp($n), $utfForm, $uriForm, getPyForm($n)));
     }
 
     if ($entities) {
@@ -1321,6 +1286,13 @@ sub showOne {
     }
 } # showOne
 
+sub getPyForm {
+    my ($n) = @_;
+    if ($n <= 0xFF) { return sprintf("\\x%02x", $n); }
+    if ($n <= 0xFFFF) { return sprintf("\\u%04x", $n); }
+    return sprintf("\\U%08x", $n);
+}
+    
 sub pline {
     my ($label, $data) = @_;
     printf("    %-18s %s\n", $label, $data || "");
@@ -1790,6 +1762,7 @@ sub cp1252ToUnicode {
 ###############################################################################
 # Main
 #
+print "";
 binmode(STDOUT, ":encoding(utf8)");
 if ($ENV{"LANG"} !~ m/UTF-?8/i) {
     warn "Warning: LANG environment variable does not mention UTF-8.\n";
@@ -1803,6 +1776,7 @@ if ($C0) { showRange2("c0"); exit; }
 if ($G0) { showRange2("g0"); exit; }
 if ($C1) { showRange2("c1"); exit; }
 if ($G1) { showRange2("g1"); exit; }
+
 if ($table) {
     my $rgRef = $namedRanges{$table};
     my @rg = @{$rgRef};
@@ -1821,9 +1795,6 @@ if ($math) {
 if ($pairs) {
     searchForSymmetricPairs();
 }
-
-print "";
-binmode(STDOUT,":utf8");
 
 (scalar(@ARGV)) ||
     die "No character or mnemonic found (see -h for"
