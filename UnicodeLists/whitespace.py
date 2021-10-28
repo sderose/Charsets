@@ -33,6 +33,7 @@ USpaces = {
     0x0200B:  ( 0.00, "",   "ZERO WIDTH SPACE"),            # Not in Perl \s
     0x0202F:  ( 0.10, "",   "NARROW NO-BREAK SPACE"),
     0x0205F:  ( 1.00, "",   "MEDIUM MATHEMATICAL SPACE"),
+    0x02060:  ( 1.00, "",   "WORD JOINER"),
     0x03000:  ( 1.00, "",   "IDEOGRAPHIC SPACE"),
     0x0303F:  ( 1.00, "",   "IDEOGRAPHIC HALF FILL SPACE"), # Not in Perl \s
 
