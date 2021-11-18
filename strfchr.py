@@ -1,22 +1,22 @@
 #!/usr/bin/env python
 #
 # strfchr.py: Flexible conversion between character representations.
-# 2021-04-08: Written by Steven J. DeRose
+# 2021-04-08: Written by Steven J. DeRose.
 #
 #pylint: disable=I1101
 #
 import sys
 import re
 import os
+import codecs
 import unicodedata
+import xml
 import html
 from html.entities import codepoint2name  # name2codepoint
 from urllib.parse import quote as urlquote
-import xml
 from enum import Enum
 from subprocess import check_output
 #from typing import Union
-import codecs
 
 from CharDisplay import getCharInfo
 # TODO Fix
@@ -154,7 +154,7 @@ or [https://github.com/sderose].
 verbose = 0
 def log(lvl:int, msg:str) -> None:
     if (verbose >= lvl): sys.stderr.write(msg+"\n")
-    
+
 class Planes(Enum):
     pass
 
@@ -275,7 +275,7 @@ OCTO    = True  # Signals that "#" is ok
 # Many more unihan properties, all starting with "k".
 #
 UnicodeProperties = {
-    # Attribute name                  (  freq, ),  # 
+    # Attribute name                  (  freq, ),  #
     "AHex":                           (   254, None, UBOOL,   ),  # ASCII_Hex_Digit
     "Alpha":                          (  2122, None, UBOOL,   ),  # Alphabetic
     "Bidi_C":                         (   239, None, UBOOL,   ),  # Bidi_Control
@@ -289,22 +289,22 @@ UnicodeProperties = {
     "CWT":                            (  1278, None, UBOOL,   ),  # Changes_When_Titlecased
     "CWU":                            (  1256, None, UBOOL,   ),  # Changes_When_Uppercased
     "Cased":                          (   742, None, UBOOL,   ),  # Cased
-    "Comp_Ex":                        (   363, None, UBOOL,   ),  # Full_Composition_Exclusion 
+    "Comp_Ex":                        (   363, None, UBOOL,   ),  # Full_Composition_Exclusion
     "DI":                             (   276, None, UBOOL,   ),  # Default_Ignorable_Code_Point
     "Dash":                           (   257, None, UBOOL,   ),  # Dash
-    "Dep":                            (   247, None, UBOOL,   ),  # 
+    "Dep":                            (   247, None, UBOOL,   ),  #
     "Dia":                            (   683, None, UBOOL,   ),  # Diacritic
     # Emoji properties
-    "Emoji":                          (   683, None, UBOOL,   ),  # 
-    "EPres":                          (   683, None, UBOOL,   ),  # 
-    "EMod":                           (   683, None, UBOOL,   ),  # 
-    "EBase":                          (   683, None, UBOOL,   ),  # 
-    "EComp":                          (   683, None, UBOOL,   ),  # 
-    "ExtPict":                        (   683, None, UBOOL,   ),  # 
+    "Emoji":                          (   683, None, UBOOL,   ),  #
+    "EPres":                          (   683, None, UBOOL,   ),  #
+    "EMod":                           (   683, None, UBOOL,   ),  #
+    "EBase":                          (   683, None, UBOOL,   ),  #
+    "EComp":                          (   683, None, UBOOL,   ),  #
+    "ExtPict":                        (   683, None, UBOOL,   ),  #
     #
     "EqUIdeo":                        (     0, None, UHEXINT, ),  # Equivalent_Unified_Ideograph
     "Ext":                            (   260, None, UBOOL,   ),  # Extender
-    "FC_NFKC":                        (   840, None,    "",   ),  # 
+    "FC_NFKC":                        (   840, None,    "",   ),  #
     "GCB":                            (  1672, None,   str,   ),  # Grapheme_Cluster_Break (2-3 letter code  )
     "Gr_Base":                        (  1429, None, UBOOL,   ),  # Grapheme_Base
     "Gr_Ext":                         (   921, None, UBOOL,   ),  # Grapheme_Extend
@@ -314,7 +314,7 @@ UnicodeProperties = {
     "IDC":                            (  1482, None, UBOOL,   ),  # ID_Continue,
     "IDS":                            (  2472, None, UBOOL,   ),  # ID_Start
     "IDSB":                           (   235, None, UBOOL,   ),  # IDS_Binary_Operator
-    "IDST":                           (   234, None, UBOOL,   ),  # IDS_Trinary_Operator 
+    "IDST":                           (   234, None, UBOOL,   ),  # IDS_Trinary_Operator
     "Ideo":                           (   254, None, UBOOL,   ),  # Ideographic
     "InSC":                           (     0, None, UTOKEN,  ),  # Indic_Syllabic_Category
     "JSN":                            (   298, None, UTOKEN,  ),  # Jamo_Short_Name { xsd:string { pattern="[A-Z]{0,3}" }}?
@@ -322,7 +322,7 @@ UnicodeProperties = {
     "LOE":                            (   247, None, UBOOL,   ),  # Logical_Order_Exception
     "Lower":                          (  1805, None, UBOOL,   ),  # Lower_Case
     "Math":                           (   521, None, UBOOL,   ),  # Math
-    "NChar":                          (   250, None, UBOOL,   ),  # 
+    "NChar":                          (   250, None, UBOOL,   ),  #
     # Normal forms
     "NFC_QC":                         (   466, None, UTBOOL,  ),  # ..._Quick_Check { "Y" | "N" | "M" }?
     "NFD_QC":                         (   754, None, UBOOL,   ),  # ..._Quick_Check { "Y" | "N" }?
@@ -346,62 +346,62 @@ UnicodeProperties = {
     "SB":                             (  4514, None,   str,   ),  # Sentence_Break (2 letter code  )
     "SD":                             (   278, None, UBOOL,   ),  # Soft_Dotted
     "STerm":                          (   298, None, UBOOL,   ),  # Sentence_Terminal
-    "Term":                           (   393, None, UBOOL,   ),  # Terminal_Punctuation 
+    "Term":                           (   393, None, UBOOL,   ),  # Terminal_Punctuation
     "UIdeo":                          (   248, None, UBOOL,   ),  # Unified_Ideograph
     "Upper":                          (  1701, None, UBOOL,   ),  # Upper_Case
-    "VS":                             (   235, None, UBOOL,   ),  # 
+    "VS":                             (   235, None, UBOOL,   ),  #
     "WB":                             (  2933, None,  str,    ),  # Word_Break (2-8 letter code)
     "WSpace":                         (   258, None, UBOOL,   ),  # White_Space
     "XIDC":                           (  1501, None, UBOOL,   ),  # XID_Continue
     "XIDS":                           (  2493, None, UBOOL,   ),  # XID_Start
-    "XO_NFC":                         (   314, None, UBOOL,   ),  # 
-    "XO_NFD":                         (   729, None, UBOOL,   ),  # 
-    "XO_NFKC":                        (   818, None, UBOOL,   ),  # 
-    "XO_NFKD":                        (  1205, None, UBOOL,   ),  # 
+    "XO_NFC":                         (   314, None, UBOOL,   ),  #
+    "XO_NFD":                         (   729, None, UBOOL,   ),  #
+    "XO_NFKC":                        (   818, None, UBOOL,   ),  #
+    "XO_NFKD":                        (  1205, None, UBOOL,   ),  #
     "age":                            (  2213, None,  "1.1",  ),  # Version introduced, as \d+\.\d+
     "bc":                             (  1745, None,  "BN",   ),  # bidirectional class
-    "blk":		                      (                       ),  # Block name (_ not space)
+    "blk":                            (                       ),  # Block name (_ not space)
     "bmg":                            (   594, None, UHEXINT, ),  # code point of  a mirrored image of the current character
     "bpb":                            (     0,                ),  # bidi paired bracket
     "bpt":                            (     0,                ),  # bidi paired bracket type
     "ccc":                            (   694, None, UDECINT, ),  # decimal representation of the combining class.
     "cf":                             (  1349, OCTO, UHEXINT, ),  # Case_Folding { "#" | one-or-more-code-points }?
     "cp":                             ( 33248, None, UHEXINT, ),  # code point (hex)
-    "cps":                            (   511, None, UNKNOWN, ),  # 
-    "desc":                           (    93, None, UNKNOWN, ),  # 
+    "cps":                            (   511, None, UNKNOWN, ),  #
+    "desc":                           (    93, None, UNKNOWN, ),  #
     "dm":                             ( 17062, OCTO,     "#", ),  # decomposition mapping { "#" | zero-or-more-code-points }?
     "dt":                             (  1968, None,     str, ),  # decomposition type { "can"  | "com" | "enc" | "fin"  | "font" | "fra" | "init" | "iso" | "med" | "nar"  | "nb"   | "sml" | "sqr"  | "sub" | "sup" | "vert" | "wide" | "none"}?
     "ea":                             (   929, None, UBOOL,   ),  # East Asian Width { "A" | "F" | "H" | "N" | "Na" | "W" }?
-    "first-cp":                       (   631, None, UNKNOWN, ),  # 
+    "first-cp":                       (   631, None, UNKNOWN, ),  #
     "gc":                             (  4986, None,  UGCAT,  ),  # General Category (Lu, etc.)
     "hst":                            (   658, None,  "NA",   ),  # Hangul_Syllable_Type { "L" | "LV" | "LVT" | "T" | "V" | "NA" }?
-    "ideograph":                      (   237, None, UNKNOWN, ),  # 
+    "ideograph":                      (   237, None, UNKNOWN, ),  #
     "isc":                            (   232, None,   str,   ),  # ISO 10646 comment
     "jg":                             (   460, None,   str,   ),  # joining group (bug enum)
     "jt":                             (  1093, None,   str,   ),  # joining class { "U" | "C" | "T" | "D" | "L" | "R" }?
-    "last-cp":                        (   631, None, UNKNOWN, ),  # 
+    "last-cp":                        (   631, None, UNKNOWN, ),  #
     "lb":                             (  3254, None,   str,   ),  # Line_Break  (big enum of 2-3 letter codes)
-    "lc":                             (  1261, OCTO,   "#",   ),  # 
+    "lc":                             (  1261, OCTO,   "#",   ),  #
     "na":                             ( 32416, None,    "",   ),  # Current name
     "na1":                            (  2236, None, UNKNOWN, ),  # Name in 1.0
-    "name":                           (   615, None, UNKNOWN, ),  # 
-    "new":                            (     6, None, UNKNOWN, ),  # 
+    "name":                           (   615, None, UNKNOWN, ),  #
+    "new":                            (     6, None, UNKNOWN, ),  #
     "nt":                             (  1120, None,  "None", ),  # numeric type { "None" | "De" | "Di" | "Nu" }?
-    "number":                         (   237, None, UNKNOWN, ),  # 
+    "number":                         (   237, None, UNKNOWN, ),  #
     "nv":                             (  1384, None,    "",   ),  # numeric value, represented as a fraction
-    "old":                            (     6, None, UNKNOWN, ),  # 
-    "radical":                        (   237, None, UNKNOWN, ),  # 
+    "old":                            (     6, None, UNKNOWN, ),  #
+    "radical":                        (   237, None, UNKNOWN, ),  #
     "sc":                             (  1371, None,  "Zyyy", ),  # script (big enum of 4-char abbrs)
-    "scf":                            (  1273, None, OHEXINT, ),  # Simple_Case_Folding 
-    "slc":                            (  1261, OCTO,  "#",    ),  # 
+    "scf":                            (  1273, None, OHEXINT, ),  # Simple_Case_Folding
+    "slc":                            (  1261, OCTO,  "#",    ),  #
     "scx":                            (     0, None,          ),  # script extension { list { script + }}?
-    "stc":                            (  1269, OCTO,  "#",    ),  # 
-    "suc":                            (  1269, OCTO,  "#",    ),  # 
-    "tc":                             (  1317, OCTO,  "#",    ),  # 
-    "uc":                             (  1344, OCTO,  "#",    ),  # 
-    "version":                        (     6, None, UNKNOWN, ),  # 
+    "stc":                            (  1269, OCTO,  "#",    ),  #
+    "suc":                            (  1269, OCTO,  "#",    ),  #
+    "tc":                             (  1317, OCTO,  "#",    ),  #
+    "uc":                             (  1344, OCTO,  "#",    ),  #
+    "version":                        (     6, None, UNKNOWN, ),  #
     "vo":                             (     0, None, str,     ),  # Vertical_Orientation { "U" | "R" | "Tu" | "Tr" }?
-    "when":                           (    93, None, UNKNOWN, ),  # 
+    "when":                           (    93, None, UNKNOWN, ),  #
     "xmlns":                          (     1, None, UNKNOWN, ),  #
 }
 
@@ -409,7 +409,7 @@ UnicodeProperties = {
 ###############################################################################
 #
 class UdbEntry(dict):
-    """A class intended to represent instances of entries from the Unicode 
+    """A class intended to represent instances of entries from the Unicode
     Database (see https://unicode.org/ucd/)
     Keyed on the integer codepoint.
     TODO: Better as a namedtuple?
@@ -423,10 +423,10 @@ class UdbEntry(dict):
 ###############################################################################
 #
 class UnicodeDBAccess:  # TODO: Unfinished
-    """The "grouped" XML looks like the sample below. 
+    """The "grouped" XML looks like the sample below.
     The attributes appear to inherit in the obvious manner; documentation
     is at [https://www.unicode.org/reports/tr42/].
-    
+
     <group age="1.1" na="" JSN="" gc="Cc" ccc="0" dt="none" dm="#" nt="None"
     nv="" bc="BN" Bidi_M="N" bmg="" suc="#" slc="#" stc="#" uc="#" lc="#"
     tc="#" scf="#" cf="#" jt="U" jg="No_Joining_Group" ea="N" lb="CM" sc="Zyyy"
@@ -477,63 +477,63 @@ class UnicodeDBAccess:  # TODO: Unfinished
     """
     NORMATIVE_BASE_URI = "https://www.unicode.org/Public/5.2.0/ucdxml/"
     NORMATIVE_XML_FILES = [
-        "ucd.all.flat.zip",		        # 2009-09-28 19:35 	6.6M	 
-        "ucd.all.grouped.zip",		    # 2009-09-28 19:35 	5.6M	 
-        "ucd.nounihan.flat.zip",		# 2009-09-28 19:35 	563K	 
-        "ucd.nounihan.grouped.zip",		# 2009-09-28 19:35 	359K	 
-        "ucd.unihan.flat.zip",		    # 2009-09-28 19:36 	5.3M	 
-        "ucd.unihan.grouped.zip",		# 2009-09-28 19:36 	5.3M	 
-        "ucdxml.readme.txt",            # 2009-09-28 19:36 	5.3M	 
-        "ucd.unihan.grouped.zip",		# 2009-09-28 19:38 	1.0K	 
+        "ucd.all.flat.zip",             # 2009-09-28 19:35  6.6M
+        "ucd.all.grouped.zip",          # 2009-09-28 19:35  5.6M
+        "ucd.nounihan.flat.zip",        # 2009-09-28 19:35  563K
+        "ucd.nounihan.grouped.zip",     # 2009-09-28 19:35  359K
+        "ucd.unihan.flat.zip",          # 2009-09-28 19:36  5.3M
+        "ucd.unihan.grouped.zip",       # 2009-09-28 19:36  5.3M
+        "ucdxml.readme.txt",            # 2009-09-28 19:36  5.3M
+        "ucd.unihan.grouped.zip",       # 2009-09-28 19:38  1.0K
     ]
-    
+
     NORMATIVE_CSV_FILES = [
-        "ArabicShaping.txt",		# 2009-08-17 13:39 	13K	 
-        "BidiMirroring.txt",		# 2009-05-22 15:10 	23K	 
-        "BidiTest.txt",		        # 2009-06-03 12:17 	3.2M	 
-        "Blocks.txt",       		# 2009-05-19 18:24 	6.6K	 
-        "CJKRadicals.txt",	    	# 2009-05-28 13:52 	4.7K	 
-        "CaseFolding.txt",		    # 2009-05-28 18:25 	63K	 
-        "CompositionExclusions.txt",# 2009-05-22 15:10 	7.9K	 
-        "DerivedAge.txt",		    # 2009-09-21 14:01 	71K	 
-        "DerivedCoreProperties.txt",# 2009-08-26 12:39 	752K	 
-        "DerivedNormalizationProps.txt",# 2009-08-31 14:48 	737K	 
-        "EastAsianWidth.txt",		# 2009-06-09 19:49 	779K	 
-        "HangulSyllableType.txt",	# 2009-05-22 18:28 	50K	 
-        "Index.txt",        		# 2009-07-09 13:56 	148K	 
-        "Jamo.txt",		            # 2009-05-22 15:10 	3.2K	 
-        "LineBreak.txt",    		# 2009-08-17 14:24 	835K	 
-        "NameAliases.txt",	    	# 2009-05-22 15:10 	1.1K	 
-        "NamedSequences.txt",		# 2009-09-14 14:50 	15K	 
-        "NamedSequencesProv.txt",	# 2009-09-14 14:50 	2.5K	 
-        "NamesList.html",		    # 2009-09-15 17:01 	21K	 
-        "NamesList.txt",    		# 2009-09-04 12:28 	1.0M	 
-        "NormalizationCorrections.txt",	# 2009-05-22 16:07 	2.0K	 
-        "NormalizationTest.txt",	# 2009-08-24 16:03 	2.2M	 
-        "PropList.txt",		        # 2009-08-24 16:02 	90K	 
-        "PropertyAliases.txt",		# 2009-08-24 19:00 	5.9K	 
-        "PropertyValueAliases.txt",	# 2009-08-24 19:00 	36K	 
-        "ReadMe.txt",       		# 2009-09-30 18:33 	410 	 
-        "Scripts.txt",		        # 2009-08-24 16:03 	119K	 
-        "SpecialCasing.txt",		# 2009-09-22 20:05 	16K	 
-        "StandardizedVariants.html",# 2009-09-28 18:25 	33K	 
-        "StandardizedVariants.txt",	# 2008-09-18 19:45 	7.5K	 
-        "UnicodeData.txt",		    # 2009-08-17 13:38 	1.2M	 
-        "Unihan.zip",		        # 2009-08-31 15:58 	5.9M	 
+        "ArabicShaping.txt",        # 2009-08-17 13:39  13K
+        "BidiMirroring.txt",        # 2009-05-22 15:10  23K
+        "BidiTest.txt",             # 2009-06-03 12:17  3.2M
+        "Blocks.txt",               # 2009-05-19 18:24  6.6K
+        "CJKRadicals.txt",          # 2009-05-28 13:52  4.7K
+        "CaseFolding.txt",          # 2009-05-28 18:25  63K
+        "CompositionExclusions.txt",# 2009-05-22 15:10  7.9K
+        "DerivedAge.txt",           # 2009-09-21 14:01  71K
+        "DerivedCoreProperties.txt",# 2009-08-26 12:39  752K
+        "DerivedNormalizationProps.txt",# 2009-08-31 14:48  737K
+        "EastAsianWidth.txt",       # 2009-06-09 19:49  779K
+        "HangulSyllableType.txt",   # 2009-05-22 18:28  50K
+        "Index.txt",                # 2009-07-09 13:56  148K
+        "Jamo.txt",                 # 2009-05-22 15:10  3.2K
+        "LineBreak.txt",            # 2009-08-17 14:24  835K
+        "NameAliases.txt",          # 2009-05-22 15:10  1.1K
+        "NamedSequences.txt",       # 2009-09-14 14:50  15K
+        "NamedSequencesProv.txt",   # 2009-09-14 14:50  2.5K
+        "NamesList.html",           # 2009-09-15 17:01  21K
+        "NamesList.txt",            # 2009-09-04 12:28  1.0M
+        "NormalizationCorrections.txt", # 2009-05-22 16:07  2.0K
+        "NormalizationTest.txt",    # 2009-08-24 16:03  2.2M
+        "PropList.txt",             # 2009-08-24 16:02  90K
+        "PropertyAliases.txt",      # 2009-08-24 19:00  5.9K
+        "PropertyValueAliases.txt", # 2009-08-24 19:00  36K
+        "ReadMe.txt",               # 2009-09-30 18:33  410
+        "Scripts.txt",              # 2009-08-24 16:03  119K
+        "SpecialCasing.txt",        # 2009-09-22 20:05  16K
+        "StandardizedVariants.html",# 2009-09-28 18:25  33K
+        "StandardizedVariants.txt", # 2008-09-18 19:45  7.5K
+        "UnicodeData.txt",          # 2009-08-17 13:38  1.2M
+        "Unihan.zip",               # 2009-08-31 15:58  5.9M
     ]
 
     EXPECTEDFIELDS = 15
     #FILENAME = "ucd.nounihan.flat.xml"
     #FILENAME2 = "ucd.unihan.flat.xml"
     _TYPES = [ ]
-    
+
     def __init__(self):
         """Load and provide access to the Unicode database.
         A lot of the data is in Python lib unicodedata, but not all, afaict.
         The official site provides the data in XML and in a CSV-ish form using
         ";" delimiters, "#" comments, and special meaning for indented lines.
         I'm going with the XML.
-        
+
         https://www.unicode.org/Public/5.2.0/ucdxml/
         https://www.unicode.org/reports/tr44/
         """
@@ -557,7 +557,7 @@ class UnicodeDBAccess:  # TODO: Unfinished
                 groupProperties[aname] = avalue
             groupObj = UdbEntry(groupProperties)
             assert "cp" not in groupObj
-            
+
             for charEl in groupEl.childNodes:
                 # TODO: stash name-alias child elements?
                 if (charEl.nodeName != "char"): continue
@@ -583,7 +583,7 @@ class UnicodeDBAccess:  # TODO: Unfinished
             if rec.strip() == "": continue
             fields = rec.split(";")
             if (len(fields) != UnicodeDBAccess.EXPECTEDFIELDS):
-                log(0, "Record %d: expected %d fields but found %d: '%s'\n" % 
+                log(0, "Record %d: expected %d fields but found %d: '%s'\n" %
                     (recnum, UnicodeDBAccess.EXPECTEDFIELDS, len(fields), rec))
                 continue
             n = int(fields[0], 16)
@@ -591,7 +591,7 @@ class UnicodeDBAccess:  # TODO: Unfinished
             lastN = n
             self.charEntries[n] = UdbEntry(fields)
         return recnum
-        
+
 
 ###############################################################################
 # Shorthand used by classes Sebastian and CharInfo
@@ -795,15 +795,16 @@ class CharInfo:
         return self.n >> 16
     def PLANENAME(self):
         pnum = self.n >> 16
-        if (pnum ==  0): pname = "Basic Multilingual"
-        elif (pnum ==  1): pname = "Supplementary Multilingual"
-        elif (pnum ==  2): pname = "Supplementary Ideographic"
+        if (pnum == 0):    pname = "Basic Multilingual"
+        elif (pnum == 1):  pname = "Supplementary Multilingual"
+        elif (pnum == 2):  pname = "Supplementary Ideographic"
         elif (pnum == 16): pname = "Supplementary Private Use Area B"
         elif (pnum == 15): pname = "Supplementary Private Use Area A"
         elif (pnum == 14): pname = "Supplementary Special-purpose"
-        elif (pnum >=  3): pname = "Unassigned"
-        else             : pname = "-UNKNOWN-"
+        elif (pnum >= 3):  pname = "Unassigned"
+        else: pname = "-UNKNOWN-"
         return pname
+        
     @property
     def JARGON(self):
         if (self.c in unixJargon): return unixJargon[self.c]
@@ -1211,9 +1212,9 @@ def codePointToDatum(codePoint:int, what:str) -> str:
 
     elif (what == "SLASH0"):               # \\x{e2}
         return "\\x{%x}" % (codePoint)
-    elif   (what == "SLASH2"):             # \\xe2
+    elif (what == "SLASH2"):               # \\xe2
         if (codePoint <= 0xFF): return "\\x%02x" % (codePoint)
-        return  (codePoint)
+        return codePoint
     elif (what == "SLASH4"):               # \\u00e2
         if (codePoint <= 0xFFFF): return "\\u%04x" % (codePoint)
         return getFallback(codePoint)
@@ -1435,7 +1436,7 @@ if __name__ == "__main__":
     #
     args = processOptions()
     verbose = args.verbose
-    
+
     if (args.help_codes):
         showCodes()
         sys.exit()

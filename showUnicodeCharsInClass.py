@@ -4,8 +4,8 @@
 # 2015-03-31: Written by Steven J. DeRose.
 #
 from __future__ import print_function
-import sys, argparse
-#import re
+import sys
+import argparse
 import regex as re
 import unicodedata
 
@@ -242,9 +242,9 @@ def makeEsc(nn, literals=False):
     ch = unichr(nn)
     if (literals):
         if (ch in "\\()[]{}'\"-^"): return("\\x%02x" % (nn))
-        if (nn>32 and nn<127):      return(ch)
-    if (nn<256):                    return("\\x%02x" % (nn))
-    if (nn<65536):                  return("\\u%04x" % (nn))
+        if (nn>32 and nn<127): return(ch)
+    if (nn<256): return("\\x%02x" % (nn))
+    if (nn<65536): return("\\u%04x" % (nn))
     return("\\U%08x" % (nn))
 
 def inAnyRequestedCategory(uchar:str):
@@ -296,7 +296,7 @@ for codePoint in range(args.first, args.last+1):
     c = unichr(codePoint)
     try:
         nm = unicodedata.name(c)
-    except ValueError as e:
+    except ValueError:
         continue
 
     gotOne = False
@@ -352,5 +352,5 @@ if (not args.quiet):
     for ccat in args.charCategories:
         qual += "    %-2s (%s)\n" % (ccat, unicodeCategories[ccat])
     if (args.find):
-         qual = "    matching /%s/\n" % (args.find)
+        qual = "    matching /%s/\n" % (args.find)
     print(qual, end="")

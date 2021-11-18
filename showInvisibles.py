@@ -144,14 +144,14 @@ def mapControlChar(charNum, what=""):
         return chr(charNum)
     if (charNum == 32):
         if (args.spaceAs == "SELF"): return(" ")
-        elif (args.spaceAs == "B"):  return(unichr(0x2422))
-        elif (args.spaceAs == "U"):  return(unichr(0x2423))
+        elif (args.spaceAs == "B"): return(unichr(0x2422))
+        elif (args.spaceAs == "U"): return(unichr(0x2423))
         elif (args.spaceAs == "SP"): return(unichr(0x2420))
         else: assert False, "Unsupported spaceAs value '%s'" % (args.spaceAs)
     if (charNum == 10):
-        if (args.lfAs == "SELF"):   return("\n")
-        if (args.lfAs == "LF"):     return(unichr(0x240A))
-        if (args.lfAs == "NL"):     return(unichr(0x2424))
+        if (args.lfAs == "SELF"): return("\n")
+        if (args.lfAs == "LF"): return(unichr(0x240A))
+        if (args.lfAs == "NL"): return(unichr(0x2424))
         else: assert False, "Unsupported lfAs value '%s'" % (args.lfAs)
 
     if (args.pics):
@@ -300,4 +300,3 @@ for path0 in args.files:
     else:
         with codecs.open(path0, "rb", encoding=args.iencoding) as fh0:
             doOneFile(path0, fh0)
-

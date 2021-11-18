@@ -3,7 +3,6 @@
 # makeFontSamples.py: Create HTML with sample of various fonts.
 # 2019-07-03: Written by Steven J. DeRose.
 #
-from __future__ import print_function
 import sys
 import os
 import argparse
@@ -27,18 +26,19 @@ descr = """
 =Description=
 
 Collects fonts from directories where MacOS keeps them, and makes
-an HTML file with a sample of each. 
+an HTML file with a sample of each.
 
 There are options to change the sample text, the font-size,
 
 ==Looking for fonts in all the wrong places==
 
-MS Office adds its own fonts, apparently in "Contents/Resources/Dfonts" 
+MS Office adds its own fonts, apparently in "Contents/Resources/Dfonts"
 inside the app bundle(s?). These are also checked.
 Add more directies with `--dir` (repeatable).
 
-If font files with the same name are found in multiple directories, only the first 
+If font files with the same name are found in multiple directories, only the first
 one found is reported.
+
 
 =Related Commands=
 
@@ -49,7 +49,7 @@ Wikipedia has some nice samples at [https://en.wikipedia.org/wiki/List_of_serif_
 
 =Known bugs and Limitations=
 
-This only knows about MacOS conventional paths; though you can use `--dirs` to 
+This only knows about MacOS conventional paths; though you can use `--dirs` to
 add specify others.
 
 This includes fonts even if the browser can't actually see them.
@@ -171,7 +171,7 @@ if __name__ == "__main__":
             help='Path(s) to input file(s)')
 
         args0 = parser.parse_args()
-        if (args0.color == None):
+        if (args0.color is None):
             args0.color = ("USE_COLOR" in os.environ and sys.stderr.isatty())
         return(args0)
 
@@ -179,7 +179,7 @@ if __name__ == "__main__":
     #
     args = processOptions()
     print("Finding fonts...")
-    
+
     fonts = {}
     if (args.dirs): fontDirs.extend(args.dirs)
     for d in fontDirs:
@@ -199,4 +199,3 @@ if __name__ == "__main__":
     print(htmlClose)
 
     if (not args.quiet): sys.stderr.write("Done, found %d fonts.\n" % (nFonts))
-    

@@ -3,8 +3,8 @@
 # makeCharChart: Display info on range of Unicode code points.
 # 2013-04-24: Written by Steven J. DeRose.
 #
-from __future__ import print_function
-import sys, argparse
+import sys
+import argparse
 import re
 import codecs
 import unicodedata
@@ -279,52 +279,52 @@ def processOptions():
         parser = argparse.ArgumentParser(description=descr)
 
     parser.add_argument(
-        "--badChar",          type=anyInt, metavar='M', default=ord('?'),
+        "--badChar", type=anyInt, metavar='M', default=ord('?'),
         help='Code point of char to print for unprintables.')
     parser.add_argument(
-        "--blankRows",        type=anyInt, metavar='N', default=8,
+        "--blankRows", type=anyInt, metavar='N', default=8,
         help='Insert a blank line after every N rows.')
     parser.add_argument(
-        "--decimal",          action='store_true',
+        "--decimal", action='store_true',
         help='Show decimal code point under each character.')
     parser.add_argument(
-        "--entity",           type=str, metavar='X', default="",
+        "--entity", type=str, metavar='X', default="",
         choices = [ "dec", "hex" ],
         help='Include a row with HTML/XML numeric character references, ' +
         'in "dec" or "hex".')
     parser.add_argument(
-        "--format",           type=str, metavar='F', default="text",
+        "--format", type=str, metavar='F', default="text",
         choices = [ "text", "html" ],
         help='What format to write the data in ("text" or "html").')
     parser.add_argument(
-        "--min",              type=anyInt, metavar='M', default=0,
+        "--min", type=anyInt, metavar='M', default=0,
         help='First code point to include in display.')
     parser.add_argument(
-        "--max",              type=anyInt, metavar='M', default=255,
+        "--max", type=anyInt, metavar='M', default=255,
         help='Last code point to include in display.')
     parser.add_argument(
-        "--oencoding",        type=str, metavar='E',
+        "--oencoding", type=str, metavar='E',
         help='Use this character set for output files.')
     parser.add_argument(
-        "--perCell",          type=anyInt, metavar='C', default=4,
+        "--perCell", type=anyInt, metavar='C', default=4,
         help='Number of spaces to allow for each column of the chart.')
     parser.add_argument(
-        "--perRow",           type=anyInt, metavar='R', default=16,
+        "--perRow", type=anyInt, metavar='R', default=16,
         help='Number of code points to show in each row of the chart.')
     parser.add_argument(
-        "--quiet", "-q",      action='store_true',
+        "--quiet", "-q", action='store_true',
         help='Suppress most messages.')
     parser.add_argument(
-        "--ucategory",        action='store_true',
+        "--ucategory", action='store_true',
         help='Show Unicode character-category mnemonics under characters.')
     parser.add_argument(
-        "--utf8",             action='store_true',
+        "--utf8", action='store_true',
         help='Show UTF-8 hexadecimal under each character.')
     parser.add_argument(
-        "--verbose", "-v",    action='count',       default=0,
+        "--verbose", "-v", action='count', default=0,
         help='Add more messages (repeatable).')
     parser.add_argument(
-        "--version",          action='version',
+        "--version", action='version',
         version='Version of '+__version__,
         help='Display version information, then exit.')
 
@@ -357,4 +357,3 @@ elif (args.format == "text"):
 else:
     lg.fatal("Unknown --format '%s'." % args.format)
     sys.exit()
-

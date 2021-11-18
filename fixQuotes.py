@@ -3,23 +3,17 @@
 # fixQuotes.py: Mess with various quotation marks and such.
 # 2020-10-14: Written by Steven J. DeRose.
 #
-from __future__ import print_function
-import sys, os
+import sys
+import os
 import codecs
 import re
-#import string
 
 from PowerWalk import PowerWalk, PWType
 
 PY2 = sys.version_info[0] == 2
 PY3 = sys.version_info[0] == 3
 if PY3:
-    #from html.parser import HTMLParser
-    #from html.entities import codepoint2name, name2codepoint
-    #string_types = str
-    #from io import StringIO
     def unichr(n): return chr(n)
-    def unicode(s, encoding='utf-8', errors='strict'): str(s, encoding, errors)
 
 __metadata__ = {
     'title'        : "fixQuotes.py",
@@ -338,46 +332,46 @@ if __name__ == "__main__":
             parser = argparse.ArgumentParser(description=descr)
 
         parser.add_argument(
-            "--backQuotes",       action='store_true',
+            "--backQuotes", action='store_true',
             help='Also map backquote U+0060 to apostrophe.')
         parser.add_argument(
-            "--leftSingle",       type=str, metavar='E', default="'")
+            "--leftSingle", type=str, metavar='E', default="'")
         parser.add_argument(
-            "--rightSingle",      type=str, metavar='E', default="'")
+            "--rightSingle", type=str, metavar='E', default="'")
         parser.add_argument(
-            "--leftDouble",       type=str, metavar='E', default="\"")
+            "--leftDouble", type=str, metavar='E', default="\"")
         parser.add_argument(
-            "--rightDouble",      type=str, metavar='E', default="\"")
+            "--rightDouble", type=str, metavar='E', default="\"")
 
         qNames = list(FixQuotes.singlePairs.keys())
         qNames.extend(FixQuotes.doublePairs.keys())
         parser.add_argument(
-            "--ignoreQuote",      type=str, action='append', choices=qNames,
+            "--ignoreQuote", type=str, action='append', choices=qNames,
             help='Drop the named quote type from the list to recognize.')
 
         parser.add_argument(
-            "--iencoding",        type=str, metavar='E', default="utf-8",
+            "--iencoding", type=str, metavar='E', default="utf-8",
             help='Assume this character set for input files. Default: utf-8.')
         parser.add_argument(
             "--normalizeSpaces", "--spaces", action='store_true',
             help='Also convert all Unicode whitespace to ASCII space.')
         parser.add_argument(
-            "--oencoding",        type=str, metavar='E', default="utf-8",
+            "--oencoding", type=str, metavar='E', default="utf-8",
             help='Use this character set for output files.')
         parser.add_argument(
-            "--quiet", "-q",      action='store_true',
+            "--quiet", "-q", action='store_true',
             help='Suppress most messages.')
         parser.add_argument(
-            "--test",             action='store_true',
+            "--test", action='store_true',
             help='Run a small self test.')
         parser.add_argument(
-            "--toTag",            type=str, metavar='T', default='',
+            "--toTag", type=str, metavar='T', default='',
             help='Convert quotations to XML elements of this name (such as "q").')
         parser.add_argument(
-            "--unicode",          action='store_const',  dest='iencoding',
+            "--unicode", action='store_const', dest='iencoding',
             const='utf8', help='Assume utf-8 for input files.')
         parser.add_argument(
-            "--verbose", "-v",    action='count',       default=0,
+            "--verbose", "-v", action='count', default=0,
             help='Add more messages (repeatable).')
         parser.add_argument(
             "--version", action='version', version=__version__,
@@ -386,8 +380,7 @@ if __name__ == "__main__":
         PowerWalk.addOptionsToArgparse(parser)
 
         parser.add_argument(
-            'files',             type=str,
-            nargs=argparse.REMAINDER,
+            'files', type=str, nargs=argparse.REMAINDER,
             help='Path(s) to input file(s)')
 
         args0 = parser.parse_args()
@@ -421,7 +414,7 @@ if __name__ == "__main__":
         # https://stackoverflow.com/questions/4374455/
         if (PY2): sys.stdout = codecs.getwriter("utf-8")(sys.stdout)
         #else: sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
-            # 3.7+ sys.stdout.reconfigure(encoding='utf-8')
+        # 3.7+ sys.stdout.reconfigure(encoding='utf-8')
 
     pw = PowerWalk(args.files, open=True, close=True,
         encoding=args.iencoding, recursive=args.recursive)
