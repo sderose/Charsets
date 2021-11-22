@@ -1115,38 +1115,38 @@ if __name__ == "__main__":
             parser = argparse.ArgumentParser(description=descr)
 
         parser.add_argument(
-            "--decompose",    action='store_true',
+            "--decompose", action='store_true',
             help="""If set, separate diacritics from their base characters. With this,
 Latin or Greek characters with diacritics should work, even though Unicode does not
 provide Mathematical and similar variants for most of them.""")
         parser.add_argument(
-            "--font",             type=str, default="ITALIC",
+            "--font", type=str, default="ITALIC",
             help='Character variant to convert to. Default: ITALIC.')
         parser.add_argument(
-            "--indeosperamus",    action='store_true',
+            "--indeosperamus", action='store_true',
             help='Use actual Latin for sample sentences.')
         parser.add_argument(
-            "--missing",          type=anyInt, default=0x2623,
+            "--missing", type=anyInt, default=0x2623,
             help=('Show this code point for undefined characters. ' +
             'Default: biohazard (U+2623).'))
         parser.add_argument(
-            "--quiet", "-q",      action='store_true',
+            "--quiet", "-q", action='store_true',
             help='Suppress most messages.')
         parser.add_argument(
-            "--sample",           type=str, default=None,
+            "--sample", type=str, default=None,
             help='Sample text to convert (see also --to).')
         parser.add_argument(
-            "--script",           type=str, default="Latin",
+            "--script", type=str, default="Latin",
             choices=[ 'Latin', 'Greek', 'Digits' ],
             help='Script to translate to a variant "font". Default: Latin.')
         parser.add_argument(
-            "--show",             action='store_true',
+            "--show", action='store_true',
             help='List all fonts for the chosen script. Add -v for samples.')
         parser.add_argument(
-            "--test", "--list",   action='store_true',
+            "--test", "--list", action='store_true',
             help='Test getTranslateTable().')
         parser.add_argument(
-            "--verbose", "-v",    action='count', default=0,
+            "--verbose", "-v", action='count', default=0,
             help='Add more messages (repeatable).')
         parser.add_argument(
             "--version", action='version', version=__version__,
