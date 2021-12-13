@@ -171,8 +171,7 @@ def doOneFile(path):
         try:
             fh = codecs.open(path, "rb", encoding=args.iencoding)
         except IOError as e:
-            sys.stderr.write("Cannot open '%s':\n    %s" %
-                (e), stat="readError")
+            sys.stderr.write("Cannot open '%s':\n    %s" % (e))
             return 0
         if (not args.quiet): warn(0, "Starting file '%s'." % (path))
 
