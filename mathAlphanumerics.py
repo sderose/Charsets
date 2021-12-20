@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # mathAlphanumerics.py: Map Latin, Greek, and digits to special math variants,
 # such as bold, italic, fraktur, etc..
@@ -10,25 +10,22 @@ from __future__ import print_function
 import sys
 import re
 import unicodedata
-
-PY2 = sys.version_info[0] == 2
-PY3 = sys.version_info[0] == 3
-if PY3:
-    def unichr(n): return chr(n)
+import string
+from typing import List, Dict
 
 __metadata__ = {
-    'title'        : "mathAlphanumerics.py",
-    'description'  : "Map Latin, Greek, and digits to special math variants.",
-    'rightsHolder' : "Steven J. DeRose",
-    'creator'      : "http://viaf.org/viaf/50334488",
-    'type'         : "http://purl.org/dc/dcmitype/Software",
-    'language'     : "Python 2.7.6, 3.7",
-    'created'      : "<2006-10-04",
-    'modified'     : "2021-02-23",
-    'publisher'    : "http://github.com/sderose",
-    'license'      : "https://creativecommons.org/licenses/by-sa/3.0/"
+    "title"        : "mathAlphanumerics.py",
+    "description"  : "Map Latin, Greek, and digits to special math variants.",
+    "rightsHolder" : "Steven J. DeRose",
+    "creator"      : "http://viaf.org/viaf/50334488",
+    "type"         : "http://purl.org/dc/dcmitype/Software",
+    "language"     : "Python 2.7.6, 3.7",
+    "created"      : "<2006-10-04",
+    "modified"     : "2021-12-20",
+    "publisher"    : "http://github.com/sderose",
+    "license"      : "https://creativecommons.org/licenses/by-sa/3.0/"
 }
-__version__ = __metadata__['modified']
+__version__ = __metadata__["modified"]
 
 descr = """
 =Description=
@@ -57,7 +54,7 @@ The `decompose` option separates diacritics from their base characters, so that 
 base characters can be converted.
 
     xtab = mathAlphanumerics.getTranslateTable(
-        'Latin', 'Mathematical Sans-serif Bold Italic')
+        "Latin", "Mathematical Sans-serif Bold Italic")
     s = s.translate(xtab)
 
 The "scripts" known are "Latin", "Greek", and "Digits" (each has a different
@@ -78,99 +75,100 @@ When a mapping is not available, the character is left unchanged.
 
 The `--script` choices are "Latin" (the default), "Greek", or "Digits".
 
-The `--font` options (the default is 'ITALIC') are:
+The `--font` options (the default is "ITALIC") are:
 
 For Latin:
-    'BOLD'                         UPPER LOWER DIGITS
-    'ITALIC'                       UPPER LOWER
-    'BOLD ITALIC'                  UPPER LOWER
-    'SANS-SERIF'                   UPPER LOWER DIGITS
-    'SANS-SERIF BOLD'              UPPER LOWER DIGITS
-    'SANS-SERIF ITALIC'            UPPER LOWER
-    'SANS-SERIF BOLD ITALIC'       UPPER LOWER
-    'SCRIPT'                       UPPER LOWER
-    'BOLD SCRIPT'                  UPPER LOWER
-    'FRAKTUR'                      UPPER LOWER
-    'BOLD FRAKTUR'                 UPPER LOWER
-    'DOUBLE-STRUCK'                UPPER LOWER DIGITS
-    'MONOSPACE'                    UPPER LOWER DIGITS
-    'CIRCLED'                      UPPER LOWER DIGITS
-    'PARENTHESIZED'                UPPER LOWER DIGITS
+    "BOLD"                         UPPER LOWER DIGITS
+    "ITALIC"                       UPPER LOWER
+    "BOLD ITALIC"                  UPPER LOWER
+    "SANS-SERIF"                   UPPER LOWER DIGITS
+    "SANS-SERIF BOLD"              UPPER LOWER DIGITS
+    "SANS-SERIF ITALIC"            UPPER LOWER
+    "SANS-SERIF BOLD ITALIC"       UPPER LOWER
+    "SCRIPT"                       UPPER LOWER
+    "BOLD SCRIPT"                  UPPER LOWER
+    "FRAKTUR"                      UPPER LOWER
+    "BOLD FRAKTUR"                 UPPER LOWER
+    "DOUBLE-STRUCK"                UPPER LOWER DIGITS
+    "MONOSPACE"                    UPPER LOWER DIGITS
+    "CIRCLED"                      UPPER LOWER DIGITS
+    "PARENTHESIZED"                UPPER LOWER DIGITS
     "FULLWIDTH"                    UPPER LOWER DIGITS
 
-    'SQUARED'                      UPPER
-    'NEGATIVE SQUARED'             UPPER
-    'REGIONAL INDICATOR SYMBOL'    UPPER (???)
-    'NEGATIVE CIRCLED'             UPPER
-    'SUPERSCRIPT'                  DIGITS (alphabet unfinished)
-    'SUBSCRIPT'                    DIGITS (alphabet unfinished)
+    "SQUARED"                      UPPER
+    "NEGATIVE SQUARED"             UPPER
+    "REGIONAL INDICATOR SYMBOL"    UPPER (???)
+    "NEGATIVE CIRCLED"             UPPER
+    "SUPERSCRIPT"                  DIGITS (alphabet unfinished)
+    "SUBSCRIPT"                    DIGITS (alphabet unfinished)
 
 For Greek:
-    'BOLD'                         UPPER LOWER
-    'ITALIC'                       UPPER LOWER
-    'BOLD ITALIC'                  UPPER LOWER
-    'SANS-SERIF BOLD'              UPPER LOWER
-    'SANS-SERIF BOLD ITALIC'       UPPER LOWER
+    "BOLD"                         UPPER LOWER
+    "ITALIC"                       UPPER LOWER
+    "BOLD ITALIC"                  UPPER LOWER
+    "SANS-SERIF BOLD"              UPPER LOWER
+    "SANS-SERIF BOLD ITALIC"       UPPER LOWER
 
 
-For Digits, many additional sets are available.
+For Digits, many additional sets are available, mainly for a variety of orthographies.
 In addition to those already listed (I cannot personally evaluate the results
 for most of these; error reports are welcome):
 
-    'DIGIT COMMA'
-    'DIGIT FULL STOP'
-    'ARABIC-INDIC'
-    'EXTENDED ARABIC-INDIC'
-    'NKO'
-    'DEVANAGARI'
-    'BENGALI'
-    'GURMUKHI'
-    'GUJARATI'
-    'ORIYA'
-    'TAMIL'
-    'TELUGU'
-    'KANNADA'
-    'MALAYALAM'
-    'SINHALA LITH'
-    'THAI'
-    'LAO'
-    'TIBETAN'
-    'MYANMAR'
-    'MYANMAR SHAN'
-    'KHMER'
-    'MONGOLIAN'
-    'LIMBU'
-    'NEW TAI LUE'
-    'TAI THAM HORA'
-    'TAI THAM THAM'
-    'BALINESE'
-    'SUNDANESE'
-    'LEPCHA'
-    'OL CHIKI'
-    'IDEOGRAPHIC NUMBER'
-    'VAI'
-    'SAURASHTRA'
-    'COMBINING DEVANAGARI'
-    'KAYAH LI'
-    'JAVANESE'
-    'CHAM'
-    'MEETEI MAYEK'
+    "DIGIT COMMA"
+    "DIGIT FULL STOP"
+    "ARABIC-INDIC"
+    "EXTENDED ARABIC-INDIC"
+    "NKO"
+    "DEVANAGARI"
+    "BENGALI"
+    "GURMUKHI"
+    "GUJARATI"
+    "ORIYA"
+    "TAMIL"
+    "TELUGU"
+    "KANNADA"
+    "MALAYALAM"
+    "SINHALA LITH"
+    "THAI"
+    "LAO"
+    "TIBETAN"
+    "MYANMAR"
+    "MYANMAR SHAN"
+    "KHMER"
+    "MONGOLIAN"
+    "LIMBU"
+    "NEW TAI LUE"
+    "TAI THAM HORA"
+    "TAI THAM THAM"
+    "BALINESE"
+    "SUNDANESE"
+    "LEPCHA"
+    "OL CHIKI"
+    "IDEOGRAPHIC NUMBER"
+    "VAI"
+    "SAURASHTRA"
+    "COMBINING DEVANAGARI"
+    "KAYAH LI"
+    "JAVANESE"
+    "CHAM"
+    "MEETEI MAYEK"
 
 Some additional digit sets are available except for ZERO.
 
-    'CIRCLED'
-    'DINGBAT NEGATIVE CIRCLED'
-    'DOUBLE CIRCLED'
-    'PARENTHESIZED'
-    'FULL STOP'
-    'DINGBAT CIRCLED SANS-SERIF'
-    'DINGBAT NEGATIVE CIRCLED SANS-SERIF'
+    "CIRCLED"
+    "DINGBAT NEGATIVE CIRCLED"
+    "DOUBLE CIRCLED"
+    "PARENTHESIZED"
+    "FULL STOP"
+    "DINGBAT CIRCLED SANS-SERIF"
+    "DINGBAT NEGATIVE CIRCLED SANS-SERIF"
 
 I expect to add other special "effects", but some might not be supported in the "translate table" method:
-    TURNED (aka ROTATED)
-    STRIKETHROUGH
-    UNDERLINE
-    OVERLINE
+    "TURNED" (aka ROTATED)
+    "STRIKETHROUGH"
+    "UNDERLINE"
+    "OVERLINE"
+
 
 =Cautions=
 
@@ -211,15 +209,15 @@ omitted and case is ignored).
 
 Methods in this package are called statically.
 
-==getFontDict(script='Latin')==
+==getFontDict(script="Latin")==
 
 Return `LatinFontDict`, `GreekFontDict`, or `DigitFontDict`, as appropriate.
 See their descriptions below.
 
-==getStartCodePoint(script='Latin', font='BOLD', group='U')==
+==getStartCodePoint(script="Latin", font="BOLD", group="U")==
 
 Return the code point of the first character for the given `script` in the given `font` variation (such as "SANS-SERIF BOLD", etc.). By default, gets
-the position of A for Latin, alpha for Greek, or Digit for 0). Pass `group` as 'U', 'L', or 'D' respectively, to get the position of the first uppercase,
+the position of A for Latin, alpha for Greek, or Digit for 0). Pass `group` as "U", "L", or "D" respectively, to get the position of the first uppercase,
 lowercase, or digit for "fonts" as needed.
 Typically, the uppercase range is first, immediately followed by the lowercase
 range, and the digits are elsewhere.
@@ -228,19 +226,19 @@ The "starting" code point is reported as where the "font" ''would'' begin if
 it were all there. Thus, the "PARENTHESIZED" Latin digits are listed as
 beginning at U+02473 even though U+2473 is actually "CIRCLED NUMBER TWENTY".
 But the script knows there is no "PARENTHESIZED DIGIT ZERO", and will
-leave '0' untranslated in this case.
+leave "0" untranslated in this case.
 
-==convert(s, script="Latin", font='Bold')==
+==convert(s, script="Latin", font="Bold")==
 
 Just convert characters in the string `s` that are from the given "script" to the specified "font".
 
-For 'Latin', uppercase, lowercase, and digits are converted (when available).
+For "Latin", uppercase, lowercase, and digits are converted (when available).
 
-For 'Greek', uppercase and lowercase are converted (when available).
+For "Greek", uppercase and lowercase are converted (when available).
 
-For 'Digits', only digits 0-9 are converted (and only when available).
+For "Digits", only digits 0-9 are converted (and only when available).
 
-==getTranslateTable(script="Latin", font='BOLD')==
+==getTranslateTable(script="Latin", font="BOLD")==
 
 Return a Python 3 translation table generated for the specified `script`
 and `font`. Exceptions are integrated, and omissions are omitted.
@@ -255,12 +253,31 @@ My `ord --math` will display a list of these characters.
 
 =Known bugs and Limitations=
 
-You can't specify "font"-names with re-ordered tokens. For example,
+You can't specify "font" -names with re-ordered tokens. For example,
 "BOLD FRAKTUR" (regardless of case) works, but not "FRAKTUR BOLD".
+
+With `--makeHtmlComparison`, the generated HTML includes a few custom elements,
+with styles applied via <head>:
+
+    sans            { font-family:sans-serif; }
+    serif           { font-family:serif; }
+    cursive         { font-family:cursive; }
+    monospace       { font-family:monospace; }
+
+Modern browsers are fine with this, but it's not precisely "HTML". If that's a problem,
+change them to something like '<span class="sans">', etc. Or better, change the 
+DOCTYPE to reference a schema that adds them. 
+
+The `--family` choice (if any) is applied to <body>, so these will override if for
+the appropriate cases (I don't know what happens, for example, if you specify
+a cursive font for --family, and then the SCRIPT row applies cursive on top of it --
+perhaps it notices it's already cursive and keeps the active one; or perhaps it does
+its own search and gives you the first one it finds.
+
 
 ==Script-specific issues
 
-I'm note sure what 'REGIONAL INDICATOR SYMBOL' is for -- it comes up as
+I'm note sure what "REGIONAL INDICATOR SYMBOL" is for -- it comes up as
 flags on some systems; if that's normal it should be dropped here.
 
 Many scripts that use accented Latin or Greek characters, do not have accents
@@ -286,7 +303,7 @@ sets back to plain Latin or Greek or Digits. However, this can be done
 pretty well with Unicode "compatibility decomposition":
 
     import unicodedata
-    s = unicodedata.normalize('NFKD', s)
+    s = unicodedata.normalize("NFKD", s)
 
 [https://www.unicode.org/reports/tr25/tr25-6.html#_Toc2] notes that the
 Mathematical Greek sets include several less-used characters,
@@ -344,7 +361,7 @@ Characters with diacritics must be decomposed first, because the specialized
 do this in Python:
 
     import unicodedata
-    s = unicodedata.normalize('NFD', s)
+    s = unicodedata.normalize("NFD", s)
 
 
 =Notes=
@@ -367,7 +384,7 @@ Some additional scripts and forms are not supported:
     circled number X on black square U+3248
 
     aeox schwa hklmnpst; i=1d62, r=1d63, u=1d64, v=1d65, j=2c7c
-    [ 'subscript latin upper (...209c)', 0x02090 ],
+    [ "subscript latin upper (...209c)", 0x02090 ],
 and suppl for rest of lc latin except jqy (seriously???)
       spacing modifier letters a few
       phonetic extensions has some latin/cyr/ipa
@@ -395,7 +412,7 @@ Change 'fg2_' prefix to 'bold_' and factor out of code.
 * 2016-07-21: Merge doc on color names w/ sjdUtils.p[my], etc.
 * 2016-10-25: Clean up to integrate w/ ColorManager. Change names.
 Debug new (hashless) way of doing colors.
-* ''2018-08-29: Port to Python.''
+* 2018-08-29: Port to Python.
 * 2018-08-29ff: Split from Perl colorstring, and Ported.
 * 2018-09-04: Merged from incomplete `UnicodeAltLatin.py`
 * 2020-07-25: Lose remaining upper/lower separations. Big cleanup.
@@ -404,6 +421,7 @@ Add support for in-pipe translation.
 * 2020-09-03: Improve translation-table construction.
 * 2021-02-18: Fix bug that dropped part of translate tables.
 * 2021-02-23: Add option for Unicode normalization.
+* 2021-12-20: Add --makeHtmlComparison. Add type hints.
 
 
 =To do=
@@ -430,12 +448,14 @@ overline. There's even COMBINING ENCLOSING CIRCLE (and SQUARE).
 * Possibly add turned (cf reversed), using:
     Problem: there isn't a reserved range for these
     --- uppercase ---
-        U+02c6f LATIN CAPITAL LETTER TURNED A
-        B C D                                        ???
-        E => exists
-        U+02132 TURNED CAPITAL F
-        U+02141 TURNED SANS-SERIF CAPITAL G
-        U+0a78d LATIN CAPITAL LETTER TURNED H (why is this not itself?)
+        A U+02c6f LATIN CAPITAL LETTER TURNED A
+        B                                          ???
+        C                                          ???
+        D                                          ???
+        E => exists  U+02c7b(smallcap)
+        F U+02132 TURNED CAPITAL F
+        G U+02141 TURNED SANS-SERIF CAPITAL G
+        H U+0a78d LATIN CAPITAL LETTER TURNED H (why is this not itself?)
         I => I
         J ?                                        ???
         K ?                                        ???
@@ -444,17 +464,17 @@ overline. There's even COMBINING ENCLOSING CIRCLE (and SQUARE).
         M => U+0019c LATIN CAPITAL LETTER TURNED M
         N => N
         O => O
-        P =>                                        ??? eth?
+        P =>  ~~~d~~~                               ??? eth?
         Q =>                                        ???
-        R =>                                        ???
+        R =>                                        ??? U+01d1a	Latin Letter Small Capital Turned R
         S => S
         T =>                                        ???
         U => U+2229 intersection?
         V => U+00245 LATIN CAPITAL LETTER TURNED V
-        W =>                                        ???
+        W => ~~~M~~~                                ???
         X => X
         Y => U+02144 TURNED SANS-SERIF CAPITAL Y
-        Z =>                                        ???
+        Z => Z                                      ???
 
         --- lowercase ---
         a => U+00250 LATIN SMALL LETTER TURNED A
@@ -484,6 +504,36 @@ overline. There's even COMBINING ENCLOSING CIRCLE (and SQUARE).
         y => U+0028e LATIN SMALL LETTER TURNED Y
         z = z
 
+* Greek has turned:
+        a  U+00252    A  U+2C6F
+        b
+        g
+        d  U+0018D    D  U+025BD White Down-pointing Triangle
+        e  U+01D08
+        z             Zeta
+        h             Eta
+        q  theta      Theta
+        i  U+02129    Iota
+        k  U+0029e    U+0029e LATIN SMALL LETTER TURNED K
+        l             V
+        m             U+0019c LATIN CAPITAL LETTER TURNED M
+        n  U+0028c LATIN SMALL LETTER TURNED V
+        c
+        o  omicron    Omicron
+        p
+        r             ~~~d~~~
+        s
+        t             Tau
+        u             Upsilon
+        f  phi        Phi
+        x  xi         Xi
+        ps
+        w
+        
+* Quarter-turned instead of half?
+        q CCW  
+        m CW   U+01d1f
+        
 * Possibly add reversed (horizontally)
     --- uppercase ---
     A => A
@@ -493,7 +543,7 @@ overline. There's even COMBINING ENCLOSING CIRCLE (and SQUARE).
     E => U+0018e LATIN CAPITAL LETTER REVERSED E
     F =>
     G =>
-    H =>
+    H => H
     I => I
     J =>
     K =>
@@ -581,66 +631,66 @@ def warn(lvl, msg):
 #
 class mathAlphanumerics:
     oneHotFeatures = [
-        'Fullwidth', 'Script', 'Fraktur', 'Double-Struck', 'Sans-serif',
-        'Monospace', 'Parenthesized', 'Circled', 'Squared',
-        'Negative-circled', 'Negative-squared', 'Regional symbol'
+        "Fullwidth", "Script", "Fraktur", "Double-Struck", "Sans-serif",
+        "Monospace", "Parenthesized", "Circled", "Squared",
+        "Negative-circled", "Negative-squared", "Regional symbol"
     ]
 
-    # These are the 'fonts' available as Unicode 'Mathematical' variations on
+    # These are the "fonts" available as Unicode "Mathematical" variations on
     # Latin. A similar list is available for Greek, and for digits.
     # NOTE: "MATHEMATICAL is omitted for compactness.
     #
     LatinFontDict = {
         ####### Following are "Mathematical":
         # Name                      ( Upper    Lower,   Digits   Exceptions )
-        'BOLD':                     ( 0x1d400, 0x1d41a, 0x1d7ce, '' ),
-        'ITALIC':                   ( 0x1d434, 0x1d44e, None,    'h' ),
-        'BOLD ITALIC':              ( 0x1d468, 0x1d482, None,    '' ),
+        "BOLD":                     ( 0x1d400, 0x1d41a, 0x1d7ce, "" ),
+        "ITALIC":                   ( 0x1d434, 0x1d44e, None,    "h" ),
+        "BOLD ITALIC":              ( 0x1d468, 0x1d482, None,    "" ),
 
-        'SANS-SERIF':               ( 0x1d5a0, 0x1d5ba, 0x1d7e2, '' ),
-        'SANS-SERIF BOLD':          ( 0x1d5d4, 0x1d5ee, 0x1d7ec, '' ),
-        'SANS-SERIF ITALIC':        ( 0x1d608, 0x1d622, None,    '' ),
-        'SANS-SERIF BOLD ITALIC':   ( 0x1d63c, 0x1d656, None,    '' ),
+        "SANS-SERIF":               ( 0x1d5a0, 0x1d5ba, 0x1d7e2, "" ),
+        "SANS-SERIF BOLD":          ( 0x1d5d4, 0x1d5ee, 0x1d7ec, "" ),
+        "SANS-SERIF ITALIC":        ( 0x1d608, 0x1d622, None,    "" ),
+        "SANS-SERIF BOLD ITALIC":   ( 0x1d63c, 0x1d656, None,    "" ),
 
-        'SCRIPT':                   ( 0x1d49c, 0x1d4b6, None, 'BEFHILMR ego'),
-        'BOLD SCRIPT':              ( 0x1d4d0, 0x1d4ea, None,    '' ),
+        "SCRIPT":                   ( 0x1d49c, 0x1d4b6, None, "BEFHILMR ego"),
+        "BOLD SCRIPT":              ( 0x1d4d0, 0x1d4ea, None,    "" ),
 
-        'FRAKTUR':                  ( 0x1d504, 0x1d51e, None,    'CHIRZ' ),
-        'BOLD FRAKTUR':             ( 0x1d56c, 0x1d586, None,    '' ),
+        "FRAKTUR":                  ( 0x1d504, 0x1d51e, None,    "CHIRZ" ),
+        "BOLD FRAKTUR":             ( 0x1d56c, 0x1d586, None,    "" ),
 
-        'DOUBLE-STRUCK':            ( 0x1d538, 0x1d552, 0x1d7d8, 'CHNPQRZ' ),
-        'MONOSPACE':                ( 0x1d670, 0x1d68a, 0x1d7f6, '' ),
+        "DOUBLE-STRUCK":            ( 0x1d538, 0x1d552, 0x1d7d8, "CHNPQRZ" ),
+        "MONOSPACE":                ( 0x1d670, 0x1d68a, 0x1d7f6, "" ),
 
         ####### Following aren't "Mathematical":
 
-        'CIRCLED':                  ( 0x024b6, 0x024d0, 0x0245f, '' ),
-        'PARENTHESIZED':            ( 0x1f110, 0x0249c, 0x02473, '' ),
-        "FULLWIDTH":                ( 0x0FF21, 0x0FF41, 0x0FF10, '' ),
+        "CIRCLED":                  ( 0x024b6, 0x024d0, 0x0245f, "" ),
+        "PARENTHESIZED":            ( 0x1f110, 0x0249c, 0x02473, "" ),
+        "FULLWIDTH":                ( 0x0FF21, 0x0FF41, 0x0FF10, "" ),
 
         ####### Not available in lower case:
 
-        'SQUARED':                    ( 0x1f130, None,    None,    '' ),
-        'NEGATIVE SQUARED':           ( 0x1f170, None,    None,    '' ),
-        'REGIONAL INDICATOR SYMBOL':  ( 0x1f1e6, None,    None,    '' ),  # ???
-        'NEGATIVE CIRCLED':           ( 0x1f150, None,    None,    '' ),  # 0x02775 ???
-        'SUPERSCRIPT':                ( None,    None,    0x02070, '123' ),
-        'SUBSCRIPT':                  ( None,    None,    0x02080, '' ),
+        "SQUARED":                    ( 0x1f130, None,    None,    "" ),
+        "NEGATIVE SQUARED":           ( 0x1f170, None,    None,    "" ),
+        "REGIONAL INDICATOR SYMBOL":  ( 0x1f1e6, None,    None,    "" ),  # ???
+        "NEGATIVE CIRCLED":           ( 0x1f150, None,    None,    "" ),  # 0x02775 ???
+        "SUPERSCRIPT":                ( None,    None,    0x02070, "123" ),
+        "SUBSCRIPT":                  ( None,    None,    0x02080, "" ),
 
         ####### Unfinished:
-        #'Subscript Latin Small'   : [],  # aehijklmnoprstuvx
+        #"Subscript Latin Small"   : [],  # aehijklmnoprstuvx
     }
 
     GreekFontDict = {
-        'BOLD':                       ( 0X1D6A8, 0X1D6C2, None, '' ),
-        'ITALIC':                     ( 0X1D6E2, 0X1D6FC, None, '' ),
-        'BOLD ITALIC':                ( 0X1D71C, 0X1D736, None, '' ),
-        'SANS-SERIF BOLD':            ( 0X1D756, 0X1D770, None, '' ),
+        "BOLD":                       ( 0X1D6A8, 0X1D6C2, None, "" ),
+        "ITALIC":                     ( 0X1D6E2, 0X1D6FC, None, "" ),
+        "BOLD ITALIC":                ( 0X1D71C, 0X1D736, None, "" ),
+        "SANS-SERIF BOLD":            ( 0X1D756, 0X1D770, None, "" ),
         # No Mathematical Greek Sans Serif Italic, apparently?
-        'SANS-SERIF BOLD ITALIC':     ( 0X1D790, 0X1D7AA, None, '' ),
+        "SANS-SERIF BOLD ITALIC":     ( 0X1D790, 0X1D7AA, None, "" ),
 
         ########## Unfinished:
-        #'SUPERSCRIPT GREEK SMALL':   (),
-        #'SUBSCRIPT GREEK SMALL':     (),
+        #"SUPERSCRIPT GREEK SMALL":   (),
+        #"SUBSCRIPT GREEK SMALL":     (),
     }
 
     # Some of these sets lack a zero. in those cases the set is listed as
@@ -650,86 +700,86 @@ class mathAlphanumerics:
     DigitFontDict = {
         # [ NAME                          UC    LC    DIGITS   exceptions ]
         # These are covered above:
-        'BOLD':                         [ None, None, 0x1d7Ce, '' ],
+        "BOLD":                         [ None, None, 0x1d7Ce, "" ],
         # no italic or bold italic
-        'SANS SERIF':                   [ None, None, 0x1d7e2, '' ],
-        'SANS SERIF BOLD':              [ None, None, 0x1d7ec, '' ],
+        "SANS SERIF":                   [ None, None, 0x1d7e2, "" ],
+        "SANS SERIF BOLD":              [ None, None, 0x1d7ec, "" ],
         # no sans serif italic or bold italic
         # no script or fraktur
-        'DOUBLE STRUCK':                [ None, None, 0x1d7d8, '' ],
-        'MONOSPACE':                    [ None, None, 0x1d7f6, '' ],
+        "DOUBLE STRUCK":                [ None, None, 0x1d7d8, "" ],
+        "MONOSPACE":                    [ None, None, 0x1d7f6, "" ],
 
-        'FULLWIDTH':                    [ None, None, 0x0ff110, '' ],
+        "FULLWIDTH":                    [ None, None, 0x0ff110, "" ],
 
         # no squared, negative squared, or regional indicator symbol
-        #'NEGATIVE CIRCLED':             [ None, None, 0x024eb, '0' ],
-        'SUPERSCRIPT LATIN':            [ None, None, 0x02070, '' ],
-        'SUBSCRIPT LATIN':              [ None, None, 0x02080, '' ],
+        #"NEGATIVE CIRCLED":             [ None, None, 0x024eb, "0" ],
+        "SUPERSCRIPT LATIN":            [ None, None, 0x02070, "" ],
+        "SUBSCRIPT LATIN":              [ None, None, 0x02080, "" ],
 
-        'DIGIT COMMA':                  [ None, None, 0x1f101, '' ],
-        'DIGIT FULL STOP':              [ None, None, 0x02488, '' ],
+        "DIGIT COMMA":                  [ None, None, 0x1f101, "" ],
+        "DIGIT FULL STOP":              [ None, None, 0x02488, "" ],
 
         # Starting at 1 (but offset is to where zero *would* be)
-        'CIRCLED':                      [ None, None, 0x0245f, '0' ],
-        'DINGBAT NEGATIVE CIRCLED':     [ None, None, 0x02775, '0' ],
-        'DOUBLE CIRCLED':               [ None, None, 0x024f3, '0' ],
-        'PARENTHESIZED':                [ None, None, 0x02473, '0' ],
+        "CIRCLED":                      [ None, None, 0x0245f, "0" ],
+        "DINGBAT NEGATIVE CIRCLED":     [ None, None, 0x02775, "0" ],
+        "DOUBLE CIRCLED":               [ None, None, 0x024f3, "0" ],
+        "PARENTHESIZED":                [ None, None, 0x02473, "0" ],
 
-        'FULL STOP':                    [ None, None, 0x02487, '0' ],
-        'DINGBAT CIRCLED SANS-SERIF':   [ None, None, 0x0277f, '0' ],
-        'DINGBAT NEGATIVE CIRCLED SANS-SERIF': [ None, None, 0x02789, '0' ],
+        "FULL STOP":                    [ None, None, 0x02487, "0" ],
+        "DINGBAT CIRCLED SANS-SERIF":   [ None, None, 0x0277f, "0" ],
+        "DINGBAT NEGATIVE CIRCLED SANS-SERIF": [ None, None, 0x02789, "0" ],
 
         # circled number on black square 10-80 by 10 @ U+03248, 0 @ ????
 
-        'ARABIC-INDIC':                 [ None, None, 0x00660, '' ],
-        'EXTENDED ARABIC-INDIC':        [ None, None, 0x006F0, '' ],
-        'NKO':                          [ None, None, 0x007c0, '' ],
-        'DEVANAGARI':                   [ None, None, 0x00966, '' ],
-        'BENGALI':                      [ None, None, 0x009e6, '' ],
-        'GURMUKHI':                     [ None, None, 0x00a66, '' ],
-        'GUJARATI':                     [ None, None, 0x00aE6, '' ],
-        'ORIYA':                        [ None, None, 0x00b66, '' ],
-        'TAMIL':                        [ None, None, 0x00bE6, '' ],
-        'TELUGU':                       [ None, None, 0x00c66, '' ],
-        'KANNADA':                      [ None, None, 0x00cE6, '' ],
-        'MALAYALAM':                    [ None, None, 0x00d66, '' ],
-        'SINHALA LITH':                 [ None, None, 0x00dE6, '' ],
-        'THAI':                         [ None, None, 0x00E50, '' ],
-        'LAO':                          [ None, None, 0x00Ed0, '' ],
-        'TIBETAN':                      [ None, None, 0x00f20, '' ],
-        'MYANMAR':                      [ None, None, 0x01040, '' ],
-        'MYANMAR SHAN':                 [ None, None, 0x01090, '' ],
-        'KHMER':                        [ None, None, 0x017e0, '' ],
-        'MONGOLIAN':                    [ None, None, 0x01810, '' ],
-        'LIMBU':                        [ None, None, 0x01946, '' ],
-        'NEW TAI LUE':                  [ None, None, 0x019d0, '' ],
-        'TAI THAM HORA':                [ None, None, 0x01a80, '' ],
-        'TAI THAM THAM':                [ None, None, 0x01a90, '' ],
-        'BALINESE':                     [ None, None, 0x01b50, '' ],
-        'SUNDANESE':                    [ None, None, 0x01bb0, '' ],
-        'LEPCHA':                       [ None, None, 0x01c40, '' ],
-        'OL CHIKI':                     [ None, None, 0x01c50, '' ],
-        'IDEOGRAPHIC NUMBER':           [ None, None, 0x03007, '' ],
-        'VAI':                          [ None, None, 0x0a620, '' ],
-        'SAURASHTRA':                   [ None, None, 0x0a8d0, '' ],
-        'COMBINING DEVANAGARI':         [ None, None, 0x0a8e0, '' ],
-        'KAYAH LI':                     [ None, None, 0x0a900, '' ],
-        'JAVANESE':                     [ None, None, 0x0a9d0, '' ],
-        'CHAM':                         [ None, None, 0x0aa50, '' ],
-        'MEETEI MAYEK':                 [ None, None, 0x0abf0, '' ],
+        "ARABIC-INDIC":                 [ None, None, 0x00660, "" ],
+        "EXTENDED ARABIC-INDIC":        [ None, None, 0x006F0, "" ],
+        "NKO":                          [ None, None, 0x007c0, "" ],
+        "DEVANAGARI":                   [ None, None, 0x00966, "" ],
+        "BENGALI":                      [ None, None, 0x009e6, "" ],
+        "GURMUKHI":                     [ None, None, 0x00a66, "" ],
+        "GUJARATI":                     [ None, None, 0x00aE6, "" ],
+        "ORIYA":                        [ None, None, 0x00b66, "" ],
+        "TAMIL":                        [ None, None, 0x00bE6, "" ],
+        "TELUGU":                       [ None, None, 0x00c66, "" ],
+        "KANNADA":                      [ None, None, 0x00cE6, "" ],
+        "MALAYALAM":                    [ None, None, 0x00d66, "" ],
+        "SINHALA LITH":                 [ None, None, 0x00dE6, "" ],
+        "THAI":                         [ None, None, 0x00E50, "" ],
+        "LAO":                          [ None, None, 0x00Ed0, "" ],
+        "TIBETAN":                      [ None, None, 0x00f20, "" ],
+        "MYANMAR":                      [ None, None, 0x01040, "" ],
+        "MYANMAR SHAN":                 [ None, None, 0x01090, "" ],
+        "KHMER":                        [ None, None, 0x017e0, "" ],
+        "MONGOLIAN":                    [ None, None, 0x01810, "" ],
+        "LIMBU":                        [ None, None, 0x01946, "" ],
+        "NEW TAI LUE":                  [ None, None, 0x019d0, "" ],
+        "TAI THAM HORA":                [ None, None, 0x01a80, "" ],
+        "TAI THAM THAM":                [ None, None, 0x01a90, "" ],
+        "BALINESE":                     [ None, None, 0x01b50, "" ],
+        "SUNDANESE":                    [ None, None, 0x01bb0, "" ],
+        "LEPCHA":                       [ None, None, 0x01c40, "" ],
+        "OL CHIKI":                     [ None, None, 0x01c50, "" ],
+        "IDEOGRAPHIC NUMBER":           [ None, None, 0x03007, "" ],
+        "VAI":                          [ None, None, 0x0a620, "" ],
+        "SAURASHTRA":                   [ None, None, 0x0a8d0, "" ],
+        "COMBINING DEVANAGARI":         [ None, None, 0x0a8e0, "" ],
+        "KAYAH LI":                     [ None, None, 0x0a900, "" ],
+        "JAVANESE":                     [ None, None, 0x0a9d0, "" ],
+        "CHAM":                         [ None, None, 0x0aa50, "" ],
+        "MEETEI MAYEK":                 [ None, None, 0x0abf0, "" ],
 
         # Some other related sets
-        'ROMAN NUMERAL':                [ None, None, 0x0215f,   '0' ],
-        'SMALL ROMAN NUMERAL':          [ None, None, 0x0216f,   '0' ],
+        "ROMAN NUMERAL":                [ None, None, 0x0215f,   "0" ],
+        "SMALL ROMAN NUMERAL":          [ None, None, 0x0216f,   "0" ],
 
-        'PLAYING CARDS, SPADE':         [ None, None, 0x1f0a0,   '0' ],
-        'PLAYING CARDS, HEART':         [ None, None, 0x1f0b0,   '0' ],
-        'PLAYING CARDS, DIAMOND':       [ None, None, 0x1f0c0,   '0' ],
-        'PLAYING CARDS, CLUB':          [ None, None, 0x1f0d0,   '0' ],
+        "PLAYING CARDS, SPADE":         [ None, None, 0x1f0a0,   "0" ],
+        "PLAYING CARDS, HEART":         [ None, None, 0x1f0b0,   "0" ],
+        "PLAYING CARDS, DIAMOND":       [ None, None, 0x1f0c0,   "0" ],
+        "PLAYING CARDS, CLUB":          [ None, None, 0x1f0d0,   "0" ],
 
-        'MAHJONG TILES, CHARACTER':     [ None, None, 0x1f006,   '0' ],
-        'MAHJONG TILES, BAMBOO':        [ None, None, 0x1f00f,   '0' ],
-        'MAHJONG TILES, CIRCLE':        [ None, None, 0x1f018,   '0' ],
+        "MAHJONG TILES, CHARACTER":     [ None, None, 0x1f006,   "0" ],
+        "MAHJONG TILES, BAMBOO":        [ None, None, 0x1f00f,   "0" ],
+        "MAHJONG TILES, CIRCLE":        [ None, None, 0x1f018,   "0" ],
     } # digitSets
 
     # Map from expected but undefined code points, to where the char really is
@@ -793,62 +843,62 @@ class mathAlphanumerics:
 
     # Small caps should probably just apply to lowercase?
     smallCapMap = {
-        'a': 0x01d00,  # LATIN LETTER SMALL CAPITAL A
-        'b': 0x00299,  # LATIN LETTER SMALL CAPITAL B  (far)
-        'c': 0x01d04,  # LATIN LETTER SMALL CAPITAL C
-        'd': 0x01d05,  # LATIN LETTER SMALL CAPITAL D
-        'e': 0x01d07,  # LATIN LETTER SMALL CAPITAL E
-        'f': 0x0a730,  # LATIN LETTER SMALL CAPITAL F  (far) Unicode 5.1 (2008)
-        'g': 0x00262,  # LATIN LETTER SMALL CAPITAL G  (far)
-        'h': 0x0029c,  # LATIN LETTER SMALL CAPITAL H  (far)
-        'i': 0x0026a,  # LATIN LETTER SMALL CAPITAL I  (far)
-        'j': 0x01d0a,  # LATIN LETTER SMALL CAPITAL J
-        'k': 0x01d0b,  # LATIN LETTER SMALL CAPITAL K
-        'l': 0x0029f,  # LATIN LETTER SMALL CAPITAL L  (far)
-        'm': 0x01d0d,  # LATIN LETTER SMALL CAPITAL M
-        'n': 0x00274,  # LATIN LETTER SMALL CAPITAL N  (far)
-        'o': 0x01d0f,  # LATIN LETTER SMALL CAPITAL O
-        'p': 0x01d18,  # LATIN LETTER SMALL CAPITAL P
-        'q': 0x0A7Af,  # LATIN LETTER SMALL CAPITAL Q  (far) Unicode 11.0 (2018?)
-        'r': 0x00280,  # LATIN LETTER SMALL CAPITAL R  (far)
-        's': 0x0a731,  # LATIN LETTER SMALL CAPITAL S  (far) Unicode 5.1 (2008)
-        't': 0x01d1b,  # LATIN LETTER SMALL CAPITAL T
-        'u': 0x01d1c,  # LATIN LETTER SMALL CAPITAL U
-        'v': 0x01d20,  # LATIN LETTER SMALL CAPITAL V
-        'w': 0x01d21,  # LATIN LETTER SMALL CAPITAL W
-        #'x': None,
-        'y': 0x0028f,  # LATIN LETTER SMALL CAPITAL Y  (far)
-        'z': 0x01d22,  # LATIN LETTER SMALL CAPITAL Z
+        "a": 0x01d00,  # LATIN LETTER SMALL CAPITAL A
+        "b": 0x00299,  # LATIN LETTER SMALL CAPITAL B  (far)
+        "c": 0x01d04,  # LATIN LETTER SMALL CAPITAL C
+        "d": 0x01d05,  # LATIN LETTER SMALL CAPITAL D
+        "e": 0x01d07,  # LATIN LETTER SMALL CAPITAL E
+        "f": 0x0a730,  # LATIN LETTER SMALL CAPITAL F  (far) Unicode 5.1 (2008)
+        "g": 0x00262,  # LATIN LETTER SMALL CAPITAL G  (far)
+        "h": 0x0029c,  # LATIN LETTER SMALL CAPITAL H  (far)
+        "i": 0x0026a,  # LATIN LETTER SMALL CAPITAL I  (far)
+        "j": 0x01d0a,  # LATIN LETTER SMALL CAPITAL J
+        "k": 0x01d0b,  # LATIN LETTER SMALL CAPITAL K
+        "l": 0x0029f,  # LATIN LETTER SMALL CAPITAL L  (far)
+        "m": 0x01d0d,  # LATIN LETTER SMALL CAPITAL M
+        "n": 0x00274,  # LATIN LETTER SMALL CAPITAL N  (far)
+        "o": 0x01d0f,  # LATIN LETTER SMALL CAPITAL O
+        "p": 0x01d18,  # LATIN LETTER SMALL CAPITAL P
+        "q": 0x0A7Af,  # LATIN LETTER SMALL CAPITAL Q  (far) Unicode 11.0 (2018?)
+        "r": 0x00280,  # LATIN LETTER SMALL CAPITAL R  (far)
+        "s": 0x0a731,  # LATIN LETTER SMALL CAPITAL S  (far) Unicode 5.1 (2008)
+        "t": 0x01d1b,  # LATIN LETTER SMALL CAPITAL T
+        "u": 0x01d1c,  # LATIN LETTER SMALL CAPITAL U
+        "v": 0x01d20,  # LATIN LETTER SMALL CAPITAL V
+        "w": 0x01d21,  # LATIN LETTER SMALL CAPITAL W
+        #"x": None,
+        "y": 0x0028f,  # LATIN LETTER SMALL CAPITAL Y  (far)
+        "z": 0x01d22,  # LATIN LETTER SMALL CAPITAL Z
     }
 
     # https://en.wikipedia.org/wiki/Unicode_subscripts_and_superscripts#Uses,
     subscriptMap = {
-        'a': 0x02090,  # LATIN SUBSCRIPT SMALL LETTER A
-        #'b'    beta?
-        #'c'
-        #'d'
-        'e': 0x02091,  # LATIN SUBSCRIPT SMALL LETTER E
-        #'f'
-        #'g'
-        'h': 0x02095,  # LATIN SUBSCRIPT SMALL LETTER H (MISSING on MAC?)... through T
-        'i': 0x01d62,  # LATIN SUBSCRIPT SMALL LETTER I  (far)
-        'j': 0x02c7c,  # LATIN SUBSCRIPT SMALL LETTER J  (far)
-        'k': 0x02096,  # LATIN SUBSCRIPT SMALL LETTER K
-        'l': 0x02097,  # LATIN SUBSCRIPT SMALL LETTER L
-        'm': 0x02098,  # LATIN SUBSCRIPT SMALL LETTER M
-        'n': 0x02099,  # LATIN SUBSCRIPT SMALL LETTER N
-        'o': 0x02092,  # LATIN SUBSCRIPT SMALL LETTER O
-        'p': 0x0209a,  # LATIN SUBSCRIPT SMALL LETTER P
-        #'q'
-        'r': 0x01d63,  # LATIN SUBSCRIPT SMALL LETTER R  (far)
-        's': 0x0209b,  # LATIN SUBSCRIPT SMALL LETTER S
-        't': 0x0209c,  # LATIN SUBSCRIPT SMALL LETTER T
-        'u': 0x01d64,  # LATIN SUBSCRIPT SMALL LETTER U  (far)
-        'v': 0x01d65,  # LATIN SUBSCRIPT SMALL LETTER V  (far)
-        #'w'
-        'x': 0x02093,  # LATIN SUBSCRIPT SMALL LETTER X  (far)
-        #'y'
-        #'z'
+        "a": 0x02090,  # LATIN SUBSCRIPT SMALL LETTER A
+        #"b"    beta?
+        #"c"
+        #"d"
+        "e": 0x02091,  # LATIN SUBSCRIPT SMALL LETTER E
+        #"f"
+        #"g"
+        "h": 0x02095,  # LATIN SUBSCRIPT SMALL LETTER H (MISSING on MAC?)... through T
+        "i": 0x01d62,  # LATIN SUBSCRIPT SMALL LETTER I  (far)
+        "j": 0x02c7c,  # LATIN SUBSCRIPT SMALL LETTER J  (far)
+        "k": 0x02096,  # LATIN SUBSCRIPT SMALL LETTER K
+        "l": 0x02097,  # LATIN SUBSCRIPT SMALL LETTER L
+        "m": 0x02098,  # LATIN SUBSCRIPT SMALL LETTER M
+        "n": 0x02099,  # LATIN SUBSCRIPT SMALL LETTER N
+        "o": 0x02092,  # LATIN SUBSCRIPT SMALL LETTER O
+        "p": 0x0209a,  # LATIN SUBSCRIPT SMALL LETTER P
+        #"q"
+        "r": 0x01d63,  # LATIN SUBSCRIPT SMALL LETTER R  (far)
+        "s": 0x0209b,  # LATIN SUBSCRIPT SMALL LETTER S
+        "t": 0x0209c,  # LATIN SUBSCRIPT SMALL LETTER T
+        "u": 0x01d64,  # LATIN SUBSCRIPT SMALL LETTER U  (far)
+        "v": 0x01d65,  # LATIN SUBSCRIPT SMALL LETTER V  (far)
+        #"w"
+        "x": 0x02093,  # LATIN SUBSCRIPT SMALL LETTER X  (far)
+        #"y"
+        #"z"
     }
 
     # Greek subscripts: bgrfx 0x1d62...0x1d6a aeoxhklmnpst
@@ -857,28 +907,28 @@ class mathAlphanumerics:
 
     # See https://en.wikipedia.org/wiki/Unicode_subscripts_and_superscripts
     # Combining Diacritical Marks Supplement has most of the rest, but
-    #     we'd need to insert something to place them over
+    #     we"d need to insert something to place them over
     # Phonetic Extensions and  Phonetic Extensions Supplement have a bunch
     superscriptMap = {  # and +-=()
-        #'a':  Feminine ordinal indicator
-        'i': 0x02071,
-        'n': 0x0207f,
-        #'o':  Masculine ordinal indicator
-        #'v':  In LAtin Extended-C
+        #"a":  Feminine ordinal indicator
+        "i": 0x02071,
+        "n": 0x0207f,
+        #"o":  Masculine ordinal indicator
+        #"v":  In LAtin Extended-C
     }
 
     # TODO: Finish alternate sets that are trickier.
     #
     # Combing-char effects
     # These can't be done by handing back a translate table.
-    # Also 'TURNED', which can be done just as exceptions.
+    # Also "TURNED", which can be done just as exceptions.
     #
     specialDict = {
         # Name               Char
-        'UNDERLINE':        [  ],
-        'STRIKE':           [  ],
-        'OVERLINE':         [  ],
-        'SLASHED':          [  ],
+        "UNDERLINE":        [  ],
+        "STRIKE":           [  ],
+        "OVERLINE":         [  ],
+        "SLASHED":          [  ],
     }
 
 
@@ -889,61 +939,61 @@ class mathAlphanumerics:
         return
 
     @staticmethod
-    def getStartCodePoint(script='Latin', font='BOLD', group='U'):
-        font = re.sub(r'^MATHEMATICAL ', 'M', font.upper())
+    def getStartCodePoint(script:str="Latin", font:str="BOLD", group:str="U"):
+        font = re.sub(r"^MATHEMATICAL ", "M", font.upper())
         fontDict = mathAlphanumerics.getFontDict(script=script)
         if (font not in fontDict):
             raise ValueError("Uknown %s font '%s'." % (script, font))
         charInfo = fontDict[font]
-        if (group == 'U'): return charInfo[0]
-        if (group == 'L'): return charInfo[1]
-        if (group == 'D'): return charInfo[2]
+        if (group == "U"): return charInfo[0]
+        if (group == "L"): return charInfo[1]
+        if (group == "D"): return charInfo[2]
         raise ValueError(
             "Uknown %s 'group', must be 'U', 'L', or 'D'." % (script))
 
     @staticmethod
-    def getFontDict(script='Latin'):
+    def getFontDict(script:str="Latin"):
         """Return a dict of the "fonts" for the specified script.
         """
-        if (script == 'Latin'):
+        if (script == "Latin"):
             return mathAlphanumerics.LatinFontDict
-        elif (script == 'Greek'):
+        elif (script == "Greek"):
             return mathAlphanumerics.GreekFontDict
-        elif (script == 'Digit'):
+        elif (script == "Digit"):
             return mathAlphanumerics.DigitFontDict
         else: raise ValueError(
             "Unknown script '%s', must be Latin|Greek|Digit." %
                 (script))
 
     @staticmethod
-    def convert(ss, script="Latin", font='BOLD', decompose=False):
+    def convert(ss:str, script:str="Latin", font:str="BOLD", decompose:bool=False):
         """Convert a string to the requested variant.
         """
         if (decompose):
-            ss = unicodedata.normalize('NFD', ss)
+            ss = unicodedata.normalize("NFD", ss)
             warn(1, "Decomposed: %s" % (ss))
         xtab = mathAlphanumerics.getTranslateTable(script, font)
         return ss.translate(xtab)
 
     @staticmethod
-    def getTranslateTable(script="Latin", font='BOLD'):
+    def getTranslateTable(script:str="Latin", font:str="BOLD"):
         #if (PY3):
         #    raise NotImplementedError("No maketrans in Python 3.")
-        if (script == 'Latin'):
+        if (script == "Latin"):
             tbl = mathAlphanumerics.LatinFontDict
-            uSrcStart = ord('A'); uSrcEnd = ord('Z')
-            lSrcStart = ord('a'); lSrcEnd = ord('z')
-            dSrcStart = ord('0'); dSrcEnd = ord('9')
-        elif (script == 'Greek'):
+            uSrcStart = ord("A"); uSrcEnd = ord("Z")
+            lSrcStart = ord("a"); lSrcEnd = ord("z")
+            dSrcStart = ord("0"); dSrcEnd = ord("9")
+        elif (script == "Greek"):
             tbl = mathAlphanumerics.GreekFontDict
             uSrcStart = 0x00391; uSrcEnd = 0x003a9
             lSrcStart = 0x003b1; lSrcEnd = 0x003c9
             dSrcStart = dSrcEnd = None
-        elif (script == 'Digit'):
+        elif (script == "Digit"):
             tbl = mathAlphanumerics.DigitFontDict
             uSrcStart = uSrcEnd = None
             lSrcStart = lSrcEnd = None
-            dSrcStart = ord('0'); dSrcEnd = ord('9')
+            dSrcStart = ord("0"); dSrcEnd = ord("9")
         else: raise ValueError(
             "Unknown script '%s', must be Latin|Greek|Digit." %
                 (script))
@@ -954,7 +1004,7 @@ class mathAlphanumerics:
                 (font, script))
 
         uTgtStart, lTgtStart, dTgtStart, _ = tbl[font]
-        src = tgt = u''
+        src = tgt = u""
         if (uTgtStart):
             srcPart,  tgtPart = mathAlphanumerics.makePartialXtab(
                 uSrcStart, uSrcEnd, uTgtStart)
@@ -979,12 +1029,12 @@ class mathAlphanumerics:
         return xtab
 
     @staticmethod
-    def makePartialXtab(srcStart, srcEnd, tgtStart):
+    def makePartialXtab(srcStart:int, srcEnd:int, tgtStart:int) -> List:
         """This takes the actual first and last character codes. I noticed
         too late that this is unlike the usual Python "end+1". I may
         fix it sometime.
         @return 'from' and 'to' strings. Caller can make an xtab from them,
-        or pass them to something like 'tr', or whatever.
+        or pass them to something like "tr", or whatever.
         """
         srcTab = tgtTab = u""
         tgtCode = tgtStart
@@ -999,8 +1049,8 @@ class mathAlphanumerics:
             else:
                 continue  # No translation available!
             try:
-                srcChar = unichr(srcCode)
-                tgtChar = unichr(finalCode)
+                srcChar = chr(srcCode)
+                tgtChar = chr(finalCode)
                 srcTab += srcChar
                 tgtTab += tgtChar
             except (ValueError, UnicodeDecodeError) as e:
@@ -1033,48 +1083,48 @@ class mathAlphanumerics:
     ]
 
     LatinSentences = [
-        'gaza frequens Libycum duxit Karthago triumphum',
+        "gaza frequens Libycum duxit Karthago triumphum",
 
-        'heu Zama, quam Scipio celeber dux frangit inique',
+        "heu Zama, quam Scipio celeber dux frangit inique",
 
-        'venerat, insano Cassandrae incensus amore' +
-        'et gener auxilium Priamo Phrygibusque ferebat',
+        "venerat, insano Cassandrae incensus amore" +
+        "et gener auxilium Priamo Phrygibusque ferebat",
 
-        'obstipui, steteruntque comae et vox faucibus haesit.' +
-        'Hunc Polydorum auri quondam cum pondere magno',
+        "obstipui, steteruntque comae et vox faucibus haesit." +
+        "Hunc Polydorum auri quondam cum pondere magno",
 
-        'Nox erat, et terris animalia somnus habebat:' +
-        'effigies sacrae divom Phrygiique Penates',
+        "Nox erat, et terris animalia somnus habebat:" +
+        "effigies sacrae divom Phrygiique Penates",
 
-        'infelix Theseus; Phlegyasque miserrimus omnis' +
-        'admonet, et magna testatur voce per umbras:',
+        "infelix Theseus; Phlegyasque miserrimus omnis" +
+        "admonet, et magna testatur voce per umbras:",
 
-        'Forte die sollemnem illo rex Arcas honorem' +
-        'Amphitryoniadae magno divisque ferebat',
+        "Forte die sollemnem illo rex Arcas honorem" +
+        "Amphitryoniadae magno divisque ferebat",
 
-        'a quo post Itali fluvium cognomine Thybrim' +
-        'diximus, amisit verum vetus Albula nomen;',
+        "a quo post Itali fluvium cognomine Thybrim" +
+        "diximus, amisit verum vetus Albula nomen;",
 
-        'Haud procul hinc saxo incolitur fundata vetusto' +
-        'urbis Agyllinae sedes, ubi Lydia quondam',
+        "Haud procul hinc saxo incolitur fundata vetusto" +
+        "urbis Agyllinae sedes, ubi Lydia quondam",
 
-        'quid gravidam bellis urbem et corda aspera temptas?' +
-        'Nosne tibi fluxas Phrygiae res vertere fundo',
+        "quid gravidam bellis urbem et corda aspera temptas?" +
+        "Nosne tibi fluxas Phrygiae res vertere fundo",
 
-        'Nosne tibi fluxas Phrygiae res vertere fundo' +
-        'conamur, nos, an miseros qui Troas Achivis',
+        "Nosne tibi fluxas Phrygiae res vertere fundo" +
+        "conamur, nos, an miseros qui Troas Achivis",
 
-        'Tarquitus exultans contra fulgentibus armis' +
-        'silvicolae Fauno Dryope quem nympha crearat',
+        "Tarquitus exultans contra fulgentibus armis" +
+        "silvicolae Fauno Dryope quem nympha crearat",
 
-        'ut bivias armato obsidam milite fauces.' +
-        'Tu Tyrrhenum equitem conlatis excipe signis;',
+        "ut bivias armato obsidam milite fauces." +
+        "Tu Tyrrhenum equitem conlatis excipe signis;",
 
-        'Fovit ea volnus lympha longaevus Iapyx' +
-        'ignorans, subitoque omnis de corpore fugit',
+        "Fovit ea volnus lympha longaevus Iapyx" +
+        "ignorans, subitoque omnis de corpore fugit",
 
-        'quantus Athos aut quantus Eryx aut ipse coruscis' +
-        'cum fremit ilicibus quantus gaudetque nivali',
+        "quantus Athos aut quantus Eryx aut ipse coruscis" +
+        "cum fremit ilicibus quantus gaudetque nivali",
     ]
 
     # From https://backpacker.gr/pangrams
@@ -1115,58 +1165,63 @@ if __name__ == "__main__":
             parser = argparse.ArgumentParser(description=descr)
 
         parser.add_argument(
-            "--decompose", action='store_true',
+            "--decompose", action="store_true",
             help="""If set, separate diacritics from their base characters. With this,
 Latin or Greek characters with diacritics should work, even though Unicode does not
 provide Mathematical and similar variants for most of them.""")
         parser.add_argument(
-            "--font", type=str, default="ITALIC",
-            help='Character variant to convert to. Default: ITALIC.')
+            "--family", type=str, default="",
+            help="With --makeHtmlComparison, choose the font family for display.")
         parser.add_argument(
-            "--indeosperamus", action='store_true',
-            help='Use actual Latin for sample sentences.')
+            "--font", type=str, default="ITALIC",
+            help="Character variant to convert to. Default: ITALIC.")
+        parser.add_argument(
+            "--indeosperamus", action="store_true",
+            help="Use actual Latin for sample sentences.")
+        parser.add_argument(
+            "--makeHtmlComparison", action="store_true",
+            help="Write out an HTML document that compares Math quasi-fonts to formatted regulars.")
         parser.add_argument(
             "--missing", type=anyInt, default=0x2623,
-            help=('Show this code point for undefined characters. ' +
-            'Default: biohazard (U+2623).'))
+            help=("Show this code point for undefined characters. " +
+            "Default: biohazard (U+2623)."))
         parser.add_argument(
-            "--quiet", "-q", action='store_true',
-            help='Suppress most messages.')
+            "--quiet", "-q", action="store_true",
+            help="Suppress most messages.")
         parser.add_argument(
             "--sample", type=str, default=None,
-            help='Sample text to convert (see also --to).')
+            help="Sample text to convert (see also --to).")
         parser.add_argument(
             "--script", type=str, default="Latin",
-            choices=[ 'Latin', 'Greek', 'Digits' ],
+            choices=[ "Latin", "Greek", "Digits" ],
             help='Script to translate to a variant "font". Default: Latin.')
         parser.add_argument(
-            "--show", action='store_true',
-            help='List all fonts for the chosen script. Add -v for samples.')
+            "--show", action="store_true",
+            help="List all fonts for the chosen script. Add -v for samples.")
         parser.add_argument(
-            "--test", "--list", action='store_true',
-            help='Test getTranslateTable().')
+            "--test", "--list", action="store_true",
+            help="Test getTranslateTable().")
         parser.add_argument(
-            "--verbose", "-v", action='count', default=0,
-            help='Add more messages (repeatable).')
+            "--verbose", "-v", action="count", default=0,
+            help="Add more messages (repeatable).")
         parser.add_argument(
-            "--version", action='version', version=__version__,
-            help='Display version information, then exit.')
+            "--version", action="version", version=__version__,
+            help="Display version information, then exit.")
 
         args0 = parser.parse_args()
         return(args0)
 
     messageIssued = False
 
-    def showAlternates(altList, MISSING=None):
+    def showAlternates(exceptionDict:Dict, MISSING:int=None):
         """Print a list of all the available variants. With -v, add samples.
         """
-        global messageIssued
-        for k in (sorted(altList.keys())):
-            if (altList[k] is None):
+        for k in (sorted(exceptionDict.keys())):
+            if (exceptionDict[k] is None):
                 print("%-50s    DOES NOT EXIST" % (k))
                 continue
             try:
-                Ustart, Lstart, Dstart, _ = altList[k]
+                Ustart, Lstart, Dstart, _ = exceptionDict[k]
             except TypeError as e:
                 print("******* Error on '%s':\n    %s" % (k, e))
                 continue
@@ -1182,7 +1237,7 @@ provide Mathematical and similar variants for most of them.""")
                     print("    U+%05x: %s" %
                         (Dstart, gatherChars(Dstart, 10, MISSING=MISSING)))
 
-    def gatherChars(startCode, n, MISSING=0x0005f):
+    def gatherChars(startCode:int, n:int, MISSING:int=0x0005f):
         """Collecting n characters starting at a given code point.
         If any in the range are listed in 'exceptions', substitute them.
         """
@@ -1193,24 +1248,23 @@ provide Mathematical and similar variants for most of them.""")
                 if (codePoint in mathAlphanumerics.exceptions):
                     codePoint = mathAlphanumerics.exceptions[codePoint]
                     if (codePoint is None):
-
                         codePoint = MISSING
-                buf += "%s " % (unichr(codePoint))
+                buf += "%s " % (chr(codePoint))
         except ValueError:
             if (not messageIssued): print(
-                "    ******* Out of unichr() range *******")
+                "    ******* Out of chr() range *******")
             messageIssued = True
         return buf
 
-    def testXtabs(script, altList, sample=None):
+    def testXtabs(script:str, exceptionDict:Dict, sample:str=None):
         """Given one of the lists, like mathAlphanumerics.LatinFontDict, set up
         translate tables and print the result on a sample sentence.
         """
         print("Testing xtabs for script '%s'." % (script))
         if (not sample): sample = getRandomSentence()
 
-        for k in (sorted(altList.keys())):
-            if (altList[k] is None):
+        for k in (sorted(exceptionDict.keys())):
+            if (exceptionDict[k] is None):
                 print("%-50s    DOES NOT EXIST" % (k))
                 continue
             xtab = mathAlphanumerics.getTranslateTable(args.script, k)
@@ -1219,11 +1273,11 @@ provide Mathematical and similar variants for most of them.""")
                 print("=== %s ('A' -> U+%04x)" % (k, firstOrd))
             else:
                 print("=== %s ('A' not available)" % (k))
-            print('    Upper:' + sample.upper().translate(xtab))
-            print('    Lower:' + sample.lower().translate(xtab))
-            digits = '0123456789'.translate(xtab)
-            if (digits == '0123456789'): digits = "[not available]"
-            print('    Digit:' + digits)
+            print("    Upper:" + sample.upper().translate(xtab))
+            print("    Lower:" + sample.lower().translate(xtab))
+            digits = "0123456789".translate(xtab)
+            if (digits == "0123456789"): digits = "[not available]"
+            print("    Digit:" + digits)
 
     def getRandomSentence():
         import random
@@ -1232,23 +1286,106 @@ provide Mathematical and similar variants for most of them.""")
         else:
             return random.choice(mathAlphanumerics.EnglishSentences)
 
+    def makeHC(fontFamily:str=""):
+        """Create an HTML file to show the special forms next to their 
+        formatted equivalents of the regular characters. For example,
+        a row of MATHEMATICAL BOLD vs. regular in <B>.
+        """
+        mapping = {
+            "BOLD":                        [ "b", ],  # UPPER LOWER DIGITS
+            "ITALIC":                      [ "i", ],  # UPPER LOWER
+            "BOLD ITALIC":                 [ "b", "i", ],  # UPPER LOWER
+            "SANS-SERIF":                  [ "sans", ],  # UPPER LOWER DIGITS
+            "SANS-SERIF BOLD":             [ "sans", "b", ],  # UPPER LOWER DIGITS
+            "SANS-SERIF ITALIC":           [ "sans", "i", ],  # UPPER LOWER
+            "SANS-SERIF BOLD ITALIC":      [ "sans", "b", "i", ],  # UPPER LOWER
+            "SCRIPT":                      [ "cursive", ],  # UPPER LOWER  font-family: cursive;
+            "BOLD SCRIPT":                 [ "cursive", "b", ],  # UPPER LOWER
+            #"FRAKTUR":                     [ "b", ],  # UPPER LOWER
+            #"BOLD FRAKTUR":                [ "b", ],  # UPPER LOWER
+            #"DOUBLE-STRUCK":               [ "b", ],  # UPPER LOWER DIGITS
+            "MONOSPACE":                   [ "mono", ],  # UPPER LOWER DIGITS  font-family: monospace;
+            #"CIRCLED":                     [ "b", ],  # UPPER LOWER DIGITS
+            #"PARENTHESIZED":               [ "b", ],  # UPPER LOWER DIGITS
+            #"FULLWIDTH":                   [ "b", ],  # UPPER LOWER DIGITS
+            #"SQUARED":                     [ "b", ],  # UPPER
+            #"NEGATIVE SQUARED":            [ "b", ],  # UPPER
+            #"NEGATIVE CIRCLED":            [ "b", ],  # UPPER
+            "SUPERSCRIPT":                 [ "sup", ],  # DIGITS
+            "SUBSCRIPT":                   [ "sub", ],  # DIGITS
+        }
+        
+        upp = re.sub(r"(.)", "\\1 ", string.ascii_uppercase)
+        low = re.sub(r"(.)", "\\1 ", string.ascii_lowercase)
+        #dig = re.sub(r"(.)", "\\1 ", string.digits)
+        
+        fontChoice = ""
+        if (fontFamily): fontChoice = "font-family:%s" % (fontFamily)
+        print("""<html>
+    <head>
+        <title>Mathematical Unicode vs. HTML formatting</title>
+        <style type="text/css">
+            body            { margin-left:24pt; %s }
+            table, tr, td   { border:thin black solid; border-collapse:collapse; }
+            sans            { font-family:sans-serif; }
+            serif           { font-family:serif; }
+            cursive         { font-family:cursive; }
+            monospace       { font-family:monospace; }
+        </style>
+    </head>
+    <body>
+        <h1>Comparing ASCII+HTML vs. Unicode MATHEMATICAL quasi-fonts</h1>
+        <h3>(font: %s)</h3>""" %
+            (fontChoice, fontFamily if fontFamily else "[default]"))
+        for font, tags in mapping.items():
+            print("<h2>%s</h2>" % (font))
+            print("""<table>
+            <tr><td>A</td><td>%s</td></tr>
+            <tr><td>M</td><td>%s</td></tr>
+            </table>""" % (makeAsciiSample(font, tags, upp), makeMathSample(font, tags, upp)))
+
+            print("""<table>
+            <tr><td>A</td><td>%s</td></tr>
+            <tr><td>M</td><td>%s</td></tr>
+            </table>""" % (makeAsciiSample(font, tags, low), makeMathSample(font, tags, low)))
+        print("""</body>\n<html>""")
+        return
+
+    def makeAsciiSample(_fontName:str, tags:List, sample:str) -> str:
+        bufAscii = ""
+        for tag in tags: bufAscii += "<%s>" % (tag)
+        bufAscii += sample
+        for tag in reversed(tags): bufAscii += "</%s>" % (tag)
+        return bufAscii
+
+    def makeMathSample(fontName:str, _tags:List, sample:str) -> str:
+        bufMath = mathAlphanumerics.convert(
+            sample, script="Latin", font=fontName, decompose=False)
+        # TODO: Add option to escape to ASCII          
+        return bufMath
+        
+        
     ###########################################################################
     #
     args = processOptions()
 
     try:
-        _ = unichr(0x1d49c)
-    except ValueError as e:
-        warn(-1, "Character over U+FFFF failed. Upgrade Python?\n  %s\n" % (e))
+        _ = chr(0x1d49c)
+    except ValueError as e0:
+        warn(-1, "Character over U+FFFF failed. Upgrade Python?\n  %s\n" % (e0))
 
-    if (args.script == 'Greek'):
-        scr = 'Greek'
+    if (args.makeHtmlComparison):
+        makeHC(args.family)
+        sys.exit()
+        
+    if (args.script == "Greek"):
+        scr = "Greek"
         fonts = mathAlphanumerics.GreekFontDict
-    elif (args.script == 'Digits'):
-        scr = 'Digits'
+    elif (args.script == "Digits"):
+        scr = "Digits"
         fonts = mathAlphanumerics.DigitFontDict
-    elif (args.script == 'Latin'):
-        scr = 'Latin'
+    elif (args.script == "Latin"):
+        scr = "Latin"
         fonts = mathAlphanumerics.LatinFontDict
     else:
         warn(-1, "Unknown 'script': '%s'." % (args.script))
@@ -1269,10 +1406,10 @@ provide Mathematical and similar variants for most of them.""")
         if (args.sample is None):
             args.sample = getRandomSentence()
         txt = args.sample
-        if (txt == '' or txt == '*'): txt = getRandomSentence()
+        if (txt == "" or txt == "*"): txt = getRandomSentence()
         s = mathAlphanumerics.convert(txt,
             script=args.script, font=args.font, decompose=args.decompose)
-        print('    Original:  ' + txt +
+        print("    Original:  " + txt +
             "\n    Converted: " + s)
 
     else:  # translate stdin
@@ -1280,8 +1417,8 @@ provide Mathematical and similar variants for most of them.""")
             print("Waiting on stdin...")
         xt = mathAlphanumerics.getTranslateTable(scr, args.font)
         import io
-        istream = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8')
-        #sys.stdin.reconfigure(encoding='utf-8')
+        istream = io.TextIOWrapper(sys.stdin.buffer, encoding="utf-8")
+        #sys.stdin.reconfigure(encoding="utf-8")
         for rec in istream:
             rec2 = mathAlphanumerics.convert(rec,
                 script=args.script, font=args.font, decompose=args.decompose)
