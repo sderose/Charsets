@@ -393,6 +393,8 @@ Color hyph/space/dash/quote green; non-word-chars outside ascii
 
 =item * Report rank of character by frequency.
 
+=item * Report total freq and % per Unicode block
+
 =item * Identify HTML named entities
 
 =item * Option to insert literal (or entity or \\x) in output chart.

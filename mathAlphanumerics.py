@@ -422,6 +422,8 @@ Add support for in-pipe translation.
 * 2021-02-18: Fix bug that dropped part of translate tables.
 * 2021-02-23: Add option for Unicode normalization.
 * 2021-12-20: Add --makeHtmlComparison. Add type hints.
+* 2922001-07: Add SMALLCAP, SUBSCRIPT, SUPERSCRIPT, ROTATED, UNDERLINE, DUNDERLINE,
+OVERLINE, DOVERLINE, STRIKE, SLASHED, DSLASHED.
 
 
 =To do=
@@ -429,8 +431,6 @@ Add support for in-pipe translation.
 * Cleaner way to request, like splitting out bold and italic -- though
 you only get the full set of { roman, bold, italic, bold-italic } for
 plain and sans-serif.
-
-* Better testing for non-Latin digits.
 
 * Perhaps add feature to turn markup into fonts -- such as
     <i> ITALIC
@@ -442,162 +442,103 @@ plain and sans-serif.
 
 But what of FRAKTUR, DOUBLE-STRUCK, SCRIPT, FULLWIDTH, and the enclosed ones? <span?>
 
+* Better testing for non-Latin digits.
+
 * Possibly add combining characters such as underscore, strike-through, and
 overline. There's even COMBINING ENCLOSING CIRCLE (and SQUARE).
 
-* Possibly add turned (cf reversed), using:
-    Problem: there isn't a reserved range for these
-    --- uppercase ---
-        A U+02c6f LATIN CAPITAL LETTER TURNED A
-        B                                          ???
-        C                                          ???
-        D                                          ???
-        E => exists  U+02c7b(smallcap)
-        F U+02132 TURNED CAPITAL F
-        G U+02141 TURNED SANS-SERIF CAPITAL G
-        H U+0a78d LATIN CAPITAL LETTER TURNED H (why is this not itself?)
-        I => I
-        J ?                                        ???
-        K ?                                        ???
-        L => U+0a780 LATIN CAPITAL LETTER TURNED L
-        #U+02142 TURNED SANS-SERIF CAPITAL L
-        M => U+0019c LATIN CAPITAL LETTER TURNED M
-        N => N
-        O => O
-        P =>  ~~~d~~~                               ??? eth?
-        Q =>                                        ???
-        R =>                                        ??? U+01d1a	Latin Letter Small Capital Turned R
-        S => S
-        T =>                                        ???
-        U => U+2229 intersection?
-        V => U+00245 LATIN CAPITAL LETTER TURNED V
-        W => ~~~M~~~                                ???
-        X => X
-        Y => U+02144 TURNED SANS-SERIF CAPITAL Y
-        Z => Z                                      ???
+* Greek has some turned letters, too:
+    "a":  chr(0x00252),  #  A  chr(0x2C6F)
+    "b":            # 
+    "g":            # 
+    "d":  chr(0x0018D),  #  D  chr(0x2207) nabla
+    "e":  chr(0x01D08),
+    "z":            # =Zeta
+    "h":            #  =Eta
+    "q":            #  =Theta
+    "i":  chr(0x02129),   # Iota
+    "k":  chr(0x0029e),   # chr(0x0029e) LATIN SMALL LETTER TURNED K
+    "l":            #  V
+    "m":  chr(0x0019c),   # LATIN CAPITAL LETTER TURNED M
+    "n":  chr(0x0028c),   #LATIN SMALL LETTER TURNED V
+    "c":            # 
+    "o":            #  =Omicron
+    "p":            # 
+    "r":            # ~~~d~~~
+    "s":            # 
+    "t":            # =Tau
+    "u":            # =Upsilon
+    "f":  phi       # =Phi
+    "x":  xi        # =Xi
+    "ps":           # 
+    "w":            # 
 
-        --- lowercase ---
-        a => U+00250 LATIN SMALL LETTER TURNED A
-        b => q
-        c => U+02184 LATIN SMALL LETTER REVERSED C
-        d => p
-        e => U+001dd LATIN SMALL LETTER TURNED E (or e => schwa)
-        f => U+0214e TURNED SMALL F
-        g => U+01d77 LATIN SMALL LETTER TURNED G
-        h => U+00265 LATIN SMALL LETTER TURNED H
-        i => U+01d09 LATIN SMALL LETTER TURNED I
-        j => medial s?
-        k => U+0029e LATIN SMALL LETTER TURNED K
-        l => U+0a781 LATIN SMALL LETTER TURNED L
-        m => U+0026f LATIN SMALL LETTER TURNED M
-        n => u
-        o = o
-        p => d
-        q => b
-        r => U+00279 LATIN SMALL LETTER TURNED R
-        s = s
-        t => U+00287 LATIN SMALL LETTER TURNED T
-        u => n
-        v => U+0028c LATIN SMALL LETTER TURNED V
-        w => U+0028d LATIN SMALL LETTER TURNED W
-        x = x
-        y => U+0028e LATIN SMALL LETTER TURNED Y
-        z = z
-
-* Greek has turned:
-        a  U+00252    A  U+2C6F
-        b
-        g
-        d  U+0018D    D  U+025BD White Down-pointing Triangle
-        e  U+01D08
-        z             Zeta
-        h             Eta
-        q  theta      Theta
-        i  U+02129    Iota
-        k  U+0029e    U+0029e LATIN SMALL LETTER TURNED K
-        l             V
-        m             U+0019c LATIN CAPITAL LETTER TURNED M
-        n  U+0028c LATIN SMALL LETTER TURNED V
-        c
-        o  omicron    Omicron
-        p
-        r             ~~~d~~~
-        s
-        t             Tau
-        u             Upsilon
-        f  phi        Phi
-        x  xi         Xi
-        ps
-        w
-        
 * Quarter-turned instead of half?
-        q CCW  
-        m CW   U+01d1f
+    "q":   # q CCW  
+    "q":   # m CW   chr(0x01d1f)
         
 * Possibly add reversed (horizontally)
     --- uppercase ---
-    A => A
-    B =>                                    ???
-    C => U+02183 ROMAN NUMERAL REVERSED ONE HUNDRED
-    D =>
-    E => U+0018e LATIN CAPITAL LETTER REVERSED E
-    F =>
-    G =>
-    H => H
-    I => I
-    J =>
-    K =>
-    L => U+02143 REVERSED SANS-SERIF CAPITAL L
-    M => M
-    N =>
-    O => O
-    P =>
-    Q =>
-    R =>
-    S =>
-    T => T
-    U => U
-    V => V
-    W => W
-    X => X
-    Y => Y
-    Z =>
+    "A":  "A",  
+    "B":                                     ???
+    "C":  chr(0x02183),  # ROMAN NUMERAL REVERSED ONE HUNDRED
+    "D": 
+    "E":  chr(0x0018e),  # LATIN CAPITAL LETTER REVERSED E
+    "F": 
+    "G": 
+    "H":  "H",  
+    "I":  "I",  
+    "J": 
+    "K": 
+    "L":  chr(0x02143),  # REVERSED SANS-SERIF CAPITAL L
+    "M":  "M",  
+    "N": 
+    "O":  "O",  
+    "P":  chr(0x0a7fc),   # LATIN EPIGRAPHIC LETTER REVERSED P
+    "Q": 
+    "R": 
+    "S": # https://en.wikipedia.org/wiki/%C6%A7
+    "T":  "T",  
+    "U":  "U",  
+    "V":  "V",  
+    "W":  "W",  
+    "X":  "X",  
+    "Y":  "Y",  
+    "Z": 
 
     --- lowercase ---
-    a =>
-    b => d
-    c => U+02184 LATIN SMALL LETTER REVERSED C
-    d => b
-    e => U+00258 LATIN SMALL LETTER REVERSED E
-    f =>
-    g =>
-    h =>
-    i => i
-    j =>
-    k =>
-    l => l
-    m => m?
-    n => n?
-    o => o
-    p => q
-    q => p
-    r =>
-    s =>
-    t =>
-    u => u?
-    v => v
-    w => w
-    x => x
-    y =>
-    z =>
+    "a": 
+    "b":  "d",  
+    "c":  chr(0x02184),  # LATIN SMALL LETTER REVERSED C
+    "d":  "b",  
+    "e":  chr(0x00258),  # LATIN SMALL LETTER REVERSED E
+    "f": 
+    "g": 
+    "h": 
+    "i":  "i",  
+    "j": 
+    "k": 
+    "l":  "l",  
+    "m":  m?
+    "n":  n?
+    "o":  "o",  
+    "p":  "q",  
+    "q":  "p",  
+    "r":  chr(0x0027f),  # LATIN SMALL LETTER REVERSED R WITH FISHHOOK
+    "s": 
+    "t": 
+    "u":  u?
+    "v":  "v",  
+    "w":  "w",  
+    "x":  "x",  
+    "y": 
+    "z": 
 
 * Hook up smallCapMap (missing Q and X)
 
 * Possibly add superscript
-    i => U+02071 SUPERSCRIPT LATIN SMALL LETTER I
-    n => U+0207f SUPERSCRIPT LATIN SMALL LETTER N
-
-* Hook up subscriptMap
+    "i":  chr(0x02071),  # SUPERSCRIPT LATIN SMALL LETTER I
+    "n":  chr(0x0207f),  # SUPERSCRIPT LATIN SMALL LETTER N
 
 * Non-alphanumeric variants: punctuation, esp. for superscript and subscript
 
@@ -642,44 +583,44 @@ class mathAlphanumerics:
     #
     LatinFontDict = {
         ####### Following are "Mathematical":
-        # Name                      ( Upper    Lower,   Digits   Exceptions )
-        "BOLD":                     ( 0x1d400, 0x1d41a, 0x1d7ce, "" ),
-        "ITALIC":                   ( 0x1d434, 0x1d44e, None,    "h" ),
-        "BOLD ITALIC":              ( 0x1d468, 0x1d482, None,    "" ),
+        # Name                       ( Upper    Lower,   Digits   Exceptions )
+        "BOLD":                      ( 0x1d400, 0x1d41a, 0x1d7ce, "" ),
+        "ITALIC":                    ( 0x1d434, 0x1d44e, None,    "h" ),
+        "BOLD ITALIC":               ( 0x1d468, 0x1d482, None,    "" ),
 
-        "SANS-SERIF":               ( 0x1d5a0, 0x1d5ba, 0x1d7e2, "" ),
-        "SANS-SERIF BOLD":          ( 0x1d5d4, 0x1d5ee, 0x1d7ec, "" ),
-        "SANS-SERIF ITALIC":        ( 0x1d608, 0x1d622, None,    "" ),
-        "SANS-SERIF BOLD ITALIC":   ( 0x1d63c, 0x1d656, None,    "" ),
+        "SANS-SERIF":                ( 0x1d5a0, 0x1d5ba, 0x1d7e2, "" ),
+        "SANS-SERIF BOLD":           ( 0x1d5d4, 0x1d5ee, 0x1d7ec, "" ),
+        "SANS-SERIF ITALIC":         ( 0x1d608, 0x1d622, None,    "" ),
+        "SANS-SERIF BOLD ITALIC":    ( 0x1d63c, 0x1d656, None,    "" ),
 
-        "SCRIPT":                   ( 0x1d49c, 0x1d4b6, None, "BEFHILMR ego"),
-        "BOLD SCRIPT":              ( 0x1d4d0, 0x1d4ea, None,    "" ),
+        "SCRIPT":                    ( 0x1d49c, 0x1d4b6, None, "BEFHILMR ego"),
+        "BOLD SCRIPT":               ( 0x1d4d0, 0x1d4ea, None,    "" ),
 
-        "FRAKTUR":                  ( 0x1d504, 0x1d51e, None,    "CHIRZ" ),
-        "BOLD FRAKTUR":             ( 0x1d56c, 0x1d586, None,    "" ),
+        "FRAKTUR":                   ( 0x1d504, 0x1d51e, None,    "CHIRZ" ),
+        "BOLD FRAKTUR":              ( 0x1d56c, 0x1d586, None,    "" ),
 
-        "DOUBLE-STRUCK":            ( 0x1d538, 0x1d552, 0x1d7d8, "CHNPQRZ" ),
-        "MONOSPACE":                ( 0x1d670, 0x1d68a, 0x1d7f6, "" ),
+        "DOUBLE-STRUCK":             ( 0x1d538, 0x1d552, 0x1d7d8, "CHNPQRZ" ),
+        "MONOSPACE":                 ( 0x1d670, 0x1d68a, 0x1d7f6, "" ),
 
         ####### Following aren't "Mathematical":
 
-        "CIRCLED":                  ( 0x024b6, 0x024d0, 0x0245f, "" ),
-        "PARENTHESIZED":            ( 0x1f110, 0x0249c, 0x02473, "" ),
-        "FULLWIDTH":                ( 0x0FF21, 0x0FF41, 0x0FF10, "" ),
+        "CIRCLED":                   ( 0x024b6, 0x024d0, 0x0245f, "" ),
+        "PARENTHESIZED":             ( 0x1f110, 0x0249c, 0x02473, "" ),
+        "FULLWIDTH":                 ( 0x0FF21, 0x0FF41, 0x0FF10, "" ),
 
         ####### Not available in lower case:
 
-        "SQUARED":                    ( 0x1f130, None,    None,    "" ),
-        "NEGATIVE SQUARED":           ( 0x1f170, None,    None,    "" ),
-        "REGIONAL INDICATOR SYMBOL":  ( 0x1f1e6, None,    None,    "" ),  # ???
-        "NEGATIVE CIRCLED":           ( 0x1f150, None,    None,    "" ),  # 0x02775 ???
-        "SUPERSCRIPT":                ( None,    None,    0x02070, "123" ),
-        "SUBSCRIPT":                  ( None,    None,    0x02080, "" ),
+        "SQUARED":                   ( 0x1f130, None,    None,    "" ),
+        "NEGATIVE SQUARED":          ( 0x1f170, None,    None,    "" ),
+        "REGIONAL INDICATOR SYMBOL": ( 0x1f1e6, None,    None,    "" ),  # ???
+        "NEGATIVE CIRCLED":          ( 0x1f150, None,    None,    "" ),  # 0x02775 ???
+        "SUPERSCRIPT":               ( None,    None,    0x02070, "123" ),
+        "SUBSCRIPT":                 ( None,    None,    0x02080, "" ),
 
         ####### Unfinished:
         #"Subscript Latin Small"   : [],  # aehijklmnoprstuvx
     }
-
+    
     GreekFontDict = {
         "BOLD":                       ( 0X1D6A8, 0X1D6C2, None, "" ),
         "ITALIC":                     ( 0X1D6E2, 0X1D6FC, None, "" ),
@@ -917,6 +858,84 @@ class mathAlphanumerics:
         #"v":  In LAtin Extended-C
     }
 
+    # Turned/rotated characters. Uppercase are mainly based on "Fraser" orthography,
+    # for "Lisu" script.
+    #
+    lisuMap = {
+        #                   # Name, alternatives?
+        "A":   0x0a4ef,     # U+02c6f LATIN CAPITAL LETTER TURNED A
+        "B":   0x0a4ed,     # 
+        "C":   0x0a4db,     # 
+        "D":   0x0a4f7,     # 
+        "E":   0x0a4f1,     # exists  U+02c7b(smallcap)
+        "F":   0x0a4de,     # U+02132 TURNED CAPITAL F
+        "G":   0x0a4e8,     # U+02141 TURNED SANS-SERIF CAPITAL G
+        "H":   0x0a4e7,     # SAME ROTATED
+        "I":   0x0a4f2,     # SAME ROTATED
+        "J":   0x0a4e9,     # 
+        "K":   0x0a4d8,     # 
+        "L":   0x0a4f6,     # U+0a780 LATIN CAPITAL LETTER TURNED L, U+02142 TURNED SANS-SERIF CAPITAL L
+        "M":   0x0019c,     # MISSING, USING U+0019c LATIN CAPITAL LETTER TURNED M
+        "N":   0x0a4e0,     # SAME ROTATED
+        "O":   0x0a4f3,     # SAME ROTATED
+        "P":   0x0a4d2,     # Use d?
+        "Q":   0x0a779,     # MISSING (cf 1/4-turn U+213A; U+0a779 LATIN CAPITAL LETTER INSULAR D)
+        "R":   0x0a4e4,     # cf U+01d1a Latin Letter Small Capital Turned R
+        "S":   0x0a4e2,     # SAME ROTATED
+        "T":   0x0a4d5,     # 
+        "U":   0x0a4f5,     # cf U+2229 intersection?
+        "V":   0x0a4e5,     # U+00245 LATIN CAPITAL LETTER TURNED V
+        "W":   ord('M'),    # MISSING, ROTATED 'M'
+        "X":   0x0a4eb,     # SAME ROTATED
+        "Y":   0x02144,     # MISSING, USING U+02144 TURNED SANS-SERIF CAPITAL Y
+        "Z":   0x0a4dc,     # SAME ROTATED
+        #
+        # turned/rotated lowercase ---
+        "a":   0x00250,     # LATIN SMALL LETTER TURNED A
+        "b":   ord("q"),    # 
+        "c":   0x02184,     # LATIN SMALL LETTER REVERSED C
+        "d":   ord("p"),    # 
+        "e":   0x001dd,     # LATIN SMALL LETTER TURNED E (or"e":   schwa)
+        "f":   0x0214e,     # TURNED SMALL F
+        "g":   0x01d77,     # LATIN SMALL LETTER TURNED G
+        "h":   0x00265,     # LATIN SMALL LETTER TURNED H
+        "i":   0x01d09,     # LATIN SMALL LETTER TURNED I
+        "j":   ord("m"),    # edial s?
+        "k":   0x0029e,     # LATIN SMALL LETTER TURNED K
+        "l":   0x0a781,     # LATIN SMALL LETTER TURNED L
+        "m":   0x0026f,     # LATIN SMALL LETTER TURNED M
+        "n":   ord("u"),    # 
+        "o":   ord("o"),    # 
+        "p":   ord("d"),    # 
+        "q":   ord("b"),    # 
+        "r":   0x00279,     # LATIN SMALL LETTER TURNED R
+        "s":   ord("s"),    # 
+        "t":   0x00287,     # LATIN SMALL LETTER TURNED T
+        "u":   ord("n"),    # 
+        "v":   0x0028c,     # LATIN SMALL LETTER TURNED V
+        "w":   0x0028d,     # LATIN SMALL LETTER TURNED W
+        "x":   ord("x"),    # 
+        "y":   0x0028e,     # LATIN SMALL LETTER TURNED Y
+        "z":   ord("z"),    # 
+        #
+        # See also [https://text-symbols.com/upside-down]
+        # "0": ord("0"),    # SAME
+        # "1":      # IOTA?
+        # "2": 0x0218A,     # turned digit two
+        # "3": 0x0218B,     # turned digit three, latin capital letter open e - backwards 3 flipped (u+0190)
+        # "4": 0x0152d,     # canadian syllabics ya (u+152d)
+        # "5": ord("5"),    # Close to same
+        # "6": ord("9"),    # => 9
+        # "7":              # MATHEMATICAL SANS-SERIF ITALIC CAPITAL L ?
+        # "8": ord("8"),    # Close to same
+        # "9": ord("6"),    # => 6
+        #
+        # "?": 0x000BF,     # iquest
+        # "!": 0x000A1,
+        # "&": 0x0214B,
+        # most mirrored chars...
+    }
+
     # TODO: Finish alternate sets that are trickier.
     #
     # Combing-char effects
@@ -925,12 +944,32 @@ class mathAlphanumerics:
     #
     specialDict = {
         # Name               Char
-        "UNDERLINE":        [  ],
-        "STRIKE":           [  ],
-        "OVERLINE":         [  ],
-        "SLASHED":          [  ],
+        "SMALLCAP":         smallCapMap,
+        "SUBSCRIPT":        subscriptMap,
+        "SUPERSCRIPT":      superscriptMap,
+        "ROTATED":          lisuMap,
     }
-
+    
+    # A few more can be made by composing a combining character with the base
+    # TODO: Perhaps add an option to add any combining character one likes?
+    combinerDict = {        
+        "UNDERLINE":        chr(0x00332),  # COMBINING LOW LINE
+        "DUNDERLINE":       chr(0x00333),  # COMBINING DOUBLE LOW LINE
+        "OVERLINE":         chr(0x00305),  # COMBINING OVERLINE
+        "DOVERLINE":        chr(0x0033F),  # COMBINING DOUBLE OVERLINE
+        "STRIKE":           chr(0x00336),  # COMBINING LONG STROKE OVERLAY
+        "SLASHED":          chr(0x00338),  # COMBINING LONG SOLIDUS OVERLAY
+        "DSLASHED":         chr(0x020EB),  # COMBINING LONG DOUBLE SOLIDUS OVERLAY
+        # U+020dd    COMBINING ENCLOSING CIRCLE
+        # U+020de    COMBINING ENCLOSING SQUARE
+        # U+020e5    COMBINING REVERSE SOLIDUS OVERLAY
+        # U+020df    COMBINING ENCLOSING DIAMOND
+        # U+020e0    COMBINING ENCLOSING CIRCLE BACKSLASH
+        # U+020e2    COMBINING ENCLOSING SCREEN
+        # U+020e3    COMBINING ENCLOSING KEYCAP
+        # U+020e4    COMBINING ENCLOSING UPWARD POINTING TRIANGLE
+    }    
+    
 
     ###########################################################################
     # Maybe make init take a target spec, then convert() uses it...
@@ -999,32 +1038,41 @@ class mathAlphanumerics:
                 (script))
 
         font = font.upper()
-        if (font not in tbl):
+        src = tgt = ""
+        if (font in mathAlphanumerics.specialDict):
+            for s, t in mathAlphanumerics.specialDict[font].items():
+                src += s; tgt += chr(t)
+        elif (font in mathAlphanumerics.combinerDict):
+            combiningChar = mathAlphanumerics.combinerDict[font]
+            tgt = []
+            for s in string.ascii_lowercase:
+                src += s
+                tgt.append(s+combiningChar)
+        elif (font not in tbl):
             raise ValueError("Unknown font '%s' for script '%s'." %
                 (font, script))
+        else:
+            uTgtStart, lTgtStart, dTgtStart, _ = tbl[font]
+            if (uTgtStart):
+                srcPart,  tgtPart = mathAlphanumerics.makePartialXtab(
+                    uSrcStart, uSrcEnd, uTgtStart)
+                src += srcPart; tgt += tgtPart
+            warn(1, "uppercase table for %s:\n    %s\n    %s" %
+                (font, src, tgt))
 
-        uTgtStart, lTgtStart, dTgtStart, _ = tbl[font]
-        src = tgt = u""
-        if (uTgtStart):
-            srcPart,  tgtPart = mathAlphanumerics.makePartialXtab(
-                uSrcStart, uSrcEnd, uTgtStart)
-            src += srcPart; tgt += tgtPart
-        warn(1, "uppercase table for %s:\n    %s\n    %s" %
-            (font, src, tgt))
+            if (lTgtStart):
+                srcPart,  tgtPart = mathAlphanumerics.makePartialXtab(
+                    lSrcStart, lSrcEnd, lTgtStart)
+                src += srcPart; tgt += tgtPart
+            warn(1, "both-case table for %s:\n    %s\n    %s" %
+                (font, src, tgt))
 
-        if (lTgtStart):
-            srcPart,  tgtPart = mathAlphanumerics.makePartialXtab(
-                lSrcStart, lSrcEnd, lTgtStart)
-            src += srcPart; tgt += tgtPart
-        warn(1, "both-case table for %s:\n    %s\n    %s" %
-            (font, src, tgt))
+            if (dTgtStart):
+                srcPart,  tgtPart = mathAlphanumerics.makePartialXtab(
+                    dSrcStart, dSrcEnd, dTgtStart)
+                src += srcPart; tgt += tgtPart
 
-        if (dTgtStart):
-            srcPart,  tgtPart = mathAlphanumerics.makePartialXtab(
-                dSrcStart, dSrcEnd, dTgtStart)
-            src += srcPart; tgt += tgtPart
-        warn(1, "full table for %s:\n    %s\n    %s" %
-            (font, src, tgt))
+        warn(1, "full table for %s:\n    %s\n    %s" % (font, src, tgt))
         xtab = str.maketrans(src, tgt)
         return xtab
 
@@ -1036,7 +1084,7 @@ class mathAlphanumerics:
         @return 'from' and 'to' strings. Caller can make an xtab from them,
         or pass them to something like "tr", or whatever.
         """
-        srcTab = tgtTab = u""
+        srcTab = tgtTab = ""
         tgtCode = tgtStart
         pythonEnd = srcEnd + 1
         for i in range(pythonEnd-srcStart):
@@ -1236,6 +1284,8 @@ provide Mathematical and similar variants for most of them.""")
                 if (Dstart is not None):
                     print("    U+%05x: %s" %
                         (Dstart, gatherChars(Dstart, 10, MISSING=MISSING)))
+        print("******* Experimental *******\n%s" %
+            ", ".join([ *mathAlphanumerics.specialDict, *mathAlphanumerics.combinerDict ]))
 
     def gatherChars(startCode:int, n:int, MISSING:int=0x0005f):
         """Collecting n characters starting at a given code point.
@@ -1392,7 +1442,7 @@ provide Mathematical and similar variants for most of them.""")
 
     if (args.show):
         messageIssued = False
-        print("\nAvailable alts for %s:" % (scr))
+        print("\nAvailable alts for %s (-v to include samples):" % (scr))
         showAlternates(fonts, args.missing)
         if (not args.verbose): print("(to see samples, use -v)")
 
@@ -1407,10 +1457,10 @@ provide Mathematical and similar variants for most of them.""")
             args.sample = getRandomSentence()
         txt = args.sample
         if (txt == "" or txt == "*"): txt = getRandomSentence()
-        s = mathAlphanumerics.convert(txt,
+        s0 = mathAlphanumerics.convert(txt,
             script=args.script, font=args.font, decompose=args.decompose)
         print("    Original:  " + txt +
-            "\n    Converted: " + s)
+            "\n    Converted: " + s0)
 
     else:  # translate stdin
         if (sys.stdin.isatty()):
