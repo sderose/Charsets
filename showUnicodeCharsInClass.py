@@ -31,6 +31,8 @@ __version__ = __metadata__['modified']
 descr = """
 =Description=
 
+[Unfinished]
+
 Display all Unicode characters in a given numeric range, that are in a given
 Unicode character category.
 
@@ -288,7 +290,7 @@ cex = re.compile(ex, re.U)
 if (args.format == "chart"):
     print("    codept lit cat  Unicode name")
     
-brack = u'['
+brack = "["
 nFound = 0
 lastOne = -99
 inARange = False
@@ -339,7 +341,7 @@ for codePoint in range(args.first, args.last+1):
 
 if (args.format == "bracket"):
     if (inARange): brack += makeEsc(lastOne, literals=False)
-    brack += u']'
+    brack += "]"
     if (args.metaregex):
         lhs = "\\\\p\\{" + ccat + "\\}"
         brack = "R = re.sub(r'%s', '%s', R)" % (lhs, brack)
