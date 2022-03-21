@@ -109,7 +109,6 @@ For Greek:
     "SANS-SERIF BOLD"              UPPER LOWER
     "SANS-SERIF BOLD ITALIC"       UPPER LOWER
 
-
 For Digits, many additional sets are available, mainly for a variety of orthographies.
 In addition to those already listed (I cannot personally evaluate the results
 for most of these; error reports are welcome):
@@ -216,8 +215,10 @@ See their descriptions below.
 
 ==getStartCodePoint(script="Latin", font="BOLD", group="U")==
 
-Return the code point of the first character for the given `script` in the given `font` variation (such as "SANS-SERIF BOLD", etc.). By default, gets
-the position of A for Latin, alpha for Greek, or Digit for 0). Pass `group` as "U", "L", or "D" respectively, to get the position of the first uppercase,
+Return the code point of the first character for the given `script` in
+the given `font` variation (such as "SANS-SERIF BOLD", etc.). By default, gets
+the position of A for Latin, alpha for Greek, or Digit for 0). Pass `group`
+as "U", "L", or "D" respectively, to get the position of the first uppercase,
 lowercase, or digit for "fonts" as needed.
 Typically, the uppercase range is first, immediately followed by the lowercase
 range, and the digits are elsewhere.
@@ -265,8 +266,8 @@ with styles applied via <head>:
     monospace       { font-family:monospace; }
 
 Modern browsers are fine with this, but it's not precisely "HTML". If that's a problem,
-change them to something like '<span class="sans">', etc. Or better, change the 
-DOCTYPE to reference a schema that adds them. 
+change them to something like '<span class="sans">', etc. Or better, change the
+DOCTYPE to reference a schema that adds them.
 
 The `--family` choice (if any) is applied to <body>, so these will override if for
 the appropriate cases (I don't know what happens, for example, if you specify
@@ -422,7 +423,7 @@ Add support for in-pipe translation.
 * 2021-02-18: Fix bug that dropped part of translate tables.
 * 2021-02-23: Add option for Unicode normalization.
 * 2021-12-20: Add --makeHtmlComparison. Add type hints.
-* 2922001-07: Add SMALLCAP, SUBSCRIPT, SUPERSCRIPT, ROTATED, UNDERLINE, DUNDERLINE,
+* 2022-01-07: Add SMALLCAP, SUBSCRIPT, SUPERSCRIPT, ROTATED, UNDERLINE, DUNDERLINE,
 OVERLINE, DOVERLINE, STRIKE, SLASHED, DSLASHED.
 
 
@@ -449,8 +450,8 @@ overline. There's even COMBINING ENCLOSING CIRCLE (and SQUARE).
 
 * Greek has some turned letters, too:
     "a":  chr(0x00252),  #  A  chr(0x2C6F)
-    "b":            # 
-    "g":            # 
+    "b":            #
+    "g":            #
     "d":  chr(0x0018D),  #  D  chr(0x2207) nabla
     "e":  chr(0x01D08),
     "z":            # =Zeta
@@ -461,78 +462,137 @@ overline. There's even COMBINING ENCLOSING CIRCLE (and SQUARE).
     "l":            #  V
     "m":  chr(0x0019c),   # LATIN CAPITAL LETTER TURNED M
     "n":  chr(0x0028c),   #LATIN SMALL LETTER TURNED V
-    "c":            # 
+    "c":            #
     "o":            #  =Omicron
-    "p":            # 
+    "p":            #
     "r":            # ~~~d~~~
-    "s":            # 
+    "s":            #
     "t":            # =Tau
     "u":            # =Upsilon
     "f":  phi       # =Phi
     "x":  xi        # =Xi
-    "ps":           # 
-    "w":            # 
+    "ps":           #
+    "w":            #
 
 * Quarter-turned instead of half?
-    "q":   # q CCW  
+    "q":   # q CCW
     "q":   # m CW   chr(0x01d1f)
-        
+
+* Possibly add turned (cf reversed), using:
+    Problem: there isn't a reserved range for these
+    --- uppercase ---
+        A U+02c6f LATIN CAPITAL LETTER TURNED A
+        B                                          ???
+        C                                          ???
+        D                                          ???
+        E => exists  U+02c7b(smallcap)
+        F U+02132 TURNED CAPITAL F
+        G U+02141 TURNED SANS-SERIF CAPITAL G
+        H U+0a78d LATIN CAPITAL LETTER TURNED H (why is this not itself?)
+        I => I
+        J ?                                        ???
+        K ?                                        ???
+        L => U+0a780 LATIN CAPITAL LETTER TURNED L
+        #U+02142 TURNED SANS-SERIF CAPITAL L
+        M => U+0019c LATIN CAPITAL LETTER TURNED M
+        N => N
+        O => O
+        P =>  ~~~d~~~                               ??? eth?
+        Q =>                                        ???
+        R =>                                        ??? U+01d1a	Latin Letter Small Capital Turned R
+        S => S
+        T =>                                        ???
+        U => U+2229 intersection?
+        V => U+00245 LATIN CAPITAL LETTER TURNED V
+        W => ~~~M~~~                                ???
+        X => X
+        Y => U+02144 TURNED SANS-SERIF CAPITAL Y
+        Z => Z                                      ???
+
+        --- lowercase ---
+        a => U+00250 LATIN SMALL LETTER TURNED A
+        b => q
+        c => U+02184 LATIN SMALL LETTER REVERSED C
+        d => p
+        e => U+001dd LATIN SMALL LETTER TURNED E (or e => schwa)
+        f => U+0214e TURNED SMALL F
+        g => U+01d77 LATIN SMALL LETTER TURNED G
+        h => U+00265 LATIN SMALL LETTER TURNED H
+        i => U+01d09 LATIN SMALL LETTER TURNED I
+        j => medial s?
+        k => U+0029e LATIN SMALL LETTER TURNED K
+        l => U+0a781 LATIN SMALL LETTER TURNED L
+        m => U+0026f LATIN SMALL LETTER TURNED M
+        n => u
+        o = o
+        p => d
+        q => b
+        r => U+00279 LATIN SMALL LETTER TURNED R
+        s = s
+        t => U+00287 LATIN SMALL LETTER TURNED T
+        u => n
+        v => U+0028c LATIN SMALL LETTER TURNED V
+        w => U+0028d LATIN SMALL LETTER TURNED W
+        x = x
+        y => U+0028e LATIN SMALL LETTER TURNED Y
+        z = z
+
 * Possibly add reversed (horizontally)
     --- uppercase ---
-    "A":  "A",  
+    "A":  "A",
     "B":                                     ???
     "C":  chr(0x02183),  # ROMAN NUMERAL REVERSED ONE HUNDRED
-    "D": 
+    "D":
     "E":  chr(0x0018e),  # LATIN CAPITAL LETTER REVERSED E
-    "F": 
-    "G": 
-    "H":  "H",  
-    "I":  "I",  
-    "J": 
-    "K": 
+    "F":
+    "G":
+    "H":  "H",
+    "I":  "I",
+    "J":
+    "K":
     "L":  chr(0x02143),  # REVERSED SANS-SERIF CAPITAL L
-    "M":  "M",  
-    "N": 
-    "O":  "O",  
+    "M":  "M",
+    "N":
+    "O":  "O",
     "P":  chr(0x0a7fc),   # LATIN EPIGRAPHIC LETTER REVERSED P
-    "Q": 
-    "R": 
+    "Q":
+    "R":
     "S": # https://en.wikipedia.org/wiki/%C6%A7
-    "T":  "T",  
-    "U":  "U",  
-    "V":  "V",  
-    "W":  "W",  
-    "X":  "X",  
-    "Y":  "Y",  
-    "Z": 
+    "T":  "T",
+    "U":  "U",
+    "V":  "V",
+    "W":  "W",
+    "X":  "X",
+    "Y":  "Y",
+    "Z":
 
     --- lowercase ---
-    "a": 
-    "b":  "d",  
+    "a":
+    "b":  "d",
     "c":  chr(0x02184),  # LATIN SMALL LETTER REVERSED C
-    "d":  "b",  
+    "d":  "b",
     "e":  chr(0x00258),  # LATIN SMALL LETTER REVERSED E
-    "f": 
-    "g": 
-    "h": 
-    "i":  "i",  
-    "j": 
-    "k": 
-    "l":  "l",  
+    "f":
+    "g":
+    "h":
+    "i":  "i",
+    "j":
+    "k":
+    "l":  "l",
     "m":  m?
     "n":  n?
-    "o":  "o",  
-    "p":  "q",  
-    "q":  "p",  
+    "o":  "o",
+    "p":  "q",
+    "q":  "p",
     "r":  chr(0x0027f),  # LATIN SMALL LETTER REVERSED R WITH FISHHOOK
-    "s": 
-    "t": 
+    "s":
+    "t":
     "u":  u?
-    "v":  "v",  
-    "w":  "w",  
-    "x":  "x",  
-    "y": 
-    "z": 
+    "v":  "v",
+    "w":  "w",
+    "x":  "x",
+    "y":
+    "z":
 
 * Hook up smallCapMap (missing Q and X)
 
@@ -620,7 +680,7 @@ class mathAlphanumerics:
         ####### Unfinished:
         #"Subscript Latin Small"   : [],  # aehijklmnoprstuvx
     }
-    
+
     GreekFontDict = {
         "BOLD":                       ( 0X1D6A8, 0X1D6C2, None, "" ),
         "ITALIC":                     ( 0X1D6E2, 0X1D6FC, None, "" ),
@@ -864,16 +924,16 @@ class mathAlphanumerics:
     lisuMap = {
         #                   # Name, alternatives?
         "A":   0x0a4ef,     # U+02c6f LATIN CAPITAL LETTER TURNED A
-        "B":   0x0a4ed,     # 
-        "C":   0x0a4db,     # 
-        "D":   0x0a4f7,     # 
+        "B":   0x0a4ed,     #
+        "C":   0x0a4db,     #
+        "D":   0x0a4f7,     #
         "E":   0x0a4f1,     # exists  U+02c7b(smallcap)
         "F":   0x0a4de,     # U+02132 TURNED CAPITAL F
         "G":   0x0a4e8,     # U+02141 TURNED SANS-SERIF CAPITAL G
         "H":   0x0a4e7,     # SAME ROTATED
         "I":   0x0a4f2,     # SAME ROTATED
-        "J":   0x0a4e9,     # 
-        "K":   0x0a4d8,     # 
+        "J":   0x0a4e9,     #
+        "K":   0x0a4d8,     #
         "L":   0x0a4f6,     # U+0a780 LATIN CAPITAL LETTER TURNED L, U+02142 TURNED SANS-SERIF CAPITAL L
         "M":   0x0019c,     # MISSING, USING U+0019c LATIN CAPITAL LETTER TURNED M
         "N":   0x0a4e0,     # SAME ROTATED
@@ -882,7 +942,7 @@ class mathAlphanumerics:
         "Q":   0x0a779,     # MISSING (cf 1/4-turn U+213A; U+0a779 LATIN CAPITAL LETTER INSULAR D)
         "R":   0x0a4e4,     # cf U+01d1a Latin Letter Small Capital Turned R
         "S":   0x0a4e2,     # SAME ROTATED
-        "T":   0x0a4d5,     # 
+        "T":   0x0a4d5,     #
         "U":   0x0a4f5,     # cf U+2229 intersection?
         "V":   0x0a4e5,     # U+00245 LATIN CAPITAL LETTER TURNED V
         "W":   ord('M'),    # MISSING, ROTATED 'M'
@@ -892,9 +952,9 @@ class mathAlphanumerics:
         #
         # turned/rotated lowercase ---
         "a":   0x00250,     # LATIN SMALL LETTER TURNED A
-        "b":   ord("q"),    # 
+        "b":   ord("q"),    #
         "c":   0x02184,     # LATIN SMALL LETTER REVERSED C
-        "d":   ord("p"),    # 
+        "d":   ord("p"),    #
         "e":   0x001dd,     # LATIN SMALL LETTER TURNED E (or"e":   schwa)
         "f":   0x0214e,     # TURNED SMALL F
         "g":   0x01d77,     # LATIN SMALL LETTER TURNED G
@@ -904,19 +964,19 @@ class mathAlphanumerics:
         "k":   0x0029e,     # LATIN SMALL LETTER TURNED K
         "l":   0x0a781,     # LATIN SMALL LETTER TURNED L
         "m":   0x0026f,     # LATIN SMALL LETTER TURNED M
-        "n":   ord("u"),    # 
-        "o":   ord("o"),    # 
-        "p":   ord("d"),    # 
-        "q":   ord("b"),    # 
+        "n":   ord("u"),    #
+        "o":   ord("o"),    #
+        "p":   ord("d"),    #
+        "q":   ord("b"),    #
         "r":   0x00279,     # LATIN SMALL LETTER TURNED R
-        "s":   ord("s"),    # 
+        "s":   ord("s"),    #
         "t":   0x00287,     # LATIN SMALL LETTER TURNED T
-        "u":   ord("n"),    # 
+        "u":   ord("n"),    #
         "v":   0x0028c,     # LATIN SMALL LETTER TURNED V
         "w":   0x0028d,     # LATIN SMALL LETTER TURNED W
-        "x":   ord("x"),    # 
+        "x":   ord("x"),    #
         "y":   0x0028e,     # LATIN SMALL LETTER TURNED Y
-        "z":   ord("z"),    # 
+        "z":   ord("z"),    #
         #
         # See also [https://text-symbols.com/upside-down]
         # "0": ord("0"),    # SAME
@@ -949,10 +1009,10 @@ class mathAlphanumerics:
         "SUPERSCRIPT":      superscriptMap,
         "ROTATED":          lisuMap,
     }
-    
+
     # A few more can be made by composing a combining character with the base
     # TODO: Perhaps add an option to add any combining character one likes?
-    combinerDict = {        
+    combinerDict = {
         "UNDERLINE":        chr(0x00332),  # COMBINING LOW LINE
         "DUNDERLINE":       chr(0x00333),  # COMBINING DOUBLE LOW LINE
         "OVERLINE":         chr(0x00305),  # COMBINING OVERLINE
@@ -968,8 +1028,8 @@ class mathAlphanumerics:
         # U+020e2    COMBINING ENCLOSING SCREEN
         # U+020e3    COMBINING ENCLOSING KEYCAP
         # U+020e4    COMBINING ENCLOSING UPWARD POINTING TRIANGLE
-    }    
-    
+    }
+
 
     ###########################################################################
     # Maybe make init take a target spec, then convert() uses it...
@@ -978,7 +1038,7 @@ class mathAlphanumerics:
         return
 
     @staticmethod
-    def getStartCodePoint(script:str="Latin", font:str="BOLD", group:str="U"):
+    def getStartCodePoint(script: str = "Latin", font: str = "BOLD", group: str = "U"):
         font = re.sub(r"^MATHEMATICAL ", "M", font.upper())
         fontDict = mathAlphanumerics.getFontDict(script=script)
         if (font not in fontDict):
@@ -991,7 +1051,7 @@ class mathAlphanumerics:
             "Uknown %s 'group', must be 'U', 'L', or 'D'." % (script))
 
     @staticmethod
-    def getFontDict(script:str="Latin"):
+    def getFontDict(script: str = "Latin"):
         """Return a dict of the "fonts" for the specified script.
         """
         if (script == "Latin"):
@@ -1005,7 +1065,7 @@ class mathAlphanumerics:
                 (script))
 
     @staticmethod
-    def convert(ss:str, script:str="Latin", font:str="BOLD", decompose:bool=False):
+    def convert(ss: str, script: str = "Latin", font: str = "BOLD", decompose: bool = False):
         """Convert a string to the requested variant.
         """
         if (decompose):
@@ -1015,7 +1075,7 @@ class mathAlphanumerics:
         return ss.translate(xtab)
 
     @staticmethod
-    def getTranslateTable(script:str="Latin", font:str="BOLD"):
+    def getTranslateTable(script: str = "Latin", font: str = "BOLD"):
         #if (PY3):
         #    raise NotImplementedError("No maketrans in Python 3.")
         if (script == "Latin"):
@@ -1077,7 +1137,7 @@ class mathAlphanumerics:
         return xtab
 
     @staticmethod
-    def makePartialXtab(srcStart:int, srcEnd:int, tgtStart:int) -> List:
+    def makePartialXtab(srcStart: int, srcEnd: int, tgtStart: int) -> List:
         """This takes the actual first and last character codes. I noticed
         too late that this is unlike the usual Python "end+1". I may
         fix it sometime.
@@ -1261,7 +1321,7 @@ provide Mathematical and similar variants for most of them.""")
 
     messageIssued = False
 
-    def showAlternates(exceptionDict:Dict, MISSING:int=None):
+    def showAlternates(exceptionDict: Dict, MISSING: int = None):
         """Print a list of all the available variants. With -v, add samples.
         """
         for k in (sorted(exceptionDict.keys())):
@@ -1287,7 +1347,7 @@ provide Mathematical and similar variants for most of them.""")
         print("******* Experimental *******\n%s" %
             ", ".join([ *mathAlphanumerics.specialDict, *mathAlphanumerics.combinerDict ]))
 
-    def gatherChars(startCode:int, n:int, MISSING:int=0x0005f):
+    def gatherChars(startCode: int, n: int, MISSING: int = 0x0005f):
         """Collecting n characters starting at a given code point.
         If any in the range are listed in 'exceptions', substitute them.
         """
@@ -1306,7 +1366,7 @@ provide Mathematical and similar variants for most of them.""")
             messageIssued = True
         return buf
 
-    def testXtabs(script:str, exceptionDict:Dict, sample:str=None):
+    def testXtabs(script: str, exceptionDict: Dict, sample: str = None):
         """Given one of the lists, like mathAlphanumerics.LatinFontDict, set up
         translate tables and print the result on a sample sentence.
         """
@@ -1336,8 +1396,8 @@ provide Mathematical and similar variants for most of them.""")
         else:
             return random.choice(mathAlphanumerics.EnglishSentences)
 
-    def makeHC(fontFamily:str=""):
-        """Create an HTML file to show the special forms next to their 
+    def makeHC(fontFamily: str = ""):
+        """Create an HTML file to show the special forms next to their
         formatted equivalents of the regular characters. For example,
         a row of MATHEMATICAL BOLD vs. regular in <B>.
         """
@@ -1364,11 +1424,11 @@ provide Mathematical and similar variants for most of them.""")
             "SUPERSCRIPT":                 [ "sup", ],  # DIGITS
             "SUBSCRIPT":                   [ "sub", ],  # DIGITS
         }
-        
+
         upp = re.sub(r"(.)", "\\1 ", string.ascii_uppercase)
         low = re.sub(r"(.)", "\\1 ", string.ascii_lowercase)
         #dig = re.sub(r"(.)", "\\1 ", string.digits)
-        
+
         fontChoice = ""
         if (fontFamily): fontChoice = "font-family:%s" % (fontFamily)
         print("""<html>
@@ -1401,20 +1461,20 @@ provide Mathematical and similar variants for most of them.""")
         print("""</body>\n<html>""")
         return
 
-    def makeAsciiSample(_fontName:str, tags:List, sample:str) -> str:
+    def makeAsciiSample(_fontName: str, tags: List, sample: str) -> str:
         bufAscii = ""
         for tag in tags: bufAscii += "<%s>" % (tag)
         bufAscii += sample
         for tag in reversed(tags): bufAscii += "</%s>" % (tag)
         return bufAscii
 
-    def makeMathSample(fontName:str, _tags:List, sample:str) -> str:
+    def makeMathSample(fontName: str, _tags: List, sample: str) -> str:
         bufMath = mathAlphanumerics.convert(
             sample, script="Latin", font=fontName, decompose=False)
-        # TODO: Add option to escape to ASCII          
+        # TODO: Add option to escape to ASCII
         return bufMath
-        
-        
+
+
     ###########################################################################
     #
     args = processOptions()
@@ -1427,7 +1487,7 @@ provide Mathematical and similar variants for most of them.""")
     if (args.makeHtmlComparison):
         makeHC(args.family)
         sys.exit()
-        
+
     if (args.script == "Greek"):
         scr = "Greek"
         fonts = mathAlphanumerics.GreekFontDict
