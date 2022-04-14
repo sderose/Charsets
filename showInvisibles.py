@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # showInvisibles: make control and whitespace chars visible.
 # 2007-01-1: Written by Steven J. DeRose.

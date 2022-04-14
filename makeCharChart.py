@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # makeCharChart: Display info on range of Unicode code points.
 # 2013-04-24: Written by Steven J. DeRose.

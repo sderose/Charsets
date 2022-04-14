@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # strfchr.py: Flexible conversion between character representations.
 # 2021-04-08: Written by Steven J. DeRose.

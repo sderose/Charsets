@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # isASCII.py: Check character set/encoding of a file(s).
 # 2020-11-18: Written by Steven J. DeRose.

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # showCharsInPythonClass: Retrieve lists of characters by category (Ll, etc).
 # 2015-03-31: Written by Steven J. DeRose.

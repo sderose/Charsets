@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # fixQuotes.py: Mess with various quotation marks and such.
 # 2020-10-14: Written by Steven J. DeRose.

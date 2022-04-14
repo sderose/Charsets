@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # makeFontSamples.py: Create HTML with sample of various fonts.
 # 2019-07-03: Written by Steven J. DeRose.
