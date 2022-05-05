@@ -143,11 +143,17 @@ character lists. That also seems to have problems. But it should still work
 for normal \\s spaces.
 
 
+=head1 To do
+
+* Options to just strip leading or trailing
+* Way to turn zero-width to space vs. delete.
+
+
 =head1 Related commands
 
-The C<Tokenizer.pm> library provides more extensive normalization capabilities.
+My C<Tokenizer.pm> library provides more extensive normalization capabilities.
 
-C<nukeNonXmlChars> does some similar cleanups.
+My C<nukeNonXmlChars> does some similar cleanups.
 
 
 =head1 History
@@ -165,9 +171,6 @@ Add --control, --dash, --privateUse, --quote, --space.
 Refactor. Add --test.
 
 =back
-
-
-=head1 To do
 
 
 =head1 Rights
