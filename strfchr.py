@@ -69,11 +69,6 @@ information about each, use `strfchr --help-codes`. As you might
 expect, "%%" can be used to get a literal percent-sign).
 "%{name}" can also be used, with longer names for the forms or properties.
 
-There is a set of "extended" information, that can be loaded on request to
-provide mappings to many other special character representations. These
-are based on (imho, superb) work by my old friend Sebastian Rahtz,
-David Carlisle, and others [https://www.w3.org/Math/characters/unicode.xml]
-
 You can use it from code, or in 3 ways from the command-line, all of
 which will display one line for each code point involved,
 formatted per `-f`:
@@ -90,6 +85,10 @@ TEX/LATEX, AFII, and other conversions are coming.
 
 * My `CharDisplay.py` (and older Perl `ord`).
 * My`showInvisibles.py` uses this.
+* charNameConvert.py -- a set of "extended" information, that can be loaded on request to
+provide mappings to many other special character representations. These
+are based on (imho, superb) work by my old friend Sebastian Rahtz,
+David Carlisle, and others [https://www.w3.org/Math/characters/unicode.xml]
 
 
 =Known bugs and Limitations=
@@ -154,6 +153,12 @@ or [https://github.com/sderose].
 verbose = 0
 def log(lvl:int, msg:str) -> None:
     if (verbose >= lvl): sys.stderr.write(msg+"\n")
+    
+try:
+    import charNameConvert
+    sebastian = charNameConvert.charNameConvert()
+except ImportError:
+    pass
 
 class Planes(Enum):
     pass
@@ -616,89 +621,6 @@ S = InfoValues.S
 
 ###############################################################################
 #
-class Sebastian(dict):
-    """Add in information from Sebastian Rahtz et al's great DB mapping
-    chars across various representations.
-    TODO: Finish the Sebastian mappings.
-    """
-    propNames = {
-        "ACS":          ( F, X,    S,  str, "freq:61", ),
-        "AIP":          ( F, X,    S,  str, "freq:394", ),
-        "AMS":          ( F, X,    S,  str, "freq:526", ),
-        "APS":          ( F, X,    S,  str, "freq:463", ),
-        "Elsevier":     ( F, X,    S,  str, "freq:745", ),
-        "IEEE":         ( F, X,    S,  str, "freq:223", ),
-        "Springer":     ( F, X,    S,  str, "freq:30", ),
-        "Wolfram":      ( F, X,    S,  str, "freq:695", ),
-        "afii":         ( F, X,    S,  str, "freq:1170", ),
-        "bmp":          ( F, X,    S,  str, "freq:24", ),
-        #"character":    ( F, X,    S,  str, "freq:5646", ),
-        "charlist":     ( P, X,    S,  str, "freq:1", ),
-        "comment":      ( P, X,    S,  str, "freq:210", ),
-        "desc":         ( P, X,    S,  str, "freq:3974", ),
-        "description":  ( P, X,    S,  str, "freq:5646", ),
-        "elsrender":    ( F, X,    S,  str, "freq:50", ),
-        #"entity":       ( F, X,    S,  str, "freq:3975", ),
-        "entitygroups": ( P, X,    S,  str, "freq:1", ),
-        "font":         ( P, X,    S,  str, "freq:560", ),
-        "group":        ( P, X,    S,  str, "freq:5", ),
-        "latex":        ( F, X,    S,  str, "freq:2480", ),
-        "mathlatex":    ( F, X,    S,  str, "freq:198", ),
-        "mathvariant":  ( F, X,    S,  str, "freq:13", ),
-        "mathvariants": ( F, X,    S,  str, "freq:1", ),
-        "set":          ( F, X,    S,  str, "freq:56", ),
-        "surrogate":    ( F, X,    S,  str, "freq:1016", ),
-        "varlatex":     ( F, X,    S,  str, "freq:18", ),
-        "xref":         ( P, X,    S,  str, "freq:63", ),
-        #"@image":       ( F, X,    S,  str, "freq:1442", ),
-        #"@mode":        ( F, X,    S,  str, "freq:4321", ),
-        #"@type":        ( F, X,    S,  str, "freq:4321", ),
-    }
-
-
-    def __init__(self, path:str=None):
-        super(Sebastian, self).__init__()
-        self.sourceUrl = "https://www.w3.org/Math/characters/unicode.xml"
-        if (path is None):
-            self.path = os.path.join(os.environ["HOME"], ".strfchr", "unicode.xml")
-        else:
-            self.path = path
-        self.loadData()
-
-    def loadData(self):
-        if (not os.path.exists(self.path)):
-            check_output([ "curl", self.sourceUrl, ">>", self.path ])
-        if (not os.path.exists(self.path)):
-            lg.fatal("Could not download data from '%s'." % (self.sourceUrl))
-        DomExtensions.DomExtensions.patchDom()
-        xdoc = xml.dom.minidom.parse(self.path)
-
-        charList = xdoc.getChild("charlist")
-        nChars = 0
-        for charEl in charList.childNodes:
-            if (charEl.nodeName != "character"): continue
-            idVal = charEl.getAttribute("id")
-            dec = charEl.getAttribute("dec")
-            assert idVal[0]=="U" and idVal[1:].isdigit()
-            assert int(idVal[1:].lstrip("0")) == int(dec)
-            ci = CharInfo(int(dec))
-            for propEl in charEl.childNodes:
-                if propEl.nodeType != xml.dom.Node.ELEMENT_NODE: continue
-                prop = propEl.nodeName
-                if (prop not in CharInfo.__infoItems__ or
-                    CharInfo.__infoItems__[prop][2]!="C"):
-                    assert False, "Unexpected prop '%s'." % (prop)
-                propVal = propEl.innerText()
-                ci.setProp(prop, propVal)
-                # TODO: A few have attributes....
-            #d = charEl.getChild("description")
-            #d_unicode = d.getAttribute("unicode")
-            #d_text = d.innerText()
-            nChars += 1
-
-
-###############################################################################
-#
 class CharInfo:
     """Store, look up, calculate, and return various properties of a char.
     These are my own names, and combine Unicode intrinsic properties, with
@@ -776,13 +698,13 @@ class CharInfo:
 
     def setProp(self, k, value):
         if (k not in CharInfo.__infoItems__ and
-            k not in Sebastian.propNames):
+            (sebastian and k not in sebastian.propNames)):
             raise KeyError("Unknown character property '%s'." % (k))
         self.__setattr__(k, value)
 
     def getitem(self, k):
         if (k not in CharInfo.__infoItems__ and
-            k not in Sebastian.propNames):
+            (sebastian and k not in sebastian.propNames)):
             raise KeyError("Unknown character property '%s'." % (k))
 
     # For forms we can easily calculate, use properties.
