@@ -132,7 +132,7 @@ With I<--count>, add blank lines for readability (default).
 
 Colorize the output for readability. In particular, color headings
 and the frequency-report lines for control characters.
-Defaults to on if environment variable C<USE_COLOR> is set and
+Defaults to on if environment variable C<CLI_COLOR> is set and
 STDERR is going to a terminal.
 
 =item * B<--cols> I<f-l>
@@ -523,7 +523,7 @@ my $xml               = 0;       # Catch XML numeric character references?
 #
 my $includeG0         = 1;       # Include ASCII printable chars in report.
 my $blankLines        = 0;       # Put separator lines in table?
-my $color             = ($ENV{"USE_COLOR"} && -t STDERR) ? 1:0;
+my $color             = ($ENV{"CLI_COLOR"} && -t STDERR) ? 1:0;
 my @columns           = ();      # What columns to check?
 my $context           = 30;
 my $controls          = 0;       # Count C0 control chars are odd?

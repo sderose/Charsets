@@ -22,7 +22,7 @@ our $VERSION_DATE = "2013-01-15";
 
 # General options
 #
-my $color           = ($ENV{"USE_COLOR"} && -t STDERR) ? 1:0;
+my $color           = ($ENV{"CLI_COLOR"} && -t STDERR) ? 1:0;
 my $max             = 0x10FFFF;
 my $min             = 0;
 my $nil             = 0;

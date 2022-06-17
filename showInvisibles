@@ -51,7 +51,7 @@ are coded as \xNN. Set I<--oformat> to convert them to other forms.
 =item * B<--color>
 
 Colorize non-ASCII characters in the output.
-Not the default, even if environment variable C<USE_COLOR> is set.
+Not the default, even if environment variable C<CLI_COLOR> is set.
 See also I<--whichColor>.
 
 =item * B<---iencoding> I<e>

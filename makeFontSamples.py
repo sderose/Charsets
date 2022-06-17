@@ -172,7 +172,7 @@ if __name__ == "__main__":
 
         args0 = parser.parse_args()
         if (args0.color is None):
-            args0.color = ("USE_COLOR" in os.environ and sys.stderr.isatty())
+            args0.color = ("CLI_COLOR" in os.environ and sys.stderr.isatty())
         return(args0)
 
     ###########################################################################

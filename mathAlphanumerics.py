@@ -1291,8 +1291,8 @@ provide Mathematical and similar variants for most of them.""")
             help="Write out an HTML document that compares Math quasi-fonts to formatted regulars.")
         parser.add_argument(
             "--missing", type=anyInt, default=0x2623,
-            help=("Show this code point for undefined characters. " +
-            "Default: biohazard (U+2623)."))
+            help=("Show this code point (octal, decimal, or hex) for undefined characters. " +
+            "Default: biohazard (0x2623)."))
         parser.add_argument(
             "--quiet", "-q", action="store_true",
             help="Suppress most messages.")
