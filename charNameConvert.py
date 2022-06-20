@@ -3,12 +3,11 @@
 # charNameConvert.py
 # 2022-06-15: Written by Steven J. DeRose.
 #
-from __future__ import print_function
 import sys
 import os
 import codecs
 import re
-from enum import Enum
+from enum import IntEnum
 from subprocess import check_output
 import xml.dom.minidom
 from xml.dom.minidom import Node
@@ -195,41 +194,64 @@ or [https://github.com/sderose].
 
 ###############################################################################
 #
-class CharStd(Enum):
+CHARSTD_MIN = 1
+CHARSTD_MAX = 19
+
+class CharStd(IntEnum):
     afii            = 1
-    latex           = 11
-    mathlatex       = 12
-    varlatex        = 13
-    ACS             = 21
-    AIP             = 22
-    APS             = 22
-    IEEE            = 23
-    Springer        = 24
-    Wolfram         = 25
-    html4           = 31
-    isopub          = 32
-    mmlalias        = 41
-    description     = 42
-    surrogate       = 43
-    Elsevier        = 44
-    bmp             = 45
-    prop            = 46
-    font            = 47
+    latex           = 2
+    mathlatex       = 3
+    varlatex        = 4
+    ACS             = 5
+    AIP             = 6
+    APS             = 7
+    IEEE            = 8
+    Springer        = 9
+    Wolfram         = 10
+    html4           = 11
+    isopub          = 12
+    mmlalias        = 13
+    surrogate       = 14
+    Elsevier        = 15
+    bmp             = 16
+    prop            = 17
+    font            = 18
+    description     = 19
 
 
 ###############################################################################
 #
 class CharStdInfo:
-    def __init__(self, n:int):
-        assert n >= 0 and n <= 0x1FFFF
-        self.codePoint  = n
-        self.names = []
-        for i in range(1, 11):
-            self.names[i] = None
+    def __init__(self, codePoint:int):
+        assert codePoint >= 0 and codePoint <= 0x1FFFF
+        self.codePoint  = codePoint
+        self.names = [ None for i in range(CHARSTD_MIN, CHARSTD_MAX+1) ]
 
     def addStd(self, whichStd:CharStd, value:str):
-        assert self.names[whichStd] is None
-        self.names[whichStd] = value
+        stdNum = int(whichStd)
+        try:
+            if (self.names[stdNum] is not None): 
+                print("Duplicate prop %s for %05x." % (whichStd.name, self.codePoint))
+                return False
+            self.names[stdNum] = value
+        except IndexError as e:
+            print("Can't set prop %s for code point %05x.\n    %s" %
+                (whichStd.name, self.codePoint, e))
+            return False
+        return True
+                
+    def tostring(self, exclude:Dict) -> str:
+        buf = "U+%05x: \n"
+        for i in range(CHARSTD_MIN, CHARSTD_MAX+1):
+            stdName = CharStd(i).name
+            if (exclude and stdName in exclude): continue
+            try:
+                curName = self.names[i]
+            except IndexError as e:
+                print("std #%d (%s) out of range:\n    %s" % (i, stdName, e))
+            if (curName is None): curName = "--"
+            buf += "    %-12s: %s\n" % (stdName, curName)
+        return buf
         
     
 ###############################################################################
@@ -293,60 +315,91 @@ class charNameConvert(dict):
             lg.fatal("Could not download data from '%s'.", self.sourceUrl)
             
     def loadData(self):
+        # Pick which ones to show with tostring()
+        excl = set([
+            #"description", 	"html4", 	"latex", 	    
+            "mathlatex", 	"varlatex",
+            "ACS", 	        "AIP", 	        "APS", 	    "IEEE", 	"Springer",
+            "Wolfram", 	    "isopub", 	    "mmlalias", "surrogate",
+            "Elsevier", 	"bmp", 	        "prop", 	"font",     "afii",
+        ])
+
         self.downloadData()
         
         #DomExtensions.DomExtensions.patchDom()
-        xdoc = xml.dom.minidom.parse(self.path)
+        xdom = xml.dom.minidom.parse(self.path)
+        #print(xdom.toprettyxml())
 
-        charList = self.getChild(xdoc, "charlist")
+        charList = xdom.documentElement
+        assert charList.nodeName == "charlist"
+        print("charList child count: %d" % (len(charList.childNodes)))
+        
         nChars = 0
         self.charDict = {}
         for charEl in charList.childNodes:
             if (charEl.nodeName != "character"): continue
             idVal = charEl.getAttribute("id")
+            dec = charEl.getAttribute("dec")
+            print("loading char %5s (d%06s)" % (idVal, dec))
             if ("-" in idVal):
                 if not args.quiet:
                     lg.warning("Combination character, id '%s' (ignored).", idVal)
                 self.nCombinations += 1
                 continue
-            dec = int(charEl.getAttribute("dec"))
-            assert idVal[0]=="U" and idVal[1:].isdigit()
-            assert int(idVal[1:].lstrip("0")) == dec
+            try:
+                assert re.match(r"U[0-9a-f]{5,5}$", idVal, re.I)
+                assert dec.isdecimal()
+                dec = int(dec, 10)
+                assert int(idVal[1:],16) == dec
+            except ValueError as e:
+                print("ValueError (idVal '%s', dec '%s') in:\n%s\n%s" %
+                    (idVal, dec, charEl.toprettyxml(), e))
+                continue
+                
             ci = CharStdInfo(dec)
             self.charDict[dec] = ci
             nChars += 1
             for propEl in charEl.childNodes:
-                if (propEl.nodeType == xml.dom.Node.ELEMENT_NODE
+                if (propEl.nodeType == xml.dom.Node.TEXT_NODE
                     and propEl.data.strip() == ""): continue
                 assert propEl.nodeType == xml.dom.Node.ELEMENT_NODE
                 prop = propEl.nodeName
                 val = self.getText(propEl)
-                if (prop == "afii"): ci.addStd(CharStd.afii, val)
-                elif (prop == "latex"): ci.addStd(CharStd.latex, val)
-                elif (prop == "mathlatex"): ci.addStd(CharStd.mathlatex, val)
-                elif (prop == "varlatex"): ci.addStd(CharStd.varlatex, val)
-                elif (prop == "ACS"): ci.addStd(CharStd.ACS, val)
-                elif (prop == "AIP"): ci.addStd(CharStd.AIP, val)
-                elif (prop == "IEEE"): ci.addStd(CharStd.IEEE, val)
-                elif (prop == "Springer"): ci.addStd(CharStd.Springer, val)
-                elif (prop == "APS"): ci.addStd(CharStd.APS, val)
-                elif (prop == "Wolfram"): ci.addStd(CharStd.Wolfram, val)
+                if (prop == "afii"):        rc = ci.addStd(CharStd.afii, val)
+                elif (prop == "latex"):     rc = ci.addStd(CharStd.latex, val)
+                elif (prop == "mathlatex"): rc = ci.addStd(CharStd.mathlatex, val)
+                elif (prop == "varlatex"):  rc = ci.addStd(CharStd.varlatex, val)
+                elif (prop == "ACS"):       rc = ci.addStd(CharStd.ACS, val)
+                elif (prop == "AIP"):       rc = ci.addStd(CharStd.AIP, val)
+                elif (prop == "IEEE"):      rc = ci.addStd(CharStd.IEEE, val)
+                elif (prop == "Springer"):  rc = ci.addStd(CharStd.Springer, val)
+                elif (prop == "APS"):       rc = ci.addStd(CharStd.APS, val)
+                elif (prop == "Wolfram"):   rc = ci.addStd(CharStd.Wolfram, val)
                 elif (prop == "entity"):
                     prop = propEl.getAttribute("set")
                     if (prop == "html-symbol"): prop = "html"
                     elif (prop == "8879-isopub"): prop = "isopub"
                     val = propEl.getAttribute("id")
-                    ci.addStd(CharStd.prop, val)       # TODO cast to CharStd
+                    rc = ci.addStd(CharStd.prop, val)       # TODO cast to CharStd
                 elif (prop == "font"):
+                    nam = propEl.getAttribute("name")
                     pos = propEl.getAttribute("pos")
-                    assert int(pos) >= 0 and int(pos) < 0x1FFFF
-                    val = propEl.getAttribute("name") + " " + pos
-                    ci.addStd(CharStd.font, val)
+                    try:
+                        assert int(pos) >= 0 and int(pos) < 0x1FFFF
+                    except (AssertionError, ValueError):
+                        print("font: @pos '%s' bad for name '%s':\n%s" %
+                            (pos, nam, propEl.toprettyxml()))
+                    val = nam + " " + pos
+                    rc = ci.addStd(CharStd.font, val)
                 elif (prop == "description"):
-                    ci.addStd(CharStd.description, val)
+                    rc = ci.addStd(CharStd.description, val)
                 else:
                     if (not args.quiet):
                         lg.warning("Unexpected spec '%s'.", prop)
+                if (not rc):
+                    lg.warning("******* Problem with prop '%s', val '%s' in:\n%s",
+                        prop, val, charEl.toprettyxml())
+            print(ci.tostring(exclude=excl))
         lg.info("Char defs processed: %d.", nChars)
         assert len(self.charDict) == nChars
 
@@ -362,13 +415,13 @@ class charNameConvert(dict):
     def getText(node:Node):
         if (node.nodeType == Node.TEXT_NODE): return node.data
         buf = ""
-        for ch in node.childNodes():
+        for ch in node.childNodes:
             buf += charNameConvert.getText(ch)
         return buf
 
     @staticmethod
-    def getChild(xdoc:Node, ename:str) -> Node:
-        for ch in xdoc.childNodes:
+    def getChild(node:Node, ename:str) -> Node:
+        for ch in node.childNodes:
             if (ch.nodeName == ename): return ch
         return None
         
@@ -376,7 +429,9 @@ class charNameConvert(dict):
 ###############################################################################
 #
 def doChart():
+    print("Starting chart.")
     cnc = charNameConvert(os.environ["sjdUtilsDir"]+"/Public/CharSets/unicode.xml")
+    print("%d chars loaded." % (len(cnc.charDict)))
     cnmap:Dict = cnc.getMap(CharStd.latex, CharStd.html4)
     
     # Collect all the LaTeX special-char strings
