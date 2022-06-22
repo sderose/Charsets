@@ -11,10 +11,8 @@ from enum import IntEnum
 from subprocess import check_output
 import xml.dom.minidom
 from xml.dom.minidom import Node
-
-#import string
-#from collections import defaultdict, namedtuple
-from typing import Dict  # , Union, List, IO,
+from collections import defaultdict
+from typing import Dict, List  # , Union, IO,
 
 from PowerWalk import PowerWalk, PWType
 
@@ -70,7 +68,7 @@ such as \\phi to &phgr;:
 
     from charNameConvert import charNameConvert
     cnc = charNameConvert(os.environ["HOME"]+"/myStuff/unicode.xml")
-    cmap:Dict = cnc.getMap(CharStd.latex, CharStd.html)
+    cmap:Dict = cnc.getMap("latex", "html4")
 
     def fixChar(m):
         if "\\"+m.group(1) in cmap: return "&" + cmap[m.group(1) + ";"]
@@ -80,9 +78,11 @@ such as \\phi to &phgr;:
         rec = re.sub(r"\\\\(\\w+)(?![\\[\\{])", fixChar, rec)
         print rec
 
-Note that unlike most other data in the source, latex, varlatex, IEEE, AMS, and Springer
-include backslashes. In some cases, latex has to also include more complex
-markup, such as achieving Unicode MATHEMATICAL BOLD via \\mathbf{X}
+Note that latex, varlatex, IEEE, AMS, and Springer
+include backslashes (and sometimes more),
+such as achieving Unicode MATHEMATICAL BOLD via \\mathbf{X}.
+Entities, however, are stored with no "&" or ";" (but those are adding
+during conversion).
 
 ==Usage on the command line==
 
@@ -145,7 +145,7 @@ rather than just "entity":
     * Wolfram
     * html4
     * isopub
-    * mmlalias
+    * mmlalias (this seems to have many duplicates)
     * description (this is generally the full unicode name)
 
 Particular font position is also available, via two properties:
@@ -191,11 +191,20 @@ The data sometimes has entries like this, which are presently ignored:
 The source data on character names is from [https://www.w3.org/Math/characters/unicode.xml].
 A copy is also available at [https://github.com/sderose/Charsets.git/blob/master/unicode.xml].
 
+There is an enormous collection of TeX character sets at 
+[https://ctan.org/pkg/comprehensive].
+
 
 =Known bugs and Limitations=
 
-The --entitySets features, for giving a prioritized list of which sets to try for
-translating (in or out), is unfinished.
+The --entitySets feature, for giving a prioritized list of which sets to try for
+translating (in or out), is unfinished, as is an equivalent feature for multiple
+latex libraries.
+
+Several entity sets define multiple names for a single character, such as
+'entity.9573-13-isoamsr' defining 'smile' and 'ssmile' both to U+2323 (at least
+according to the source data I have). Only the first is kept. This should be no
+serious problem for output, but the others won't be recognized on input.
 
 Some entries are for a combination of characters, as shown below. These generate
 a warning during loading (except with -q), and are discarded.
@@ -216,8 +225,20 @@ come up you'll have to look in the data or code to see what happened.
 
 I haven't done anything special for  surrogate, mmlextra, Elsevier, or bmp.
 
+I've found one apparent error: U027FA has a 'font' entry for name 'hlcry'
+that specifies position '40)'. It is discarded.
+
 
 =To do=
+
+Implement priority of latex, varlatex, mathlaex, mathvariant. Similar to 
+how XML entity sets work.
+
+Add a feature to take any XML entity set(s), and write out TeX definitions to
+make them available with the same names.... E.g.:
+    \\def{\\bgr}{^^^^03b2}  % GREEK SMALL LETTER BETA
+
+Bonus points: Make &bgr; work directly in TeX....
 
 
 =History=
@@ -243,10 +264,7 @@ or [https://github.com/sderose].
 # Standard formats we know about. 
 # Probably just add the entity-sets to these, and ditch the enum.
 #
-CHARSTD_MIN = 1
-CHARSTD_MAX = 19
-
-class CharStd(IntEnum):
+class CharStd(IntEnum):  # TODO: Drop
     slashu          = 0  # Special
     afii            = 1
     latex           = 2
@@ -260,7 +278,7 @@ class CharStd(IntEnum):
     Wolfram         = 10
     html4           = 11 # Special
     isopub          = 12 # Special
-    mmlalias        = 13 # Special
+    mmlalias        = 13 # Special -- duplicates
     surrogate       = 14
     Elsevier        = 15
     bmp             = 16
@@ -268,49 +286,67 @@ class CharStd(IntEnum):
     font            = 18  # Special (tuple)
     description     = 19
     
-# See charNameConvert.py for
+# The names for different charset standards or expressions. These are
+# mostly element type names in the source, with the corresponding name
+# or string as their text content. However:
+#     "entity" is repeatable and has a set-name and ent name; 
+#     "slashu" is custom, to hold the \\u or similar value
+#     "description" is just that.
+#     "font", not yet supported, has to be a tuple. 
 #
-F = X = S = P = 1  # TODO What were these?
+# First item:  says whether to show by default in tostring(), --chart,...
+INCL = True
+EXCL = False
+# Second item: TODO What were these?
+F = P = 1
+# Third item: What kind of value?
+# TODO: What to do with cases that are not in Unicode?
+OTHER = 0
+NAME  = 1    # For ones that are just a name, like entity.xxx
+LATEX = 2    # For ones that take a LaTeX string as value
+FONT  = 3    # A font name plus position in that font
+
+
 propNames = {
-    "ACS":          ( F, X,    S,  str, "freq:61", ),
-    "AIP":          ( F, X,    S,  str, "freq:394", ),
-    "AMS":          ( F, X,    S,  str, "freq:526", ),
-    "APS":          ( F, X,    S,  str, "freq:463", ),
-    "Elsevier":     ( F, X,    S,  str, "freq:745", ),
-    "IEEE":         ( F, X,    S,  str, "freq:223", ),
-    "Springer":     ( F, X,    S,  str, "freq:30", ),
-    "Wolfram":      ( F, X,    S,  str, "freq:695", ),
-    "afii":         ( F, X,    S,  str, "freq:1170", ),
-    "bmp":          ( F, X,    S,  str, "freq:24", ),
-    #"character":    ( F, X,    S,  str, "freq:5646", ),
-    "charlist":     ( P, X,    S,  str, "freq:1", ),
-    "comment":      ( P, X,    S,  str, "freq:210", ),
-    "desc":         ( P, X,    S,  str, "freq:3974", ),
-    "description":  ( P, X,    S,  str, "freq:5646", ),
-    "elsrender":    ( F, X,    S,  str, "freq:50", ),
-    #"entity":       ( F, X,    S,  str, "freq:3975", ),
-    "entitygroups": ( P, X,    S,  str, "freq:1", ),
-    "font":         ( P, X,    S,  str, "freq:560", ),
-    "group":        ( P, X,    S,  str, "freq:5", ),
-    "latex":        ( F, X,    S,  str, "freq:2480", ),
-    "mathlatex":    ( F, X,    S,  str, "freq:198", ),
-    "mathvariant":  ( F, X,    S,  str, "freq:13", ),
-    "mathvariants": ( F, X,    S,  str, "freq:1", ),
-    "set":          ( F, X,    S,  str, "freq:56", ),
-    "surrogate":    ( F, X,    S,  str, "freq:1016", ),
-    "varlatex":     ( F, X,    S,  str, "freq:18", ),
-    "xref":         ( P, X,    S,  str, "freq:63", ),
-    #"@image":       ( F, X,    S,  str, "freq:1442", ),
-    #"@mode":        ( F, X,    S,  str, "freq:4321", ),
-    #"@type":        ( F, X,    S,  str, "freq:4321", ),
+    #               (EXCL,  ?,   type, freq),
+    "ACS":          (EXCL,  F,    str, "61", ),
+    "AIP":          (EXCL,  F,    str, "394", ),
+    "AMS":          (EXCL,  F,    str, "526", ),
+    "APS":          (EXCL,  F,    str, "463", ),
+    "Elsevier":     (EXCL,  F,    str, "745", ),
+    "IEEE":         (EXCL,  F,    str, "223", ),
+    "Springer":     (EXCL,  F,    str, "30", ),
+    "Wolfram":      (EXCL,  F,    str, "695", ),
+    "afii":         (EXCL,  F,    str, "1170", ),
+    "bmp":          (EXCL,  F,    str, "24", ),
+    #"character":    (EXCL,  F,   str, "5646", ),
+    "charlist":     (EXCL,  P,    str, "1", ),      # ?
+    "comment":      (EXCL,  P,    str, "210", ),
+    "desc":         (EXCL,  P,    str, "3974", ),   # ?
+    "description":  (INCL,  P,    str, "5646", ),
+    "elsrender":    (EXCL,  F,    str, "50", ),
+    "entity":       (EXCL,  F,   NAME, "3975", ),   # SPECIAL
+    "entitygroups": (EXCL,  P,    str, "1", ),      # ?
+    "font":         (EXCL,  P,   FONT, "560", ),
+    "group":        (EXCL,  P,  OTHER, "5", ),
+    "latex":        (INCL,  F,  LATEX, "2480", ),
+    "literal":      (EXCL,  F,    str, ),           # SPECIAL
+    "mathlatex":    (INCL,  F,  LATEX, "198", ),
+    "mathvariant":  (INCL,  F,  LATEX, "14", ),
+    "set":          (EXCL,  F,  OTHER, "56", ),
+    "surrogate":    (EXCL,  F,    str, "1016", ),
+    "varlatex":     (INCL,  F,  LATEX, "18", ),
+    "xref":         (EXCL,  P,  OTHER, "63", ),
+    #"@image":       (EXCL,  F,    str, "1442", ),
+    #"@mode":        (EXCL,  F,    str, "4321", ),
+    #"@type":        (EXCL,  F,    str, "4321", ),
 }
 
 
 ###############################################################################
-# The entity sets mentioned in the source data.
-# Wonder if there are outright conflicts over the same name?
-# How to let user say what entity set(s) they want?
-# Maybe set 'xml', and then give priority order of sets?
+# The entity sets mentioned in the source data. To translate these, specify
+# --from or --to "xml" and then give a list of these with --entitySets.
+# TODO: Provide way to scan for outright conflicts over the same name?
 #
 entitySetMap = {
     "8879-isoamsa":		"=",  # freq 56
@@ -332,6 +368,7 @@ entitySetMap = {
     "8879-isonum":		"=",  # freq 76
     "8879-isopub":		"=",  # freq 84
     "8879-isotech":		"=",  # freq 62
+    #
     "9573-13-isoamsa":	"=",  # freq 146
     "9573-13-isoamsb":	"=",  # freq 119
     "9573-13-isoamsc":	"=",  # freq 22
@@ -344,36 +381,55 @@ entitySetMap = {
     "9573-13-isomopf":	"=",  # freq 26
     "9573-13-isomscr":	"=",  # freq 52
     "9573-13-isotech":	"=",  # freq 161
+    #
     "html4-lat1":		"=",  # freq 96
     "html4-special":	"=",  # freq 32
     "html4-symbol":		"=",  # freq 124
+    #
     "ISOAMSA":		    "=",  # freq 10
-    "ISOAMSC":		    "=",  # freq 1
-    "ISOAMSO":		    "=",  # freq 1
+    "ISOAMSC":		    "=",  # freq 1    # Is this right? TODO
+    "ISOAMSO":		    "=",  # freq 1    # Is this right? TODO
     "ISOAMSR":		    "=",  # freq 4
+    #
     "ISObox":	        "=",  # freq 40
+    #
     "ISOCYR1":		    "=",  # freq 67
     "ISOCYR2":		    "=",  # freq 26
+    #
     "ISODIA":		    "=",  # freq 9
+    #
     "ISOGRK1":		    "=",  # freq 49
     "ISOGRK2":		    "=",  # freq 20
-    "ISOGRK3":		    "=",  # freq 2
+    "ISOGRK3":		    "=",  # freq 2    # Is this right? TODO
+    #
     "ISOLAT2":		    "=",  # freq 117  # I guess lat1 is redundant w/ html4?
+    #
     "ISOPUB":		    "=",  # freq 66
-    "ISOTECH":		    "=",  # freq 1
+    #
+    "ISOTECH":		    "=",  # freq 1    # Is this right? TODO
+    #
     "mmlalias":		    "=",  # freq 548
     "mmlextra":		    "=",  # freq 107
-    "predefined":		"=",  # freq 5
+    #
+    "predefined":		"=",  # freq 5    # XML predefined set, useful w/ --fallback.
+    #
     "STIX":		        "=",  # freq 688
 }
 
+# Provide shorthand for set of entity sets. See expandEntitySets(),
+# which is called from processOptions().
 entitySetGroups = [ 
     "8879", "9573", "html49", "ISOAMS", "ISOCYR", "ISOGRK", "mml"
 ]
 
-def expandEntitySets():
+# Similar for LaTeX sets
+texGroups = [
+    "latex", "varlatex", "mathlatex", "mathvariant"
+]
+
+def expandEntitySets(eSets:list):
     newList = []
-    for es in args.entitySets:
+    for es in eSets:
         if (es in entitySetMap):
             newList.append(es)
         elif (es in entitySetGroups):
@@ -382,52 +438,62 @@ def expandEntitySets():
         else:
             assert False
     return newList
-    
+
     
 ###############################################################################
 #
 class CharStdInfo:
+    """Data on one Unicode character, as expressed in a ton of systems.
+    """
+    NOT_AVAILABLE = "--"  # Show for missing code in --chart.
+    
     def __init__(self, codePoint:int):
         assert codePoint >= 0 and codePoint <= 0x1FFFF
         self.codePoint  = codePoint
-        # TODO: Change this to a dict, since it's pretty sparse anyway....
-        self.names = [ None for i in range(CHARSTD_MAX+1) ]
-        self.names[CharStd.slashu] = self.getSlash(codePoint, args.short)
+        # .names may be a character name (as in XML) or a whole LaTeX command.
+        self.names = {}
+        self.names["slashu"] = self.getSlash(codePoint, args.short)
+        self.names["literal"] = chr(codePoint)
         
-    def addStd(self, whichStd:CharStd, value:str):
-        stdNum = int(whichStd)
+    def addStd(self, whichStd:str, value:str):
         try:
-            if (self.names[stdNum] is not None):
-                print("Duplicate prop %s for %05x." % (whichStd.name, self.codePoint))
+            if (whichStd in self.names):
+                if (not args.quiet):
+                    info0("Duplicate prop %s for U+%05x." % (whichStd, self.codePoint))
                 return False
-            self.names[stdNum] = value
+            self.names[whichStd] = value
         except IndexError as e:
-            print("Can't set prop '%s' (stdNum %d) for code point %05x.\n    %s" %
-                (whichStd.name, stdNum, self.codePoint, e))
+            print("Can't set prop '%s' for code point %05x.\n    %s" %
+                (whichStd, self.codePoint, e))
             return False
         return True
 
-    def tostring(self, exclude:Dict, compact:bool=True) -> str:
+    def tostring(self, include:Dict=None, compact:bool=True) -> str:
         if (compact): buf = "n=\"0x%05x" % self.codePoint
         else: buf = "U+%05x: \n" % self.codePoint
         
-        for i in range(CHARSTD_MIN, CHARSTD_MAX+1):
-            stdName = CharStd(i).name
-            if (exclude and stdName in exclude): continue
-            try:
-                if (CharStd(i) == CharStd.html4): curName = self.getXML(self.codePoint)
-                else: curName = self.names[i]
-            except IndexError as e:
-                print("std #%d (%s) out of range:\n    %s" % (i, stdName, e))
-            if (curName is None): curName = "--"
+        for stdName in include.keys():
+            if (stdName == "html4"):
+                curName = self.getXML()
+            elif (stdName in self.names):
+                curName = self.names[stdName]
+            else:
+                curName = CharStdInfo.NOT_AVAILABLE
             if (compact):
                 buf += " %s=\"%s\"" % (stdName, curName)
             else:
                 buf += "    %-12s: %s\n" % (stdName, curName)
         return buf
 
-    def getXML(self, codePoint:int):
-        x = self.names[CharStd.html4]
+    def getXML(self):
+        """Find, assemble, and return an XML entity reference to the given 
+        character. This depends on which entity set(s) are chosen.
+        If no named entity is found among the chosen sets, a fallback is
+        generated, to a numeric character reference, a backslash code,
+        or the literal character.
+        """
+        codePoint = self.codePoint
+        x = self.names["html4"]
         #print("getXML for cp %05x, html name is: %s" % (codePoint, x if x else "[none]"))
         if (x is not None): return "&%s;" % (x)
         if (args.fallback == "unchanged"): return "unchanged"
@@ -437,6 +503,24 @@ class CharStdInfo:
         if (args.fallback == "slashu"):  return self.getSlash(codePoint, args.short)
         assert False, "Bad --fallback value '%s'." % (args.fallback)
 
+    def findEntity(self, eSets:list) -> str:
+        """Search the sequence of selected entity sets for the first one that
+        has the given character, and return it the entity name.
+        """
+        for eSet in eSets:
+            if ("entity."+eSet in self.names): return self.names["entity."+eSet]
+        return None
+
+    def findAllEntities(self, eSets:list) -> List:
+        """Search the sequence of selected entity sets and return a list of 
+        pairs, each of (entitySetName, entityName).
+        """
+        found = []
+        for eSet in eSets:
+            if ("entity."+eSet in self.names):
+                found.append( (eSet, self.names["entity."+eSet]) )
+        return found
+
     @staticmethod
     def getSlash(codePoint:int, short:bool=False):
         if (short and codePoint <= 0xFF): return "\\x%02x" % (codePoint)
@@ -444,39 +528,46 @@ class CharStdInfo:
         else: return "\\U%08x" % (codePoint)
 
 
-class charNameConvert(dict):
-    """Add in information from Sebastian Rahtz et al's great DB mapping
-    chars across various representations.
-    TODO: Finish the Sebastian mappings.
+###############################################################################
+#
+class charNameConvert():
+    """Gather information from Sebastian Rahtz et al's great DB,
+    mapping character expressions across various representations.
+    TODO: Finish the entity and font mappings.
     """
     def __init__(self, path:str=None):
         super(charNameConvert, self).__init__()
         self.sourceUrl = "https://www.w3.org/Math/characters/unicode.xml"
-        self.charDict = {}
+        self.charDict = {}  # codepoint: CharStdInfo
         self.nCombinations = 0
+        self.displayProps = []
 
         if (path is None):
             self.path = os.path.join(os.environ["HOME"], ".strfchr", "unicode.xml")
         else:
             self.path = path
+
+        self.setDisplayProps()
         self.loadData()
 
-    def downloadData(self):
+    def setDisplayProps(self, dp:List=None) -> None:
+        """Make a list of all the properties to include (TODO: Option for this?)
+        TODO: Add the entity.xxx ones?
+        """
+        if (dp):
+            self.displayProps = dp
+        else:
+            self.displayProps = []
+            for k, v in propNames.items():
+                if (v[0]): self.displayProps.append(k)
+                    
+    def downloadData(self) -> None:
         if (not os.path.exists(self.path)):
             check_output([ "curl", self.sourceUrl, ">>", self.path ])
         if (not os.path.exists(self.path)):
             lg.fatal("Could not download data from '%s'.", self.sourceUrl)
 
-    def loadData(self):
-        # Pick which ones to show with tostring()
-        excl = set([
-            #"description", 	"html4", 	"latex",
-            "mathlatex", 	"varlatex",
-            "ACS", 	        "AIP", 	        "APS", 	    "IEEE", 	"Springer",
-            "Wolfram", 	    "isopub", 	    "mmlalias", "mmlextra", "surrogate",
-            "Elsevier", 	"bmp", 	        "prop", 	"font",     "afii",
-        ])
-
+    def loadData(self, incl:Dict=None) -> None:
         self.downloadData()
 
         #DomExtensions.DomExtensions.patchDom()
@@ -485,7 +576,7 @@ class charNameConvert(dict):
 
         charList = xdom.documentElement
         assert charList.nodeName == "charlist"
-        print("charList child count: %d" % (len(charList.childNodes)))
+        info1("charList child count: %d" % (len(charList.childNodes)))
 
         nChars = 0
         self.charDict = {}
@@ -493,20 +584,22 @@ class charNameConvert(dict):
             if (charEl.nodeName != "character"): continue
             idVal = charEl.getAttribute("id")
             dec = charEl.getAttribute("dec")
-            if (args.verbose): print("loading char %5s (d%06s)" % (idVal, dec))
+            info1("loading char %5s (d%06s)" % (idVal, dec))
             if ("-" in idVal):
                 if not args.quiet:
-                    lg.warning("Combination character, id '%s' (ignored).", idVal)
+                    descNode = self.getChild(charEl, "description")
+                    desc = self.getText(descNode) if descNode else "???"
+                    info1("Combination character ignored, id '%s' (%s)." % (idVal, desc))
                 self.nCombinations += 1
                 continue
             try:
                 assert re.match(r"U[0-9a-f]{5,5}$", idVal, re.I)
                 assert dec.isdecimal()
                 dec = int(dec, 10)
-                assert int(idVal[1:],16) == dec
+                assert int(idVal[1:], 16) == dec
             except ValueError as e:
-                print("ValueError (idVal '%s', dec '%s') in:\n%s\n%s" %
-                    (idVal, dec, charEl.toprettyxml() if args.verbose else "", e))
+                lg.warning("ValueError (idVal '%s', dec '%s') in:\n%s\n%s",
+                    idVal, dec, charEl.toprettyxml() if args.verbose else "", e)
                 continue
 
             ci = CharStdInfo(dec)
@@ -518,58 +611,67 @@ class charNameConvert(dict):
                 assert propEl.nodeType == xml.dom.Node.ELEMENT_NODE
                 prop = propEl.nodeName
                 val = self.getText(propEl)
-                if (prop in [ "surrogate" ]): continue
-                elif (prop == "afii"):      rc = ci.addStd(CharStd.afii, val)
-                elif (prop == "latex"):     rc = ci.addStd(CharStd.latex, val)
-                elif (prop == "mathlatex"): rc = ci.addStd(CharStd.mathlatex, val)
-                elif (prop == "varlatex"):  rc = ci.addStd(CharStd.varlatex, val)
-                elif (prop == "ACS"):       rc = ci.addStd(CharStd.ACS, val)
-                elif (prop == "AIP"):       rc = ci.addStd(CharStd.AIP, val)
-                elif (prop == "IEEE"):      rc = ci.addStd(CharStd.IEEE, val)
-                elif (prop == "Springer"):  rc = ci.addStd(CharStd.Springer, val)
-                elif (prop == "APS"):       rc = ci.addStd(CharStd.APS, val)
-                elif (prop == "Wolfram"):   rc = ci.addStd(CharStd.Wolfram, val)
-                elif (prop == "entity"):
+                if (prop == "entity"):
                     # Move the entity-set name to our property name
                     # (not real happy with this approach...)
-                    prop = propEl.getAttribute("set") 
-                    if (prop == "html-symbol"): prop = "html"
-                    elif (prop == "8879-isopub"): prop = "isopub"
-                    elif (prop == "mmlextra"): prop = "mmlalias"
+                    eSet = propEl.getAttribute("set")
+                    if (eSet == "mmlalias"): continue  # Avoid duplicates for now: TODO
+                    prop = "entity." + eSet
                     val = propEl.getAttribute("id")
-                    rc = ci.addStd(CharStd[prop], val)
+                    rc = ci.addStd(prop, val)
                 elif (prop == "font"):
                     nam = propEl.getAttribute("name")
                     pos = propEl.getAttribute("pos")
                     try:
                         assert int(pos) >= 0 and int(pos) < 0x1FFFF
                     except (AssertionError, ValueError):
-                        print("font: @pos '%s' bad for name '%s':\n%s" %
-                            (pos, nam, propEl.toprettyxml() if args.verbose else ""))
+                        # One known error in data, 'hlcry' -> pos '40)'.
+                        lg.warning("font: @pos '%s' bad for name '%s':\n%s",
+                            pos, nam, self.maybeXml(charEl))
+                        continue
                     val = nam + " " + pos
-                    rc = ci.addStd(CharStd.font, val)
+                    rc = ci.addStd("font", val)
                 elif (prop == "description"):
-                    rc = ci.addStd(CharStd.description, val)
+                    rc = ci.addStd("description", val)
+                elif (prop in propNames): 
+                    rc = ci.addStd(prop, val)
                 else:
                     if (not args.quiet):
-                        lg.warning("Unexpected spec '%s'.", prop)
+                        lg.warning("Unexpected property spec '%s'.", prop)
+                    continue
                 if (not rc):
-                    lg.warning("******* Problem with prop '%s', val '%s' in:\n%s",
-                        prop, val, charEl.toprettyxml() if args.verbose else "")
-            print(ci.tostring(exclude=excl))
-        lg.info("Char defs processed: %d.", nChars)
+                    lg.warning("******* Problem adding prop '%s', val '%s' in:\n%s",
+                        prop, val, self.maybeXml(charEl))
+            if (args.verbose > 1 and incl and len(incl) > 0):
+                lg.info(ci.tostring(include=incl))
+        lg.info("Char defs loaded: %d (%d non-Unicode combinations ignored).",
+            nChars, self.nCombinations)
         assert len(self.charDict) == nChars
 
     def getMap(self, fr, to) -> Dict:
-        # Takes either str names or CharStd enum values.
-        if isinstance(fr, str): fr = CharStd[fr]
+        """Create a dict mapping all the fr->to pairs known.
+        TODO: Need to handle the multiple-entity-sets and multiple LaTeX sets cases!
+        """
         newMap = {}
-        for _k, v in self.charDict.items():
-            newMap[v.names[fr]] = newMap[v.names[to]]
+        targetMissing = 0
+        for codePoint, charStdInfo in self.charDict.items():
+            try:
+                if (fr not in charStdInfo.names):
+                    continue
+                if (to not in charStdInfo.names):
+                    targetMissing += 1
+                else:
+                    newMap[charStdInfo.names[fr]] = charStdInfo.names[to]
+            except KeyError as e:
+                fatal("getMap failed to get from '%s' to '%s' for %04x:\n    %s" %
+                    (fr, to, codePoint, e))
+            if (targetMissing):
+                lg.warning("%d characters in '%s' not mappable to '%s'.", 
+                    targetMissing, fr, to)
         return newMap
 
     @staticmethod
-    def getText(node:Node):
+    def getText(node:Node) -> str:
         if (node.nodeType == Node.TEXT_NODE): return node.data
         buf = ""
         for ch in node.childNodes:
@@ -582,22 +684,27 @@ class charNameConvert(dict):
             if (ch.nodeName == ename): return ch
         return None
 
+    @staticmethod
+    def maybeXml(node:Node):
+        #if (not args.verbose): return ""
+        return re.sub(r"\n\s*\n+", "\n", node.toprettyxml(), flags=re.M)
+        
 
 ###############################################################################
 #
-def doChart():
-    print("Starting chart, '%s' to '%s'." % (args.frCode, args.toCode))
+def doChart(frCode:str, toCode:str, incl:List=None) -> None:
+    print("Starting chart, '%s' to '%s'." % (frCode, toCode))
     cnc = charNameConvert(os.environ["sjdUtilsDir"]+"/Public/CharSets/unicode.xml")
     print("%d chars loaded." % (len(cnc.charDict)))
-    cnmap:Dict = cnc.getMap(CharStd[args.frCode], CharStd[args.toCode])
+    cnmap:Dict = cnc.getMap(frCode, toCode)
 
     # Collect all the LaTeX special-char strings
     mappableCodes = {}
     for codePoint, info in cnmap.items():
-        frCode = info.names[CharStd[args.frCode]]
-        if (frCode is None): continue
-        toCode = info.names[CharStd[args.toCode]]
-        mappableCodes[info.names[CharStd.latex]] = (codePoint, toCode)
+        frCode = info.names[frCode]
+        if (frCode is None or frCode == CharStdInfo.NOT_AVAILABLE): continue
+        toCode = info.names[toCode]
+        mappableCodes[info.names[frCode]] = (codePoint, toCode)
     print("Mappable special characters found: %d.", len(mappableCodes))
 
     opener = """
@@ -615,18 +722,22 @@ def doChart():
 
     for mappableCode in sorted(mappableCodes.keys()):
         codePoint, mappedCode = mappableCodes[mappableCode]
-        print("    %s & ^^^^%04x & \\&%s; //" % (mappableCode, codePoint, mappedCode))
+        print(cnc.charDict[codePoint].tostring())
+        #print("    %s & ^^^^%04x & \\&%s; //" % (mappableCode, codePoint, mappedCode))
 
     print("""
     -30-
 """)
 
 cmap = None
+notFound = defaultdict(int)
 
 def doOneFile(path:str) -> int:
     """Read and deal with one individual file.
     """
-    global cmap
+    global cmap, notFound
+    notFound = defaultdict(int)
+
     if (not path):
         if (sys.stdin.isatty()): print("Waiting on STDIN...")
         fh = sys.stdin
@@ -638,15 +749,21 @@ def doOneFile(path:str) -> int:
             return 0
 
     cnc = charNameConvert(os.environ["sjdUtilsDir"]+"/Public/CharSets/unicode.xml")
-    cmap = cnc.getMap(CharStd.latex, CharStd.html4)
-
+    cmap = cnc.getMap(args.fromCode, args.toCode)
+    
     for rec in fh.readlines():
-        rec = re.sub(r"\\\\(\\w+)(?![\\[\\{])", fixChar, rec)
+        rec = re.sub(r"(\\\w+)(?!\w)", fixChar, rec)
         print(rec)
+        
+    if (len(notFound) > 0):
+        lg.warning("Some characters not mapped in '%s'.", path)
+        # TODO: Option to print the list
 
-def fixChar(m):
-    if "\\"+m.group(1) in cmap: return "&" + cmap[m.group(1) + ";"]
-    return m
+def fixChar(m) -> str:
+    if m.group(1) in cmap:
+        return cmap[m.group(1)]
+    notFound[m.group(1)] += 1
+    return m.group(1)
 
 
 ###############################################################################
@@ -655,6 +772,8 @@ def fixChar(m):
 if __name__ == "__main__":
     import argparse
 
+    esChoices = list(entitySetMap.keys()).extend(entitySetGroups)
+    
     def processOptions() -> argparse.Namespace:
         try:
             from BlockFormatter import BlockFormatter
@@ -673,8 +792,7 @@ if __name__ == "__main__":
             "--compact", action="store_true",
             help="With --chart, use a one-line per codepoint format.")
         parser.add_argument(
-            "--entitySets", "-e", type=str, action="append",
-            choices=entitySetMap.keys().extend(entitySetGroups),
+            "--entitySets", "-e", type=str, action="append", choices=esChoices,
             help="Which entity sets to check, in order (repeatable).")
         parser.add_argument(
             "--fallback", type=str, default="xml16",
@@ -684,6 +802,9 @@ if __name__ == "__main__":
             "--frCode", type=str, default="literal",
             choices=[ "literal", "xml", "xml10", "xml16", "latex", "slashu" ],
             help="Input in this format.")
+        parser.add_argument(
+            "--includeCode", action="append", type=str, choices=esChoices,
+            help="With --chart, include these encodings. Repeatable (ordered).")
         parser.add_argument(
             "--oencoding", type=str, metavar="E", default="utf-8",
             help="Use this character coding for output. Default: iencoding.")
@@ -716,8 +837,8 @@ if __name__ == "__main__":
         args0 = parser.parse_args()
 
         # Support shorthand for groups, like all 8879, etc.
-        if (args.entitySets):
-            args.entitySets = expandEntitySets()
+        if (args0.entitySets):
+            args0.entitySets = expandEntitySets(args0.entitySets)
         
         return(args0)
 
@@ -733,7 +854,7 @@ if __name__ == "__main__":
         sys.stdout.reconfigure(encoding="utf-8")
 
     if (args.chart):
-        doChart()
+        doChart(args.frCode, args.toCode, args.includeCode)
         sys.exit()
 
     if (len(args.files) == 0):
