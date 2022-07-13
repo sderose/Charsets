@@ -86,6 +86,9 @@ during conversion).
 
 ==Usage on the command line==
 
+You can get a conversion chart with --chart (as TeX definitions with --oformat texdefs),
+or convert an actual file with:
+
     charNameConvert.py --frCode [name1] --toCode [name2] [options] [files]
 
 This will convert stdin by replacing any character references in the input,
@@ -469,20 +472,28 @@ class CharStdInfo:
         return True
 
     def tostring(self, include:Dict=None, compact:bool=True) -> str:
-        if (compact): buf = "n=\"0x%05x" % self.codePoint
-        else: buf = "U+%05x: \n" % self.codePoint
-        
+        if (include is None): include = propNames
+        buf = ""
+        desc = self.names["description"]
         for stdName in include.keys():
+            if (stdName == "description"):
+                continue
             if (stdName == "html4"):
                 curName = self.getXML()
             elif (stdName in self.names):
                 curName = self.names[stdName]
             else:
-                curName = CharStdInfo.NOT_AVAILABLE
+                continue
+                #curName = CharStdInfo.NOT_AVAILABLE
             if (compact):
                 buf += " %s=\"%s\"" % (stdName, curName)
             else:
                 buf += "    %-12s: %s\n" % (stdName, curName)
+
+        if (compact):
+            buf = "<code n=\"0x%05x\" desc=\"%s\"\n    %s />" % (self.codePoint, desc, buf)
+        else: 
+            buf = "U+%05x: \n%s" % (self.codePoint, buf)
         return buf
 
     def getXML(self):
@@ -640,16 +651,44 @@ class charNameConvert():
                         lg.warning("Unexpected property spec '%s'.", prop)
                     continue
                 if (not rc):
-                    lg.warning("******* Problem adding prop '%s', val '%s' in:\n%s",
-                        prop, val, self.maybeXml(charEl))
+                    info1("******* Problem adding prop '%s', val '%s' in:\n%s" %
+                        (prop, val, self.maybeXml(charEl)))
             if (args.verbose > 1 and incl and len(incl) > 0):
                 lg.info(ci.tostring(include=incl))
         lg.info("Char defs loaded: %d (%d non-Unicode combinations ignored).",
             nChars, self.nCombinations)
         assert len(self.charDict) == nChars
 
+    def findConflicts(self):
+        """Search all loaded info for cases where the same name (such as an XML
+        entity or a LaTeX command name) is used for multiple different characters.
+        Don't complain is the *same* name is declared in more than one set, though.
+        """
+        codePointsByCodename = {}
+        for cp in sorted(self.charDict.keys()):
+            for std, codename in self.charDict[cp].names.items():
+                if (codename.startswith("\\")):
+                    if (re.match(r"\\\w+\W", codename)): continue
+                    codename = codename[1:]
+                if (codename in codePointsByCodename):
+                    codePointsByCodename[codename].append( (std,cp) )
+                else:
+                    codePointsByCodename[codename] = [ (std,cp) ]
+        
+        # Now we have an inverted table
+        allCodeNames = sorted(codePointsByCodename.keys())
+        conflictCount = 0
+        for codename in allCodeNames:
+            pairList = codePointsByCodename[codename]
+            uniqueCodePoints = set([ p[1] for p in pairList ])
+            if (len(uniqueCodePoints) < 2): continue
+            buf = ", ".join([ ("%s:U+%04x" % p) for p in pairList ])
+            print("%s: %s" % (codename, buf))
+            conflictCount += 1
+        return conflictCount
+                    
     def getMap(self, fr, to) -> Dict:
-        """Create a dict mapping all the fr->to pairs known.
+        """Create a dict mapping codePoint -> (fr, to) for all pairs known.
         TODO: Need to handle the multiple-entity-sets and multiple LaTeX sets cases!
         """
         newMap = {}
@@ -661,13 +700,13 @@ class charNameConvert():
                 if (to not in charStdInfo.names):
                     targetMissing += 1
                 else:
-                    newMap[charStdInfo.names[fr]] = charStdInfo.names[to]
+                    newMap[codePoint] = (charStdInfo.names[fr], charStdInfo.names[to])
             except KeyError as e:
                 fatal("getMap failed to get from '%s' to '%s' for %04x:\n    %s" %
                     (fr, to, codePoint, e))
-            if (targetMissing):
-                lg.warning("%d characters in '%s' not mappable to '%s'.", 
-                    targetMissing, fr, to)
+        if (targetMissing):
+            lg.warning("%d characters in '%s' not mappable to '%s'.", 
+                targetMissing, fr, to)
         return newMap
 
     @staticmethod
@@ -692,20 +731,14 @@ class charNameConvert():
 
 ###############################################################################
 #
-def doChart(frCode:str, toCode:str, incl:List=None) -> None:
-    print("Starting chart, '%s' to '%s'." % (frCode, toCode))
-    cnc = charNameConvert(os.environ["sjdUtilsDir"]+"/Public/CharSets/unicode.xml")
-    print("%d chars loaded." % (len(cnc.charDict)))
+def doChart(frCode:str, toCode:str, oformat:str="texdefs", incl:List=None) -> None:
+    """Is this better sorted by codePoint or fromString?
+    """
+    lg.info("Starting chart, '%s' to '%s'.", frCode, toCode)
+    cnc = charNameConvert(os.environ["sjdUtilsDir"] + "/CharSets/unicode.xml")
+    lg.info("%d chars loaded.", len(cnc.charDict))
+    
     cnmap:Dict = cnc.getMap(frCode, toCode)
-
-    # Collect all the LaTeX special-char strings
-    mappableCodes = {}
-    for codePoint, info in cnmap.items():
-        frCode = info.names[frCode]
-        if (frCode is None or frCode == CharStdInfo.NOT_AVAILABLE): continue
-        toCode = info.names[toCode]
-        mappableCodes[info.names[frCode]] = (codePoint, toCode)
-    print("Mappable special characters found: %d.", len(mappableCodes))
 
     opener = """
 \\documentclass{article}
@@ -719,16 +752,30 @@ def doChart(frCode:str, toCode:str, incl:List=None) -> None:
 \\author{charNameConvert.py}
 """
     print(opener)
+    print("%% Definitions: frCode '%s', toCode '%s'.\n%%" % (frCode, toCode))
 
-    for mappableCode in sorted(mappableCodes.keys()):
-        codePoint, mappedCode = mappableCodes[mappableCode]
-        print(cnc.charDict[codePoint].tostring())
-        #print("    %s & ^^^^%04x & \\&%s; //" % (mappableCode, codePoint, mappedCode))
+    # Collect all the character pairs
+    cpList = sorted(cnmap.keys())
+    for codePoint in cpList:
+        fromString, toString = cnmap[codePoint]
+        if (oformat == "chart"):
+            print(cnc.charDict[codePoint].tostring())
+        elif (oformat == "texdefs"):  # toCode better be TeX-like
+            texPart = "\\def{%s}{^^^^^%05x} " % (toString, codePoint) 
+            cmtPart = "'%s' = %s" % (fromString, cnc.charDict[codePoint].names["description"])
+            print("%-40s %% %s" % (texPart, cmtPart))
+        else:
+            assert False, "Unknown oformat '%s'." % (oformat)
 
     print("""
-    -30-
+    % -30-
 """)
 
+
+def doFindConflicts():
+    lg.fatal("findConflicts() not yet finished.")
+    #findConflicts()
+    
 cmap = None
 notFound = defaultdict(int)
 
@@ -748,7 +795,7 @@ def doOneFile(path:str) -> int:
             info0("Cannot open '%s':\n    %s" % (path, e))
             return 0
 
-    cnc = charNameConvert(os.environ["sjdUtilsDir"]+"/Public/CharSets/unicode.xml")
+    cnc = charNameConvert(os.environ["sjdUtilsDir"] + "/CharSets/unicode.xml")
     cmap = cnc.getMap(args.fromCode, args.toCode)
     
     for rec in fh.readlines():
@@ -799,9 +846,12 @@ if __name__ == "__main__":
             choices=[ "literal", "xml10", "xml16", "unchanged", "slashu" ],
             help="With --toCode xml, if no xml named entity if available, use this form.")
         parser.add_argument(
+            "--findConflicts", action="store_true",
+            help="Search for any name defined to multiple Unicode codepoints.")
+        parser.add_argument(
             "--frCode", type=str, default="literal",
             choices=[ "literal", "xml", "xml10", "xml16", "latex", "slashu" ],
-            help="Input in this format.")
+            help="Input expresses special characters in this format.")
         parser.add_argument(
             "--includeCode", action="append", type=str, choices=esChoices,
             help="With --chart, include these encodings. Repeatable (ordered).")
@@ -809,13 +859,16 @@ if __name__ == "__main__":
             "--oencoding", type=str, metavar="E", default="utf-8",
             help="Use this character coding for output. Default: iencoding.")
         parser.add_argument(
+            "--oformat", type=str, choices=[ "texdefs", "chart" ], default="chart",
+            help="With --chart, what output layout to generate.")
+        parser.add_argument(
             "--quiet", "-q", action="store_true",
             help="Suppress most messages.")
         parser.add_argument(
             "--short", action="store_true",
             help="With --toCode slashu, use \\xFF form when possible.")
         parser.add_argument(
-            "--toCode", type=str, default="literal",
+            "--toCode", type=str, default="latex",
             choices=[ "literal", "xml", "xml10", "xml16", "latex", "slashu" ],
             help="Output in this format.")
         parser.add_argument(
@@ -854,9 +907,13 @@ if __name__ == "__main__":
         sys.stdout.reconfigure(encoding="utf-8")
 
     if (args.chart):
-        doChart(args.frCode, args.toCode, args.includeCode)
+        doChart(args.frCode, args.toCode, oformat=args.oformat, incl=args.includeCode)
         sys.exit()
 
+    if (args.findConflicts):
+        doFindConflicts()
+        sys.exit()
+        
     if (len(args.files) == 0):
         info0("charNameConvert.py: No files specified....")
         doOneFile(None)

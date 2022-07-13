@@ -6,7 +6,7 @@
 from __future__ import print_function
 import sys
 import argparse
-import regex as re
+import regex
 import unicodedata
 
 PY3 = sys.version_info[0] == 3
@@ -285,7 +285,7 @@ ex = r'[\p{Letter}]'            # no
 #ex = r'[[:Digit:]]'             # no
 #ex = r'\p{Ll}'                  # no
 
-cex = re.compile(ex, re.U)
+cex = regex.compile(ex, regex.UNICODE)
 
 if (args.format == "chart"):
     print("    codept lit cat  Unicode name")
@@ -303,7 +303,7 @@ for codePoint in range(args.first, args.last+1):
 
     gotOne = False
     if (args.find):
-        if (not re.search(args.find, nm, re.I)): continue
+        if (not regex.search(args.find, nm, regex.IGNORECASE)): continue
     else:
         if (not inAnyRequestedCategory(c)): continue
 
@@ -344,7 +344,7 @@ if (args.format == "bracket"):
     brack += "]"
     if (args.metaregex):
         lhs = "\\\\p\\{" + ccat + "\\}"
-        brack = "R = re.sub(r'%s', '%s', R)" % (lhs, brack)
+        brack = "R = regex.sub(r'%s', '%s', R)" % (lhs, brack)
     print(brack)
 
 if (not args.quiet):
