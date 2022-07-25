@@ -18,7 +18,7 @@ our %metadata = (
     'type'         => "http://purl.org/dc/dcmitype/Software",
     'language'     => "Perl 5.18",
     'created'      => "2007-01-16",
-    'modified'     => "2021-04-07",
+    'modified'     => "2022-07-25",
     'publisher'    => "http://github.com/sderose",
     'license'      => "https://creativecommons.org/licenses/by-sa/3.0/"
 );
@@ -62,16 +62,19 @@ The output encoding is always UTF-8.
 =item * B<--oformat> [x]
 
 Choose a different way to represent the invisible characters.
-Taking BULLET (U+2022) as an example:
+The default is "PY4".
+Taking BULLET (U+2022) as an example, the formats and their results are:
+
   UPLUS: U+02022
-  UTF:   \xe2\x80\xa2
+  UTF:   \\xe2\\x80\\xa2
   URI:   %e2%80%a2
   DENT:  &#8226;
   XENT:  &#x2022;
-  NENT:  &bull;  ("N" for named, per HTML 4. If unavailble, uses XENT)
-  PY4:   \u2022
-  PY8:   \U00002022
-  PYBR:  \x{2022}
+  NENT:  &bull;  (per HTML 4. If no name, uses XENT)
+  PY2:   \\u2022  (would be '\\xFF' for values under 255; expands as needed)
+  PY4:   \\u2022
+  PY8:   \\U00002022
+  PYBR:  \\x{2022}
 
 =item * B<--pics>
 
@@ -91,8 +94,8 @@ of control characters or not.
 
 =item * B<--spaceAs> I<s>
 
-Display spaces as:
-  I<OK> show as literal space (default)
+Display spaces (U+0020) in one of the following ways (default is "OK"):
+  I<OK> show as literal space
   I<B> ('b' with a slash through it, U+2422 -- the default)
   I<U> (an underscore with the ends turned up, U+2423)
   I<SP> (a little "SP", U+2420)
@@ -101,7 +104,7 @@ Display spaces as:
 
 =item * B<--lfAs> I<l>
 
-(not yet implemented) Display newline/linefeed as:
+(not yet implemented) Display newline/linefeed (U+000A) as:
   I<LF> (a little "LF", U+2424) (default)
   I<OK> show as literal newline
   I<NL> (a little "NL", U+2440 -- the default)
@@ -133,6 +136,8 @@ a list of the names. Generally, the form is C<[fg]/[bg]/[effect]>.
 
 =head1 Related Commands
 
+C<showInvisibles.py> -- replacement for this.
+
 C<sjdUtils.pm> provides functions to do the transformations.
 
 C<colorManager.pm> provides ANSI terminal color support.
@@ -140,7 +145,7 @@ C<colorManager.pm> provides ANSI terminal color support.
 
 =head1 Known bugs and limitations
 
-For UTF-8, shows \xFF-style escapes for each byte, not \UFFFF or \x{FFFF}
+For UTF-8, shows \\xFF-style escapes for each byte, not \\UFFFF or \\x{FFFF}
 for the code point as a whole.
 
 
@@ -160,6 +165,8 @@ Optimize color-escaping instead of doing on/off for every char.
   2019-11-16: Update color use.
   2020-11-19: New layout.
   2021-04-07: Add --oformat and its various choices.
+  2022-07-25: Fix buffering that made it a no-op.
+Fix --oformat choices, space handling,....
 
 
 =head1 To do
@@ -181,6 +188,13 @@ L<https://github.com/sderose>.
 
 =cut
 
+# Output format names
+#
+my %formats = (
+    "UPLUS" => 1, "UTF" => 1, "URI" => 1, "DENT" => 1, "XENT" => 1,
+    "NENT" => 1,  "PY2" => 1, "PY4" => 1, "PY8" => 1,  "PYBR" => 1,
+);
+
 
 ###############################################################################
 # Process options
@@ -188,7 +202,8 @@ L<https://github.com/sderose>.
 my $color         = 0;
 my $iencoding     = "";
 my $lfAs          = "NL";
-my $oFormat       = "XENT";
+my $oencoding     = "utf8";
+my $oFormat       = "PY2";
 my $pics          = 1;
 my $quiet         = 0;
 my $spaceAs       = "OK";
@@ -202,6 +217,7 @@ my $result = GetOptions(
     "h|help|?"          => sub { system "perldoc $0"; exit; },
     "iencoding=s"       => \$iencoding,
     "lfAs=s"            => \$lfAs,
+    "oencoding=s"       => \$oencoding,
     "oFormat=s"         => \$oFormat,
     "pics|pix!"         => \$pics,
     "q|quiet!"          => \$quiet,
@@ -216,12 +232,20 @@ my $result = GetOptions(
 
 ($result) || die "Bad options.\n";
 
+if ($oencoding) {
+    print "";
+    binmode(STDOUT, ":encoding($oencoding)");
+}
+
+(exists $formats{$oFormat}) || die
+    "Unknown --oFormat '$oFormat'. Known: [ " . join(keys(%formats), ", ") . "].\n";
+
 $spaceAs = uc($spaceAs);
-($spaceAs =~ m/^(B|U|SP|OK|COLOR)$/) || (len($spaceAs)==1) ||
+($spaceAs =~ m/^(B|U|SP|OK|COLOR)$/) || (length($spaceAs)==1) ||
     die "-spaceAs must be 'B', 'U', 'SP', 'COLOR', or 'OK'.\n";
 
 $lfAs = uc($lfAs);
-($lfAs =~ m/^(LF|NL|OK)$/i) || (len($lfAs)==1) ||
+($lfAs =~ m/^(LF|NL|OK)$/i) || (length($lfAs)==1) ||
     die "-lfAs must be 'LF' or 'NL' or 'OK'.\n";
 
 my %spaceCodes = (
@@ -252,10 +276,6 @@ if ($color) {
     $con  = sjdUtils::getColorString($whichColor);
     $coff = sjdUtils::getColorString("off");
 }
-
-print "";
-binmode(STDOUT, ":encoding(utf8)");
-
 
 # Apply colorizing to whitespaces.
 #
@@ -310,15 +330,20 @@ sub makeDisplayable {
         if ($buf =~ m/^&#/) { $buf = sprintf("&#x%04x;", $n); }
         return $buf;
     }
+    elsif ($fmt eq "PY2") {                # \x40
+        if ($n > 0xFFFF)  { return sprintf("\\U%08x", $n); }
+        elsif ($n > 0xFF) { return sprintf("\\u%04x", $n); }
+        return sprintf("\\x%02x", $n);
+    }
     elsif ($fmt eq "PY4") {                # \u2022
-        ($n > 0xFFFF) && warn "Char out of range for \\u: $n.\n";
+        if ($n > 0xFFFF)  { return sprintf("\\U%08x", $n); }
         return sprintf("\\u%04x", $n);
     }
     elsif ($fmt eq "PY8") {                # \U00002022
         return sprintf("\\U%08x", $n);
     }
     elsif ($fmt eq "PYBR") {               # \x{2022}
-        return sprintf("\\x{%4x}", $n);
+        return sprintf("\\x{%2x}", $n);
     }
     else {
         die "Unknown --oformat '$fmt'.\n";
@@ -347,7 +372,7 @@ if (!$ARGV[0]) {
     }
 }
 
-if ($verbose) {
+if ($verbose > 1) {
     warn "Testing colors:\n";
     for my $x (keys %spaceMap) {
         my $y = $spaceMap{$x};
@@ -361,19 +386,30 @@ while (my $file = shift) {
 
     while (my $rec = <$fh>) {
         my $buf = "";
-        for (my $i=0; $i<len($rec); $i++) {
-            $buf .= makeDisplayable(substr($rec, $i, 1));
+        for (my $i=0; $i<length($rec); $i++) {
+            my $c = substr($rec, $i, 1);
+            if ($c =~ m/[\x21-\x7E]/) {
+                $buf .= $c;
+            }
+            else {
+                my $printable = makeDisplayable($c, $oFormat);
+                if ($printable ne $c) {
+                    #vMsg(2, sprintf("recoded '%s' (0x%04x) as '%s' (sp %s).",
+                    #    $c, ord($c), $printable, $spaceAs));
+                }
+                $buf .= $printable;
+            }
         }
         if ($spaceAs eq "COLOR") {
-            $rec = colorizeWhiteSpace($rec);
+            $buf = colorizeWhiteSpace($buf);
         }
         elsif ($uri) {
-            $rec = sjdUtils::escapeURI($rec, "DFT", $spaceAs, $lfAs);
+            $buf = sjdUtils::escapeURI($buf, "DFT", $spaceAs, $lfAs);
         }
         if ($color) {
-            $rec =~ s/(\\x[0-9a-f][0-9a-f]|[^[:ascii:]]+)/$con$1$coff/gi;
+            $buf =~ s/(\\x[0-9a-f][0-9a-f]|[^[:ascii:]]+)/$con$1$coff/gi;
         }
-        print "$rec\n";
+        print "$buf\n";
     } # EOF
     close($fh);
 }
