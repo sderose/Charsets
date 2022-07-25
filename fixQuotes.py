@@ -302,7 +302,7 @@ def doOneXmlFile(path, fixer):
     """
     from xml.dom import minidom
     from DomExtensions import DomExtensions
-    DomExtensions.patchDom(minidom)
+    DomExtensions.patchDom(minidom.Node)
     xdoc = minidom.parse(path)
     docEl = xdoc.documentElement
     tns = docEl.getTextNodesIn(docEl)
