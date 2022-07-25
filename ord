@@ -24,7 +24,7 @@ our %metadata = (
     'type'         => "http://purl.org/dc/dcmitype/Software",
     'language'     => "Perl 5.18",
     'created'      => "2007-10",
-    'modified'     => "2021-09-13",
+    'modified'     => "2022-07-25",
     'publisher'    => "http://github.com/sderose",
     'license'      => "https://creativecommons.org/licenses/by-sa/3.0/"
 );
@@ -165,7 +165,7 @@ Show code points in binary.
 =item * B<--chart> I<name>
 
 Show info for all the characters in a named range chosen from:
-c0, g0, c1, g1, ASCII, Latin1, LatinxA (for Latin Extended A), LatinxB, IPA, Combining, 
+c0, g0, c1, g1, ASCII, Latin1, LatinxA (for Latin Extended A), LatinxB, IPA, Combining,
 Greek, Cyrillic, Armenian, Hebrew, Arabic, Syriac, ControlPic (symbols for control characters).
 Ask if you want others, or just add an entry to '%namedRanges'.
 
@@ -552,8 +552,10 @@ Warn if env LANG not utf-8. Recognize html entity names, C-J, ^J, etc.
 
 =item * 2021-08-05: Add --table, re-do --chart.
 
-=item * 2021-09-13: Clean up --chart, make it allow explicit int...int ranges, 
+=item * 2021-09-13: Clean up --chart, make it allow explicit int...int ranges,
 ignore case for name lookups, have more named ranges.
+
+=item * 2022-07-25: Fix off-by-one on reporting control-key letters for C0.
 
 =back
 
@@ -1048,7 +1050,7 @@ sub showRange2 {
             join(", ", keys(%namedRanges)) . ".\n";
         return;
     }
-    printf("Character mnemonics and names for chars in %s [U+%05x...U+%05x]:\n", 
+    printf("Character mnemonics and names for chars in %s [U+%05x...U+%05x]:\n",
         $sec, $min, $max);
     if ($max < $min) {
         print "    ******* Range is out of order *******\n";
@@ -1068,7 +1070,7 @@ sub showTable {
     my $perRow = 16;
     my $f = $perRow * int(($first+0.0)/$perRow);
     my $l = ($perRow * ceil(($last+0.0)/$perRow)) - 1;
-    
+
     my $buf = "          ";
     for (my $i=0; $i<$perRow; $i++) {
         $buf .= sprintf("%4x", $i);
@@ -1231,7 +1233,7 @@ sub showOne {
         my $lit = "";
         if ($n<32) {
             $lit = "(control: " . $C0names[$n];
-            if ($n>0 && $n<26) { $lit .= ", ^" . substr($upper,$n,1); }
+            if ($n>0 && $n<26) { $lit .= ", ^" . substr($upper,$n-1,1); }
             $lit .= ") ";
         }
         else {
@@ -1262,7 +1264,7 @@ sub showOne {
 
     if ($entities) {
         if ($n<32 && $n!=9 && $n!=10 && $n!=13) {
-            pline("Entites:", "[not a legal XML character]");
+            pline("Entities:", "[not a legal XML character]");
         }
         else {
             my $entName = HTML::Entities::encode($c);
@@ -1292,7 +1294,7 @@ sub getPyForm {
     if ($n <= 0xFFFF) { return sprintf("\\u%04x", $n); }
     return sprintf("\\U%08x", $n);
 }
-    
+
 sub pline {
     my ($label, $data) = @_;
     printf("    %-18s %s\n", $label, $data || "");

@@ -33,16 +33,22 @@ showinvisible [options]
 
 Make control and non-ASCII characters visible.
 
-Do this by using the Unicode "control symbols" where applicable,
-and backslash-codes (or XML numeric character references) elsewhere.
+By default, control characters are converted to the Unicode "control pictures"
+(miniature mnemonics). Non-ASCII characters are converted according
+to I<--oformat>, which default to "PY2", showing them as their
+codepoint values (\\xFF form for ones that fit, or \u or \U for larger values).
 
-By default, literal spaces I<are not> replaced (but see I<-s> and I<--spaceAs>.
+By default, characters are converted to UTF-8, then the UTF-8 bytes
+are coded as \xNN.
+
+By default, ASCII characters SPACE, LF, and TAB I<are not> replaced.
+But see I<-s> to replace all of them, or I<--spaceAs>, I<--lfAs>, and I<tabAs>
+to do just those in a variety of ways).
+All whitespace characters can be escaped, by specifying
 
 Useful for visualizing return/linefeed, space/tab, etc. Can also be used
 to escape undesired characters in a file to ease later processing.
 
-By default, Unicode characters are converted to UTF-8, then the UTF-8 bytes
-are coded as \xNN. Set I<--oformat> to convert them to other forms.
 
 =head1 Options
 
@@ -58,6 +64,13 @@ See also I<--whichColor>.
 
 Assume the input character encoding is I<e>.
 The output encoding is always UTF-8.
+
+=item * B<--lfAs> I<l>
+
+(not yet implemented) Display newline/linefeed (U+000A) as:
+  I<LF> (a little "LF", U+2424) (default)
+  I<OK> leave as literal newline
+  I<NL> (a little "NL", U+2440 -- the default)
 
 =item * B<--oformat> [x]
 
@@ -85,29 +98,28 @@ control characters and spaces (default). I<--no-pics> to turn off.
 
 Suppress most messages.
 
-=item * B<-s>
+=item * B<-s> OR B<--allSpaces>
 
-Leave actual spaces (d32) alone. Useful for avoiding excessive clutter, while
-still letting you see where other whitespace characters (such as TAB) were.
-This also affects whether actual spaces are counted in the total number
-of control characters or not.
+Convert the ASCII whitespace characters SPACE, TAB, and LINEFEED.
+This is short for I<--spaceAs SP --tabAS HT --lfAs LF>.
+More unusual whitespace controls, such as CR, VT, FF and the many
+non-ASCII whitespace characters, are always converted.
 
 =item * B<--spaceAs> I<s>
 
 Display spaces (U+0020) in one of the following ways (default is "OK"):
-  I<OK> show as literal space
-  I<B> ('b' with a slash through it, U+2422 -- the default)
-  I<U> (an underscore with the ends turned up, U+2423)
+  I<OK> leave as literal space
+  I<BL> ('b' with a slash through it, U+2422 -- the default)
+  I<UN> (an underscore with the ends turned up, U+2423)
   I<SP> (a little "SP", U+2420)
   I<NBSP> (a non-breaking space, U+00A0)
   I<COLOR> (experimental, different colors for different whitespace chars)
 
-=item * B<--lfAs> I<l>
+=item * B<--tabAs> I<l>
 
-(not yet implemented) Display newline/linefeed (U+000A) as:
-  I<LF> (a little "LF", U+2424) (default)
-  I<OK> show as literal newline
-  I<NL> (a little "NL", U+2440 -- the default)
+Display TAB (U+0009) as:
+  I<HT> (a little "HT", U+2409) (default)
+  I<OK> leave as literal tab
 
 =item * B<--uri>
 
@@ -165,8 +177,8 @@ Optimize color-escaping instead of doing on/off for every char.
   2019-11-16: Update color use.
   2020-11-19: New layout.
   2021-04-07: Add --oformat and its various choices.
-  2022-07-25: Fix buffering that made it a no-op.
-Fix --oformat choices, space handling,....
+  2022-07-25: Fix buffering that made it a no-op. Add --tabAs and --lfAs.
+Fix --oformat choices. Support -s/--allSpaces.
 
 
 =head1 To do
@@ -207,6 +219,7 @@ my $oFormat       = "PY2";
 my $pics          = 1;
 my $quiet         = 0;
 my $spaceAs       = "OK";
+my $tabAs         = "OK";
 my $uri           = 0;
 my $verbose       = 0;
 my $whichColor    = "/yellow";
@@ -221,7 +234,9 @@ my $result = GetOptions(
     "oFormat=s"         => \$oFormat,
     "pics|pix!"         => \$pics,
     "q|quiet!"          => \$quiet,
+    "s|allSpaces!"      => sub { $lfAs = "LF"; $tabAs = "HT"; $spaceAs = "SP"; },
     "spaceAs=s"         => \$spaceAs,
+    "tabAs=s"           => \$tabAs,
     "uri!"              => \$uri,
     "v|verbose+"        => \$verbose,
     "version"           => sub {
@@ -240,13 +255,17 @@ if ($oencoding) {
 (exists $formats{$oFormat}) || die
     "Unknown --oFormat '$oFormat'. Known: [ " . join(keys(%formats), ", ") . "].\n";
 
-$spaceAs = uc($spaceAs);
-($spaceAs =~ m/^(B|U|SP|OK|COLOR)$/) || (length($spaceAs)==1) ||
-    die "-spaceAs must be 'B', 'U', 'SP', 'COLOR', or 'OK'.\n";
-
 $lfAs = uc($lfAs);
 ($lfAs =~ m/^(LF|NL|OK)$/i) || (length($lfAs)==1) ||
     die "-lfAs must be 'LF' or 'NL' or 'OK'.\n";
+
+$spaceAs = uc($spaceAs);
+($spaceAs =~ m/^(BL|UN|SP|OK|COLOR)$/) || (length($spaceAs)==1) ||
+    die "-spaceAs must be 'BL', 'UN', 'SP', 'COLOR', or 'OK'.\n";
+
+$tabAs = uc($tabAs);
+($tabAs =~ m/^(HT|OK)$/i) || (length($tabAs)==1) ||
+    die "-tabAs must be 'HT' or 'OK'.\n";
 
 my %spaceCodes = (
     "SP"       => chr(0x2420), # SP
@@ -260,6 +279,11 @@ my %lfCodes = (
     "LF"       => chr(0x240A),
     "NL"       => chr(0x2424),
     "OK"       => "\n",
+);
+
+my %tabCodes = (
+    "HT"       => chr(0x2409),
+    "OK"       => "\t",
 );
 
 my @names = ( # currently unused
@@ -299,12 +323,17 @@ sub colorizeWhiteSpace {
 sub makeDisplayable {
     # Convert just one character.
     my ($c, $fmt) = @_;
-    if (index(" \t\r\n", $c) > -1) {
-        if ($spaceAs eq "COLOR") { return $c; }
-        if ($c eq " " ) { return $spaceCodes{$spaceAs}; }
-        if ($c eq "\n") { return $lfCodes{$lfAs}; }
-    }
     my $n = ord($c);
+    if ($n == 0x20) {
+        if ($spaceAs eq "COLOR") { return $c; }
+        return $spaceCodes{$spaceAs};
+    }
+    if ($n == 0x0A) {
+        return $lfCodes{$lfAs};
+    }
+    if ($n == 0x09) {
+        return $tabCodes{$tabAs};
+    }
     if ($n < 32 && $pics) {
         return chr(0x2400 + $n);
     }
