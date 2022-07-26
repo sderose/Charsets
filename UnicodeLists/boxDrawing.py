@@ -128,3 +128,48 @@ boxDrawing = {
     0x0257E:  "BOX DRAWINGS HEAVY LEFT AND LIGHT RIGHT",
     0x0257F:  "BOX DRAWINGS HEAVY UP AND LIGHT DOWN",
 }
+
+"""
+    NW H     N      NE
+     /---------------\
+  V  | T | O | L | B |
+  W  |---+---+---+---| E
+     | W | S | J | H |
+  W  |---+---+---+---| E
+     | I | T | N | O |
+     \---------------/
+    SW       S       SE
+Ancd "C" for "cross" or "center"
+"""
+
+class boxASCII(Enum):
+    H  = "-"
+    N  = "-"
+    S  = "-"
+
+    V  = "|"
+    W  = "|"
+    E  = "|"
+
+    NW = "/"
+    NE = "\\"
+    SW = "\\"
+    SW = "/"
+
+    C  = "+"
+
+class boxHeavy(Enum):
+    H  = "\u2501"
+    N  = "\u2533"
+    S  = "\u253B"
+
+    V  = "\u2501"
+    W  = "\u2523"
+    E  = "\u252B"
+
+    NW = "\u250F"
+    NE = "\u2513"
+    SW = "\u2517"
+    SW = "\u251B"
+
+    C  = "\u254B"
