@@ -406,6 +406,9 @@ system-dependent).
 
 Show a variety of information about the UTF-8 encoding for the character(s).
 Default: on.
+N<Note>: To interpret hex input as UTF-8 instead of a codepoint, prefix
+it with "%" instead of "0x" (see above). You do not need to specify
+the I<--utf8> option for that.
 
 =item * B<--version>
 
