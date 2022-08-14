@@ -872,7 +872,7 @@ sub doOneItem {
             alogging::vMsg(0, "Cannot open directory '$path'.");
         }
         else {
-            hMsg(1, "Starting directory '$path'");
+            vMsg(1, "====Starting directory '$path'");
             while (my $child = readdir($dh)) {
                 if ($child eq '.' || $child eq '..') { next; }
                 doOneItem("$path/$child");
@@ -889,7 +889,7 @@ sub doOneItem {
             return;
         }
         else {
-            hMsg(2, "Starting file '$path'");
+            vMsg(2, "====Starting file '$path'");
             doOneFile($path, $fh);
             close($fh);
         }
@@ -930,7 +930,7 @@ sub doOneFile {
         }
         $charCount += length($rec);
 
-        #hMsg(1,"Line $linenum: ",$rec);
+        #vMsg(1, "====Line $linenum: ",$rec);
 
         # For unknown reasons, following line results in
         # 'utf8 does not map to Unicode' warnings.
