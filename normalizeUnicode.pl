@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 #
-# normalizeUnicode
+# normalizeUnicode: Unify variant spaces, dashes, quotes, ligatures, etc.
 # 2010-11-19ff: Written by Steven J. DeRose.
 #
 use strict;
@@ -9,13 +9,14 @@ use Unicode::Normalize;
 #use ../MODULES/SimplifyUnicode;
 
 our %metadata = (
-    'title'        => ".pm",
+    'title'        => "normalizeUnicode",
+    'description'  => "Unify variant spaces, dashes, quotes, ligatures, etc.",
     'rightsHolder' => "Steven J. DeRose",
     'creator'      => "http://viaf.org/viaf/50334488",
     'type'         => "http://purl.org/dc/dcmitype/Software",
     'language'     => "Perl 5.18",
     'created'      => "2010-11-19ff",
-    'modified'     => "2020-11-19",
+    'modified'     => "2022-08-15",
     'publisher'    => "http://github.com/sderose",
     'license'      => "https://creativecommons.org/licenses/by-sa/3.0/"
 );
@@ -86,15 +87,28 @@ Turn backquote to apostrophe.
 
 =item * B<--quotes>
 
-Shorthand for I<--dquotes -squotes>.
+Shorthand for I<--dquotes -squotes>. This does I<not> unify single vs. double quotes,
+for which use I<--allQuotes>
+
+=item * B<--runs>
+
+Reduce runs of (possible mixed) whitespace characters to a single space, except
+at start of line (to preserve indentation).
 
 =item * B<--spaces>
 
 Turn all whitespace (except CR, LF, and TAB)
-to a normal space.
+to a normal space. This does I<not> reduce runs of whitespace to a single space
+(but see --runs>).
 
 =item * B<--quiet> OR B<-q>
+
 Suppress most messages.
+
+=item * B<--underscores>
+
+Turn underscores into hyphens (mostly useful for shell functions, filenames, URLs, etc.,
+which may use them in mixed ways.
 
 =item * B<--verbose> OR B<-v>
 Add more messages (repeatable).
@@ -154,40 +168,42 @@ Math characters and ligatures are only handled for Latin alphabet so far.
 This is gradually becoming a package.
 
 
-=head1 History
-
-  2010-11-19ff: Written by Steven J. DeRose. Mostly pulled from domExtensions.
-  2012-11-29: ???
-  2020-11-19: New layout.
-
-
 =head1 To do
 
-   ?? Generalize to be able to operate on any \p{name} classes??
-   Deal with ligature/accent interaction (combining long s).
-   Finish packagizing.
-   Updates from findKeyWords.
-   Entities?
-   Hook up Math alphabets support (though Unicode Compatibility Normalization
-will take care of that, among other things).
-
+    Sync with Python version (at least, make sure it can do all this).
+    ?? Generalize to be able to operate on any \p{name} classes??
+    Deal with ligature/accent interaction (combining long s).
+    Finish packagizing.
+    Updates from findKeyWords.
+    Entities?
+    Hook up Math alphabets support (though Unicode Compatibility Normalization
+ will take care of that, among other things).
+    Perhaps add the standard Unicode normalization forms.
 
 =head2 Possible additions
 
-   old italic, gothic, etc. U'10300
-   roman numerals, enclosed alphanumerics
-   vertical forms U'fe00
-   Greek and Cyrillic and Hebrew math variants?
-   ellipsis, punc ligatures U'203c...
-   sup/sub U'2070
-   Halfwidth/fullwidth U'ff00
-   Non-Latin ligatures.
-   supplemental punct U'
-   Arrows? U'2190, 2799, 27f0, 2900, 2b00
-   letterlike symbols U'2100, fractions,
-   braille U'2800
-   high surrogates U'd800, low surrogates U'dc00
+    old italic, gothic, etc. U'10300
+    roman numerals, enclosed alphanumerics
+    vertical forms U'fe00
+    Greek and Cyrillic and Hebrew math variants?
+    ellipsis, punc ligatures U'203c...
+    sup/sub U'2070
+    Halfwidth/fullwidth U'ff00
+    Non-Latin ligatures.
+    supplemental punct U'
+    Arrows? U'2190, 2799, 27f0, 2900, 2b00
+    letterlike symbols U'2100, fractions,
+    braille U'2800
+    high surrogates U'd800, low surrogates U'dc00
 
+
+=head1 History
+
+    2010-11-19ff: Written by Steven J. DeRose. Mostly pulled from domExtensions.
+    2012-11-29: ???
+    2020-11-19: New layout.
+    2022-08-15: Add I<--runs>, I<--allQuotes>, I<underscore>.
+  
 
 =head1 Rights
 
@@ -204,56 +220,58 @@ L<https://github.com/sderose>.
 
 ###############################################################################
 # Options
-
+#
+my $accents	      = "unchanged";
+my $allLigatures  = 0;
+my $allQuotes     = 0;
+my $bquote	      = 0;
+my $dashes	      = 0;
+my $dquotes	      = 0;
 my $ignoreCase    = 0;
 my $ilineends     = "U";
+my $ligatures	  = "unchanged";
+my $maths	      = "unchanged";
 my $oencoding     = "";
 my $olineends     = "U";
 my $quiet         = 0;
-my $tickInterval  = 10000;
-my $verbose       = 0;
-
-# The real options
-my $accents	      = "unchanged";
-my $allLigatures  = 0;
-my $ligatures	  = "unchanged";
-my $maths	      = "unchanged";
-my $dashes	      = 0;
-my $dquotes	      = 0;
-my $squotes	      = 0;
-my $bquote	      = 0;
 my $quotes	      = 0;
+my $runs          = 0;
 my $spaces	      = 0;
+my $squotes	      = 0;
+my $tickInterval  = 10000;
+my $underscores   = 0;
+my $verbose       = 0;
 
 Getopt::Long::Configure ("ignore_case");
 my $result = GetOptions(
+    "accents=s"               => \$accents,
     "allLigatures!"           => \$allLigatures,
+    "allQuotes!"              => \$allQuotes,
+    "bquote!"                 => \$bquote,
+    "dashes!"                 => \$dashes,
+    "dquotes!"                => \$dquotes,
     "h|help"                  => sub {
         system "perldoc $0";
         exit;
     },
     "ilineends=s"             => \$ilineends,
+    "ligatures=s"             => \$ligatures,
+    "maths=s"                 => \$maths,
     "olineends=s"             => \$olineends,
     "q!"                      => \$quiet,
+    "quotes!"                 => sub { $dquotes = $squotes = 1; },
+    "runs!"                   => \$runs,
+    "spaces!"                 => \$spaces,
+    "squotes!"                => \$squotes,
     "tick=i"                  => \$tickInterval,
+    "underscores!"            => \$underscores,
     "v+"                      => \$verbose,
     "version"                 => sub {
         die "Version of $VERSION_DATE, by Steven J. DeRose.\n";
     },
-
-    "accents=s"               => \$accents,
-    "ligatures=s"             => \$ligatures,
-    "maths=s"                 => \$maths,
-    "dashes!"                 => \$dashes,
-    "dquotes!"                => \$dquotes,
-    "squotes!"                => \$squotes,
-    "bquote!"                 => \$bquote,
-    "quotes!"                 => sub { $dquotes = $squotes = 1; },
-    "spaces!"                 => \$spaces,
     );
 
 ($result) || die "Bad options.\n";
-
 
 ($accents =~ m/^(atomic|unchanged|molecular|unaccent|space|delete)$/) ||
 
@@ -314,10 +332,14 @@ while (my $rec = <$fh>) {
     if ($dashes) {
         $rec = $norm->normalize_DashChars($rec);
     }
-    if ($quotes) {
+    if ($underscores) {
+        $rec =~ s/_/-/g;
+    }
+    if ($quotes || $allQuotes) {
         $rec = $norm->normalize_DQuoteChars($rec);
         $rec = $norm->normalize_SQuoteChars($rec);
         $rec =~ s/`/'/g;
+        if ($allQuotes) { $rec =~ s/'/"/g; }
     }
     else {
         if ($dquotes) {
@@ -332,6 +354,9 @@ while (my $rec = <$fh>) {
     }
     if ($spaces) {
         $rec = $norm->normalize_SpaceChars($rec);
+    }
+    if ($runs) {
+        $rec =~ s/(\S)\s+/$1 /g;
     }
     print $rec;
 }
@@ -360,7 +385,7 @@ sub new {
         spaceChars    => setupSpaces(),
         dashChars     => setupDashes(),
         ligatureChars => setupLigatures(),
-        mathStarts    => setupMaths(),       # HashRefs
+        mathStarts    => undef,  #setupMaths(),       # HashRefs
         lig2seqBasic  => undef,
         seq2ligBasic  => undef,
         lig2seq       => undef,
@@ -527,7 +552,7 @@ sub math2letter {
 
 
 ###############################################################################
-#
+# See my Charsets/
 sub setupDashes {
     my ($self) = @_;
     my $dashChars =
