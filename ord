@@ -73,6 +73,8 @@ a numeric code point, in octal, decimal, or hex,
 e.g. C<012>, C<10>, or C<0xB9>.
 However, a single decimal digit is taken as a request for information on that ASCII
 character, not on the (C0 control) character at a code point from U+0000-0x0009.
+Since all decimal digits are also hex digits, you can prefix them with "0x" and get
+the right result.
 
 =item * ord [mnemonic]
 
@@ -83,7 +85,8 @@ or the control-letter equivalent such as C<C-J> or C<^J>.
 
 Full unicode names like "APL FUNCTIONAL SYMBOL LEFTWARDS VANE",
 ignoring case. If there are spaces in the name, you need to
-quote it or use "_" instead of each space.
+quote it or use "_" instead of each space. To use partial names,
+see I<--findString> or I<--findRegex>.
 
 =item * ord [jargon]
 
@@ -93,31 +96,30 @@ A fairly large selection of *nix jargon names, such as "splat" or "ket"
 =item * ord [%utfhex]
 
 A literal percent sign, followed by a sequence of bytes specified in
-hexadecimal, to be interpreted as a UTF-8 character (e.g., '%
+hexadecimal, to be interpreted as a UTF-8 character (e.g., '%e280a2'
+for U+2022 (Bullet).
 
 =back
 
 To search for all Unicode characters whose names contain a certain
 string or regex, that are in a given Unicode block, or that would be matched
-by a given regex (say, '\\s'), use I<--findString>,
+by a given regex (say, '\\sLATIN'), use I<--findString>,
 I<--findRegex>, B<--findBlock>, or I<--findSet> option.
+All I<--find...> matches ignore case.
 
 The list resulting from any of these I<--find...> options can be written out
 in many formats, including as a string of the literal characters, a detailed
 information display as shown above for single characters,
 sets of declarations usable in various programming
-languages (see B<--listFormat>), etc.
+languages (see B<--listFormat>), etc. By default, it uses a single line
+for each found character.
 
-For example, to
-gather up Unicode characters whose formal names include "star"
+You can limit the search to a certain numeric range with I<--minU> and I<--maxU>
+(for example I<--maxU 0xFFFF> to only search the Base Multilingual Plane).
+
+For example, to gather up Unicode characters whose formal names include "star"
 (ignoring case), say:
     ord --findString star
-
-By default, the search stops after the first 2 Unicode planes (that is, the
-search runs from U+00000 to U+1FFFF), but you can change this with
-I<--minU> and I<--maxU>.
-
-All I<--find...> matches ignore case.
 
 Such a search may not get all and only stars, much less all characters one might
 consider using for the purpose one has in mind -- for example:
@@ -172,7 +174,7 @@ Ask if you want others, or just add an entry to '%namedRanges'.
 The range can also be given as two (decimal or hex) integers,
 separated by non-word characters (such as  '-', ':', '...', ', ', etc.).
 See also I<--c0>, I<--c1>, I<--g0>, I<--g1> (which are just synonyms for I<--chart> with
-the corresponding value.
+the corresponding value).
 See also I<--table>, I<--digits>, and I<--math> for other kinds of charts.
 Charts are not affected by I<--minU> or I<maxU>.
 
@@ -194,7 +196,7 @@ Display code points in decimal (default).
 
 =item * B<--digits>
 
-Show a chart with of Unicode digits.
+Show a chart of Unicode digits.
 Some of these are font/style variations, similar to the "MATHEMATICAL" alphabets
 listable using I<--math>; others are digits from non-Latin writing systems.
 See also I<--chart>.
@@ -230,7 +232,7 @@ happens if nothing is found another way). This is a little slow.
 
 B<Note>: By default this only searches the first two Unicode
 planes(code points up to 0x1FFFF).
-To search further or less far, use I<--maxU>.
+To search further or less far, use  I<--minU> and/or I<--maxU>.
 
 See also I<--listFormat>, I<--findRegex>, I<--findBlock>, and I<--maxU>.
 
@@ -255,9 +257,8 @@ Default: off. This requires the Perl Text::Iconv package.
 B<Note>: C<iconv>'s mapping may or may not be what you want
 in a given situation. For example, accented Latin letters
 and Mathematical variants of Latin letters reduce to the plain ASCII letters,
-Some characters, such as ligatures and the U+24xx "Control symbols, map
+Some characters, such as ligatures and the U+24xx "Control pictures", map
 to multiple ASCII characters.
-
 But Greek letters do not map at all, even when they are very closely related
 typographically, historically, and phonetically (for example,
 upper-case alpha (U+0391) vs. A (U+0041)).
@@ -336,7 +337,7 @@ the code point in hex, and the character name:
     </tr>
 
 For the ''PYTHON'' variants, you can use ''--pyFunction'' to set what
-function is used (for example, ''--pyfunction unichr'' for Python 2.
+function is used (for example, ''--pyfunction chr''.
 
 =back
 
@@ -356,7 +357,8 @@ Show long names for characters (default).
 =item * B<--math>
 
 Show a display with all the mathematical variants of the Latin
-and Greek alphabets. See also I<--chart>.
+and Greek alphabets. See also I<--chart>, and the
+C<mathAlphanumerics> package.
 
 =item * B<--maxU> I<n>
 
@@ -381,7 +383,7 @@ Display code points in octal (default).
 Make a valiant attempt to find symmetric pairs of characters, such as ones
 whose names differ only in having "left" vs. "right", "open" vs. "close",
 "begin" vs. "end", etc. Write them out as pairs.
-Does not do "vertical" pairs, though tweaking the code for that is trivial.
+Does not do "vertical" pairs.
 
 =item * B<--regex>
 
@@ -406,7 +408,7 @@ system-dependent).
 
 Show a variety of information about the UTF-8 encoding for the character(s).
 Default: on.
-N<Note>: To interpret hex input as UTF-8 instead of a codepoint, prefix
+B<Note>: To interpret hex input as UTF-8 instead of a codepoint, prefix
 it with "%" instead of "0x" (see above). You do not need to specify
 the I<--utf8> option for that.
 
@@ -445,11 +447,13 @@ And some you can't escape in some shells, including:
 
 =head1 Known bugs and limitations
 
-Even with a Unicode-enabled terminal such as C<uxterm>, a character > 255
-may appear to be length > 1, and so will be taken as a name. But when
+Even with a Unicode-enabled terminal, a character > 255
+may appear to be length > 1 and so will be taken as a name. But when
 the name is not found, we print out the value anyway.
 
-For C<--pairs>, in addition to a list of keywords, the code has a list of character pairs that can be considered symmetric but whose names don't contain the various keywords. But they aren't showing up yet.
+For C<--pairs>, in addition to a list of keywords the code has a list of character 
+pairs that can be considered symmetric but whose names don't contain the various 
+keywords. But they aren't showing up yet.
 
 Does not offer information on Unicode categories such as
 "Nd" ("Number, Decimal Digit") and so on. See C<showUnicodeCharsInClass.py>.
