@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl -w
 #
 # ord: Display information about Unicode characters.
 # 2007-10: Written by Steven J. DeRose.

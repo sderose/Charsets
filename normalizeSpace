@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl -w
 #
 # normalizeSpace: Normalize whitespace (and optionally some other things).
 # 2007-10: Written by Steven J. DeRose.

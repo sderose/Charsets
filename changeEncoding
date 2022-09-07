@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl -w
 #
 # changeEncoding: Switch between any of Perl's known character encodings.
 #

@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl -w
 #
 # normalizeUnicode: Unify variant spaces, dashes, quotes, ligatures, etc.
 # 2010-11-19ff: Written by Steven J. DeRose.
