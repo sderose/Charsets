@@ -1,19 +1,14 @@
 #!/usr/bin/env perl -w
 #
-# changeCase: Easier than tr, and can do word- and sentence- case.
-#
+# changeCase: Unicode case change; token, word, record, and sentence case.
 # 2009-08-04: Written by Steven J. DeRose.
-# 2010-08-25 sjd: perldoc.
-# 2012-09-12: ?
-# 2020-01-18: Drop --ignoreCase.
-#
-# To do:
 #
 use strict;
 use Getopt::Long;
 
 our %metadata = (
     'title'        => "changeCase",
+    'description'  => "Unicode case change; token, word, record, and sentence case.",
     'rightsHolder' => "Steven J. DeRose",
     'creator'      => "http://viaf.org/viaf/50334488",
     'type'         => "http://purl.org/dc/dcmitype/Software",
@@ -24,10 +19,6 @@ our %metadata = (
     'license'      => "https://creativecommons.org/licenses/by-sa/3.0/"
 );
 our $VERSION_DATE = $metadata{'modified'};
-
-
-###############################################################################
-#
 
 =pod
 
@@ -53,7 +44,7 @@ Records upper, or Sentences upper (default U). 'Sentence' is approximate.
 
 =item * B<--iencoding> I<t>
 
-Charset to use for input.
+Charset to use for input. Default: "utf8".
 
 =item * B<--ilineends> I<t>
 
@@ -61,7 +52,7 @@ Assume Unix, Dos, or Mac line-breaks for input.
 
 =item * B<--oencoding> I<t>
 
-Charset to use for output.
+Charset to use for output. Default: "utf8".
 
 =item * B<--olineends> I<t>
 
@@ -70,14 +61,13 @@ Write Unix, Dos, or Mac line-breaks for output.
 =item * B<--quiet> OR B<-q>
 Suppress most messages.
 
-=item * B<--tick> I<n>
+=item * B<--tickInterval> I<n>
 
-Print a message after every n input records
-(0 to turn off).
+Print a message after every n input records. Default: 0 (off).
 
 =item * B<--unicode>
 
-Assume input is utf-8.
+Assume input is utf8.
 
 =item * B<--verbose> OR B<-v>
 Add more messages (repeatable).
@@ -91,12 +81,33 @@ Show version/license info and exit.
 
 =head1 Known Bugs/Limitations
 
-Doesn't know anything about Unicode titleCase.
+Just uses Perl's built-in uc() ucfirst(), and lc(), which afaik are not responsive
+to locale settings.
+
+I<--case S> (capitalize sentences) is approximate, based on a regex that looks for
+sentence-end configurations. It is overly simplistic, though hopefully good enough
+to be useful. Use an NLP sentence splitter for better results.
+
+
+=head1 History
+
+    2009-08-04: Written by Steven J. DeRose.
+    2010-08-25 sjd: perldoc.
+    2012-09-12: ?
+    2020-01-18: Drop --ignoreCase.
+    2022-09-13: New layout. Better option handling, default to utf8,....
+    
+
+=head1 To do
 
 
 =head1 Related commands
 
-Mine: C<upcase>, C<downcase>. *nix: C<tr>, C<iconv>.
+My shell functions (see ShellSetup/setupFunctions) C<upcase>, C<downcase>. 
+
+*nix C<tr>, C<iconv>.
+
+See L<https://perldoc.perl.org/5.8.4/perlunicode> re. how Perl handles Unicode.
 
 
 =head1 Ownership
@@ -112,17 +123,15 @@ or L<http://github.com/sderose>.
 
 
 ###############################################################################
+# Options
 #
-my $dft_case         = "U";
-my $dft_tickInterval = 50000;
-
-my $case             = $dft_case;
-my $iencoding        = "";
+my $case             = "U";
+my $iencoding        = "utf8";
 my $ilineends        = "U";
-my $oencoding        = "";
+my $oencoding        = "utf8";
 my $olineends        = "U";
 my $quiet            = 0;
-my $tickInterval     = $dft_tickInterval;
+my $tickInterval     = 0;
 my $verbose          = 0;
 
 Getopt::Long::Configure ("ignore_case");
@@ -142,10 +151,6 @@ my $result = GetOptions(
 
 ($result) || die "Bad options.\n";
 
-
-###############################################################################
-# Set implied options, validate option values...
-#
 my $file = shift;
 if ($file) {
     (-f $file) || die "Can't find input file '$file'.\n";
@@ -156,6 +161,8 @@ else {
 my $fh;
 open($fh, "<$file") || die "Unable to open '$file'.\n";
 
+$case = substr(uc($case)."U", 0, 1);
+
 if ($iencoding ne "") {
     binmode($fh, ":$iencoding");
 }
@@ -164,12 +171,12 @@ if ($oencoding ne "") {
     binmode(STDOUT, ":$oencoding");
 }
 
-$ilineends = uc(substr($ilineends."U",0,1));
+$ilineends = uc(substr($ilineends."U", 0, 1));
 if    ($ilineends eq "M") { $/ = chr(13); }
 elsif ($ilineends eq "D") { $/ = chr(13).chr(10); }
 else { }
 
-$olineends = uc(substr($olineends."U",0,1));
+$olineends = uc(substr($olineends."U", 0, 1));
 if    ($olineends eq "M") { $\ = chr(13); }
 elsif ($olineends eq "D") { $\ = chr(13).chr(10); }
 else { }
@@ -197,16 +204,16 @@ while (my $rec = <$fh>) {
         print lc($rec);
     }
     elsif ($case eq "R") {
-        print uc(substr($rec,0,1)) .
-            (length($rec)>1) ? lc(substr($rec,1)):"";
+        print ucfirst(substr($rec, 0, 1)) .
+            (length($rec)>1) ? lc(substr($rec, 1)):"";
     }
     elsif ($case eq "W") {
         my @tokens = split(/(\s+)/, $rec);
         my $buf = "";
         for my $t (@tokens) {
-            $buf .= uc(substr($t,0,1));
+            $buf .= ucfirst(substr($t, 0, 1));
             if (length($t) > 1) {
-                $buf .= lc(substr($t,1));
+                $buf .= lc(substr($t, 1));
             }
         }
 
@@ -218,13 +225,13 @@ while (my $rec = <$fh>) {
         for my $t (@tokens) {
             if ($lastToken eq "" ||
                 $lastToken =~ m/([.?!]\"?\'?\s+)/) {
-               $buf .= uc(substr($t,0,1));
+               $buf .= ucfirst(substr($t, 0, 1));
             }
             else {
-               $buf .= substr($t,0,1);
+               $buf .= substr($t, 0, 1);
             }
             if (length($t) > 1) {
-                $buf .= lc(substr($t,1));
+                $buf .= lc(substr($t, 1));
             }
             $lastToken = $t;
         }
