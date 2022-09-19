@@ -463,6 +463,9 @@ Reports look a little weird in the case of combining characters. Especially if
 you search for just the combining characters, and print them out as
 I<--listFormat STRING>.
 
+Reports code points in the private use areas as "Not a Unicode code point".
+A more specific message would be better.
+
 
 =head1 Related commands
 
