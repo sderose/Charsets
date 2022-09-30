@@ -451,8 +451,8 @@ Even with a Unicode-enabled terminal, a character > 255
 may appear to be length > 1 and so will be taken as a name. But when
 the name is not found, we print out the value anyway.
 
-For C<--pairs>, in addition to a list of keywords the code has a list of character 
-pairs that can be considered symmetric but whose names don't contain the various 
+For C<--pairs>, in addition to a list of keywords the code has a list of character
+pairs that can be considered symmetric but whose names don't contain the various
 keywords. But they aren't showing up yet.
 
 Does not offer information on Unicode categories such as
@@ -486,6 +486,9 @@ forms such as Mathematical double-struck, etc.
 =item * Port to Python, using my C<CharDisplay.py> package.
 
 =item * Make `--listFormat` apply to the main list, not just `-f`.
+
+=item * Add --listformat REGEX to output a []-set, with ranges
+coalesced and everything \\u-encoded.
 
 =item * Integrate remainder of C<chr> command functionality:
 Allow numbers on command line. Compare/sync report format.
