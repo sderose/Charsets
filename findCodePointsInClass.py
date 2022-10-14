@@ -106,7 +106,7 @@ if __name__ == "__main__":
         try:
             return int(x, 0)
         except ValueError as e:
-            return e;
+            return e
 
     def processOptions() -> argparse.Namespace:
         try:
@@ -171,7 +171,7 @@ if __name__ == "__main__":
         sys.stderr.write("--category must be one or two letters.")
         sys.exit()
     
-    global ender
+    #global ender
     ender = "\n"
     if args.join: ender = ""
     

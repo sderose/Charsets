@@ -3,7 +3,6 @@
 # showInvisibles: make control and whitespace chars visible.
 # 2007-01-1: Written by Steven J. DeRose.
 #
-from __future__ import print_function
 import sys
 import os
 import codecs
@@ -12,10 +11,6 @@ import argparse
 from sjdUtils import sjdUtils
 import strfchr
 
-PY3 = sys.version_info[0] == 3
-if PY3:
-    def unichr(n): return chr(n)
-
 __metadata__ = {
     'title'        : "showInvisibles.py",
     'rightsHolder' : "Steven J. DeRose",
@@ -23,7 +18,7 @@ __metadata__ = {
     'type'         : "http://purl.org/dc/dcmitype/Software",
     'language'     : "Python 2.7.6, 3.6",
     'created'      : "2007-01-16",
-    'modified'     : "2021-04-08",
+    'modified'     : "2022-10-07",
     'publisher'    : "http://github.com/sderose",
     'license'      : "https://creativecommons.org/licenses/by-sa/3.0/"
 }
@@ -59,6 +54,8 @@ Options `-b` and `-u` are unfinished.
 
 `ord`, `CharDisplay`. `strfchr.py`.
 
+In zsh you can get a similar effect
+with '${(V)x}' -- though I haven't found any characters it actually fixes.
 
 =History=
 
@@ -73,6 +70,7 @@ Options `-b` and `-u` are unfinished.
 * 2015-10-13: Update argparse usage. pylint.
 * 2021-04-08ff: Better option handling. Drop -s/leaveSpace for --spaceAs SELF.
 Hook up to new strfchr.py. Add lots of formats from there.
+* 2022-10-07: Drop Python 2 remains.
 
 
 =To do=
@@ -144,20 +142,20 @@ def mapControlChar(charNum, what=""):
         return chr(charNum)
     if (charNum == 32):
         if (args.spaceAs == "SELF"): return(" ")
-        elif (args.spaceAs == "B"): return(unichr(0x2422))
-        elif (args.spaceAs == "U"): return(unichr(0x2423))
-        elif (args.spaceAs == "SP"): return(unichr(0x2420))
+        elif (args.spaceAs == "B"): return(chr(0x2422))
+        elif (args.spaceAs == "U"): return(chr(0x2423))
+        elif (args.spaceAs == "SP"): return(chr(0x2420))
         else: assert False, "Unsupported spaceAs value '%s'" % (args.spaceAs)
     if (charNum == 10):
         if (args.lfAs == "SELF"): return("\n")
-        if (args.lfAs == "LF"): return(unichr(0x240A))
-        if (args.lfAs == "NL"): return(unichr(0x2424))
+        if (args.lfAs == "LF"): return(chr(0x240A))
+        if (args.lfAs == "NL"): return(chr(0x2424))
         else: assert False, "Unsupported lfAs value '%s'" % (args.lfAs)
 
     if (args.pics):
         return chr(0x2400 + charNum)
     if (what=="ENTITY16"):
-        return unichr(0x2400 + charNum)
+        return chr(0x2400 + charNum)
     if (args.name):
         if (charNum > len(names)):
             warn("Control U+%04x out of range for names -- check code." % (charNum))

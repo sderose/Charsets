@@ -320,8 +320,6 @@ def doOneXmlFile(path, fixer):
 #
 if __name__ == "__main__":
     import argparse
-    def anyInt(x):
-        return int(x, 0)
 
     def processOptions():
         try:
