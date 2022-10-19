@@ -24,7 +24,7 @@ our %metadata = (
     'type'         => "http://purl.org/dc/dcmitype/Software",
     'language'     => "Perl 5.18",
     'created'      => "2007-10",
-    'modified'     => "2022-07-25",
+    'modified'     => "2022-10-10",
     'publisher'    => "http://github.com/sderose",
     'license'      => "https://creativecommons.org/licenses/by-sa/3.0/"
 );
@@ -71,10 +71,10 @@ An HTML 4 or XML special-character entity name, such as "nbsp".
 
 a numeric code point, in octal, decimal, or hex,
 e.g. C<012>, C<10>, or C<0xB9>.
-However, a single decimal digit is taken as a request for information on that ASCII
-character, not on the (C0 control) character at a code point from U+0000-0x0009.
-Since all decimal digits are also hex digits, you can prefix them with "0x" and get
-the right result.
+However, a single decimal digit is taken as a request for information on that
+ASCII character, not on the (C0 control) character (U+0000-0x0009).
+Since all decimal digits are also hex digits, you can
+prefix them with "0x" and get the right result.
 
 =item * ord [mnemonic]
 
@@ -95,7 +95,7 @@ A fairly large selection of *nix jargon names, such as "splat" or "ket"
 
 =item * ord [%utfhex]
 
-A literal percent sign, followed by a sequence of bytes specified in
+A literal percent sign followed by a sequence of bytes specified in
 hexadecimal, to be interpreted as a UTF-8 character (e.g., '%e280a2'
 for U+2022 (Bullet).
 
@@ -112,12 +112,15 @@ in many formats, including as a string of the literal characters, a detailed
 information display as shown above for single characters,
 sets of declarations usable in various programming
 languages (see B<--listFormat>), etc. By default, it uses a single line
-for each found character.
+for each found character, like this:
 
-You can limit the search to a certain numeric range with I<--minU> and I<--maxU>
-(for example I<--maxU 0xFFFF> to only search the Base Multilingual Plane).
+    U+02022  •  BULLET
 
-For example, to gather up Unicode characters whose formal names include "star"
+You can limit the search to a certain numeric range with I<--minU> and I<--maxU>.
+For example: I<--maxU 0xFFFF> to only search the Base Multilingual Plane.
+
+I<--findString> searches for a literal match within the character's full name.
+To gather up Unicode characters whose formal names include "star"
 (ignoring case), say:
     ord --findString star
 
@@ -132,8 +135,6 @@ consider using for the purpose one has in mind -- for example:
         U+029e6 ⧦   GLEICH STARK
         U+1f303 🌃  NIGHT WITH STARS
         U+1f752 🝒  ALCHEMICAL SYMBOL FOR STARRED TRIDENT
-
-I<--findString> searches for a literal match within the character's full name.
 
 I<--findRegex> searches via regex within the character's full name.
 
@@ -167,14 +168,15 @@ Show code points in binary.
 =item * B<--chart> I<name>
 
 Show info for all the characters in a named range chosen from:
-c0, g0, c1, g1, ASCII, Latin1, LatinxA (for Latin Extended A), LatinxB, IPA, Combining,
-Greek, Cyrillic, Armenian, Hebrew, Arabic, Syriac, ControlPic (symbols for control characters).
+c0, g0, c1, g1, ASCII, Latin1, LatinxA (for Latin Extended A), LatinxB,
+IPA, Combining, Greek, Cyrillic, Armenian, Hebrew, Arabic, Syriac,
+ControlPic (symbols for control characters).
 Ask if you want others, or just add an entry to '%namedRanges'.
 
 The range can also be given as two (decimal or hex) integers,
 separated by non-word characters (such as  '-', ':', '...', ', ', etc.).
-See also I<--c0>, I<--c1>, I<--g0>, I<--g1> (which are just synonyms for I<--chart> with
-the corresponding value).
+See also I<--c0>, I<--c1>, I<--g0>, I<--g1>
+(which are just synonyms for I<--chart> with the corresponding value).
 See also I<--table>, I<--digits>, and I<--math> for other kinds of charts.
 Charts are not affected by I<--minU> or I<maxU>.
 
@@ -395,9 +397,11 @@ Show short names for characters.
 
 =item * B<--table> I<name>
 
-Show a compact table of characters in the named range (c0, g0, c1, g1, ascii, or latin1).
+Show a compact table of characters in the named range
+(c0, g0, c1, g1, ascii, or latin1).
 See also I<--c0>, I<--c1>, I<--g0>, I<--g1>, I<--table>, I<--digits>,
-and I<--math> for other kinds of displays. See also I<--chart> for a different layout.
+and I<--math> for other kinds of displays.
+See also I<--chart> for a different layout.
 
 =item * B<--typing>
 
@@ -454,10 +458,6 @@ the name is not found, we print out the value anyway.
 For C<--pairs>, in addition to a list of keywords the code has a list of character
 pairs that can be considered symmetric but whose names don't contain the various
 keywords. But they aren't showing up yet.
-
-Does not offer information on Unicode categories such as
-"Nd" ("Number, Decimal Digit") and so on. See C<showUnicodeCharsInClass.py>.
-See L<https://www.perl.com/pub/2012/05/perlunicook-get-character-categories.html/>
 
 Reports look a little weird in the case of combining characters. Especially if
 you search for just the combining characters, and print them out as
@@ -522,8 +522,8 @@ Add longNames for G0 and G1. Add C<--g0>, C<--g1>. C<perl -w>.
 =item * 2010-01-06 sjd: Use 'charnames' to know Unicode names. Add C<--binary>.
 Make print utf-8 and actual Unicode character. Format binary better.
 
-=item * 2010-05-03 sjd: perldoc. Unify formatting. Add Unix Jargon names, rest of
-short names. Make user use "_" in.
+=item * 2010-05-03 sjd: perldoc. Unify formatting. Add Unix Jargon names,
+rest of short names. Make user use "_" in.
 
 =item * 2011-08-23 sjd: Add options to control each display form separately.
 Start C<--cp1252>.
@@ -535,12 +535,13 @@ char names -- now using viacode instead).
 
 =item * 2012-08-15 sjd: sjdUtils, and use getUTF8().
 
-=item * 2013-06-17ff sjd: Add C<--entities>, esp. HTML named ones. Add showUnicodeInfo().
+=item * 2013-06-17ff sjd: Add C<--entities>, esp. HTML named ones.
+Add showUnicodeInfo().
 
 =item * 2014-09-02: Clean up.
 
-=item * 2015-08-15ff: Add formats PYTHONS, PYTHONU; rename format PYTHON to PYTHONN.
-Finish C<--find>. Display control-char mnemonics.
+=item * 2015-08-15ff: Add formats PYTHONS, PYTHONU; rename
+format PYTHON to PYTHONN. Finish C<--find>. Display control-char mnemonics.
 
 =item * 2016-01-08: Add C<--math> and C<--digits>.
 
@@ -569,6 +570,8 @@ Warn if env LANG not utf-8. Recognize html entity names, C-J, ^J, etc.
 ignore case for name lookups, have more named ranges.
 
 =item * 2022-07-25: Fix off-by-one on reporting control-key letters for C0.
+
+=item * 2022-10-10: Add names for Unicode categories, from CharDisplay.py.
 
 =back
 
@@ -608,12 +611,56 @@ my $thePyFormat  = "u'\\u%05x'";
 
 my %unixJargon   = ();
 
+my %unicodeCategories = (
+    "C" =>  "Other (all subtypes)",
+    "L" =>  "Letter (all subtypes)",
+    "M" =>  "Mark (all subtypes)",
+    "N" =>  "Number (all subtypes)",
+    "P" =>  "Punctuation (all subtypes)",
+    "S" =>  "Symbol (all subtypes)",
+    "Z" =>  "Separator (all subtypes)",
+
+    "Cc" => "Other, Control",
+    "Cf" => "Other, Format",
+    "Cn" => "Other, Not Assigned",
+    "Co" => "Other, Private Use",
+    "Cs" => "Other, Surrogate",
+    "LC" => "Letter, Cased",
+    "Ll" => "Letter, Lowercase",
+    "Lm" => "Letter, Modifier",
+    "Lo" => "Letter, Other",
+    "Lt" => "Letter, Titlecase",
+    "Lu" => "Letter, Uppercase",
+    "Mc" => "Mark, Spacing Combining",
+    "Me" => "Mark, Enclosing",
+    "Mn" => "Mark, Nonspacing",
+    "Nd" => "Number, Decimal Digit",
+    "Nl" => "Number, Letter",
+    "No" => "Number, Other",
+    "Pc" => "Punctuation, Connector",
+    "Pd" => "Punctuation, Dash",
+    "Pe" => "Punctuation, Close",
+    "Pf" => "Punctuation, Final quote",
+    "Pi" => "Punctuation, Initial quote",
+    "Po" => "Punctuation, Other",
+    "Ps" => "Punctuation, Open",
+    "Sc" => "Symbol, Currency",
+    "Sk" => "Symbol, Modifier",
+    "Sm" => "Symbol, Math",
+    "So" => "Symbol, Other",
+    "Zl" => "Separator, Line",
+    "Zp" => "Separator, Paragraph",
+    "Zs" => "Separator, Space",
+);
+
 setupShortCharacterNames();
 setupUnixJargon();
 my ($mathAlphabets, $mathGreeks, $digitSets, %mathMissing);
 setupMathAlphabets();
 
-# Option defaults
+
+###############################################################################
+# Options
 #
 my $binary      = 0;
 my $chart       = "";
@@ -648,10 +695,6 @@ my $table       = "";
 my $utf8        = 1;
 my $verbose     = 0;
 
-
-###############################################################################
-# Process options
-#
 Getopt::Long::Configure ("ignore_case");
 my $result = GetOptions(
     "binary!"             => \$binary,
@@ -691,8 +734,7 @@ my $result = GetOptions(
         warn "Version of $VERSION_DATE, by Steven J. DeRose.\n";
         exit;
     },
-    );
-
+);
 ($result) || die "Bad options.\n";
 
 if (!$quiet && $findString && $ARGV[0] =~ m/[^A-Za-z 0-9]/) {
@@ -1272,7 +1314,8 @@ sub showOne {
         if ($okURI) { $uriForm = "ok as literal"; }
         elsif ($spURI) { $uriForm = "special"; }
         pline("Unicode:", sprintf(
-            "%s, utf8 %s, URI (%s), Python %s", uDisp($n), $utfForm, $uriForm, getPyForm($n)));
+            "%s, utf8 %s, URI (%s), Python %s",
+            uDisp($n), $utfForm, $uriForm, getPyForm($n)));
     }
 
     if ($entities) {
@@ -1323,8 +1366,10 @@ sub showUnicodeInfo {
         pline("WARNING:", "Not a Unicode code point");
     }
     else {
-        pline("Unicode Name:",    charnames::viacode($n) || "-NOT FOUND-");
-        pline("Unicode Category:",charinfo($n)->{category} || "-NOT FOUND-");
+        pline("Unicode Name:", charnames::viacode($n) || "-NOT FOUND-");
+        my $cat = charinfo($n)->{category} || "-NOT FOUND-";
+        if ($cat) { $cat .= " ($unicodeCategories{$cat})"; }
+        pline("Unicode Category:", $cat);
         pline("Unicode Script: ", charscript(uDisp($n)));
         pline("Unicode Block:  ", charblock($n));
     }
