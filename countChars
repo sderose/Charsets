@@ -627,7 +627,7 @@ my %getoptHash = (
     "showUTF8!"            => \$showUTF8,
     "strip=s"              => \$strip,
     "stripIgnoreCase|sic!" => \$stripIgnoreCase,
-    "tickInterval=i"       => \$tickInterval,
+    "tickInterval=o"       => \$tickInterval,
     "unicode!"             => sub { $iencoding = "utf8"; },
     "uri!"                 => \$uri,
     "useBinmode!"          => \$useBinmode,

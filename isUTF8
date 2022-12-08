@@ -29,7 +29,7 @@ my $result = GetOptions(
     "ilineends=s"             => \$ilineends,
     "lines!"                  => \$lines,
     "q|quiet!"                => \$quiet,
-    "tickInterval=i"          => \$tickInterval,
+    "tickInterval=o"          => \$tickInterval,
     "v|verbose+"              => \$verbose,
     "version"                 => sub {
         die "Version of $VERSION_DATE, by Steven J. DeRose.\n";

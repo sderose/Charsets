@@ -263,7 +263,7 @@ my $result = GetOptions(
     "runs!"                   => \$runs,
     "spaces!"                 => \$spaces,
     "squotes!"                => \$squotes,
-    "tick=i"                  => \$tickInterval,
+    "tickInterval=o"          => \$tickInterval,
     "underscores!"            => \$underscores,
     "v+"                      => \$verbose,
     "version"                 => sub {

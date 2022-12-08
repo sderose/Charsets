@@ -143,7 +143,7 @@ my $result = GetOptions(
     "oencoding=s"             => \$oencoding,
     "olineends=s"             => \$olineends,
     "q!"                      => \$quiet,
-    "tick=i"                  => \$tickInterval,
+    "tickInterval=o"          => \$tickInterval,
     "unicode!"                => sub { $iencoding = "utf8"; },
     "v+"                      => \$verbose,
     "version"                 => sub { showLicense(); exit; }
