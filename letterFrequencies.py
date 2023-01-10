@@ -1,8 +1,8 @@
 # Approximate frequencies of letters in English. From Wikipedia.
-# This includes and entry for space, and the sums with and without it.
+# This includes an entry for space, and the sums with and without it.
 # Divide as needed.
 #
-# sjd, based on sjdUtils.py. CCLI at-sa.
+# sjd, from sjdUtils.py. CCLI at-sa.
 #
 letterFreqs = [
     ( ' ',  17000 ), # Estimate for non-word chars
