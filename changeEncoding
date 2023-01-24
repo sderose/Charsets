@@ -4,7 +4,7 @@
 #
 # 2008-10-04: Written by Steven J. DeRose.
 # 2010-09-12, 2012-10-10 sjd: Clean up. Use Encode.
-# 
+#
 # To do:
 #
 use strict;
@@ -23,7 +23,7 @@ my $verbose   = 0;
 #
 Getopt::Long::Configure ("ignore_case");
 my $result = GetOptions(
-	"from|iencoding=s"        => \$from,
+    "from|iencoding=s"        => \$from,
     "h|help"                  => sub { system "perldoc $0"; exit; },
     "help-encodings"          => sub { showEncodings(); exit; },
     "listEncodings"           => sub {
@@ -60,9 +60,9 @@ my $filename = shift;
 open FH, "<:encoding($from)", "$filename" || die
     "Can't open input file '$filename' with encoding '$from'.\n";
 print "";
-binmode(\*STDOUT, ":encoding($to)") ||	die
+binmode(\*STDOUT, ":encoding($to)") ||  die
     "Can't set encoding '$to' for STDOUT.\n";
-	
+
 my $recnum = 0;
 while (my $rec = <FH>) {
     $recnum++;
@@ -119,7 +119,7 @@ Show version/license info and exit.
 =back
 
 
-    
+
 =head1 Related commands/information
 
 C<iconv> -- similar.
@@ -128,7 +128,7 @@ C<iconv> -- similar.
 
 =head1 Ownership
 
-This work by Steven J. DeRose is licensed under a Creative Commons 
+This work by Steven J. DeRose is licensed under a Creative Commons
 Attribution-Share Alike 3.0 Unported License. For further information on
 this license, see http://creativecommons.org/licenses/by-sa/3.0/.
 

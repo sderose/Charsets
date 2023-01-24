@@ -34,8 +34,8 @@ showinvisible [options]
 Make control and non-ASCII characters visible.
 
 By default, control characters are converted to the Unicode "control pictures"
-(miniature mnemonics). Non-ASCII characters are converted according
-to I<--oformat>, which default to "PY2", showing them as their
+(miniature mnemonics). Non-ASCII characters are converted according to
+I<--oformat>, which default to "PY2" (2-hex-digit Python escapes), showing them as their
 codepoint values (\\xFF form for ones that fit, or \u or \U for larger values).
 
 By default, characters are converted to UTF-8, then the UTF-8 bytes
@@ -44,10 +44,6 @@ are coded as \xNN.
 By default, ASCII characters SPACE, LF, and TAB I<are not> replaced.
 But see I<-s> to replace all of them, or I<--spaceAs>, I<--lfAs>, and I<tabAs>
 to do just those in a variety of ways).
-All whitespace characters can be escaped, by specifying
-
-Useful for visualizing return/linefeed, space/tab, etc. Can also be used
-to escape undesired characters in a file to ease later processing.
 
 
 =head1 Options

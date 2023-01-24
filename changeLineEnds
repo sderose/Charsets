@@ -119,9 +119,9 @@ my $result = GetOptions(
     "quiet!"           => \$quiet,
     "v|verbose+"       => \$verbose,
     "version"          => sub {
-       	die "Version of $VERSION_DATE, by Steven J. DeRose.\n";
-	},
-	);
+        die "Version of $VERSION_DATE, by Steven J. DeRose.\n";
+    },
+    );
 
 ($result) || die "Bad options.\n";
 
@@ -133,7 +133,7 @@ if    ($olineends eq "M") { $nl = "\r"; }
 elsif ($olineends eq "D") { $nl = "\r\n"; }
 elsif ($olineends eq "U") { $nl = "\n"; }
 else {
-	die "Unknown output line-end type '$olineends'.\n";
+    die "Unknown output line-end type '$olineends'.\n";
 }
 
 my $green = my $yellow = my $red = my $clear = "";
@@ -155,56 +155,56 @@ if (scalar(@ARGV)==0) {
 
 my $nFiles = 0;
 foreach my $f (@ARGV) {
-	if (-d $f) {
-		($verbose) && warn "Skipping directory '$f'.\n";
-		next;
-	}
-	if (!(-f $f)) {
-		warn "$f\tNOTFOUND\n";
-		next;
-	}
+    if (-d $f) {
+        ($verbose) && warn "Skipping directory '$f'.\n";
+        next;
+    }
+    if (!(-f $f)) {
+        warn "$f\tNOTFOUND\n";
+        next;
+    }
     $nFiles++;
 
-	# First, scan to a line-end and identify the type
+    # First, scan to a line-end and identify the type
     my $leader = "";
-	my $c;
+    my $c;
     my $type = "???";
-	open(IN, "<$f") || warn
+    open(IN, "<$f") || warn
         "Unable to open file '$f'\n";
-	while (read(IN,$c,1) && $type eq "???") {
-		if ($c eq "\n")     { $type = "*NIX"; }
-		if ($c eq "\r") {
-			read(IN,$c,1);
-			if ($c eq "\n") { $type = "DOS"; }
-			else            { $type = "MAC"; }
-		}
+    while (read(IN,$c,1) && $type eq "???") {
+        if ($c eq "\n")     { $type = "*NIX"; }
+        if ($c eq "\r") {
+            read(IN,$c,1);
+            if ($c eq "\n") { $type = "DOS"; }
+            else            { $type = "MAC"; }
+        }
         $leader .= $c;
-	}
+    }
 
-	my $msg = sprintf("%-6ss %s",$type, $f);
-	if ($colorOption) {
-	    if ($type eq "*NIX") {
-	        warn "$green$msg$clear\n";
-	    }
-	    elsif ($type eq "MAC") {
-	        warn "$yellow$msg$clear\n";
-	    }
-	    else {
-	        warn "$red$msg$clear\n";
-	    }
-	}
-	else {
-		warn "$msg\n";
-	}
+    my $msg = sprintf("%-6ss %s",$type, $f);
+    if ($colorOption) {
+        if ($type eq "*NIX") {
+            warn "$green$msg$clear\n";
+        }
+        elsif ($type eq "MAC") {
+            warn "$yellow$msg$clear\n";
+        }
+        else {
+            warn "$red$msg$clear\n";
+        }
+    }
+    else {
+        warn "$msg\n";
+    }
 
-	if (!$justidentify) {
+    if (!$justidentify) {
         print "$leader\n";
         while (my $rec = <IN>) {
             $rec =~ s/(\r\n?|\n)$//;
             print "$rec$nl";
         }
     }
-	close IN;
+    close IN;
 } # foreach
 
 ($quiet) || warn "Done, $nFiles files.\n";

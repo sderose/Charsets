@@ -499,7 +499,7 @@ overline. There's even COMBINING ENCLOSING CIRCLE (and SQUARE).
         O => O
         P =>  ~~~d~~~                               ??? eth?
         Q =>                                        ???
-        R =>                                        ??? U+01d1a	Latin Letter Small Capital Turned R
+        R =>                                        ??? U+01d1a Latin Letter Small Capital Turned R
         S => S
         T =>                                        ???
         U => U+2229 intersection?

@@ -54,7 +54,7 @@ are based on (imho, superb) data assembled by my old friend Sebastian Rahtz,
 David Carlisle, and others [https://www.w3.org/Math/characters/unicode.xml].
 
 You can get a chart of equivalents, or do conversions from/to the various
-representations, as well as literal Unicode characters. In the case of HTML or XML, 
+representations, as well as literal Unicode characters. In the case of HTML or XML,
 decimal and hexadecimal character references are also available, either as
 the preferred representation, or as the fallback when no named entity is available.
 
@@ -158,7 +158,7 @@ Particular font position is also available, via two properties:
 Finally, you can specify these forms:
     * slashu -- the hex Unicode code point, like \\uFFFF
     * url -- this is not yet supported, but will %-escape the UTF-8 bytes.
-    
+
 For output, \\U000FFFFF is used for Unicode code points too large for \\uFFFF.
 If you set --short, \\xFF will be used when possible.
 
@@ -194,7 +194,7 @@ The data sometimes has entries like this, which are presently ignored:
 The source data on character names is from [https://www.w3.org/Math/characters/unicode.xml].
 A copy is also available at [https://github.com/sderose/Charsets.git/blob/master/unicode.xml].
 
-There is an enormous collection of TeX character sets at 
+There is an enormous collection of TeX character sets at
 [https://ctan.org/pkg/comprehensive].
 
 
@@ -234,7 +234,7 @@ that specifies position '40)'. It is discarded.
 
 =To do=
 
-Implement priority of latex, varlatex, mathlaex, mathvariant. Similar to 
+Implement priority of latex, varlatex, mathlaex, mathvariant. Similar to
 how XML entity sets work.
 
 Add a feature to take any XML entity set(s), and write out TeX definitions to
@@ -264,7 +264,7 @@ or [https://github.com/sderose].
 
 
 ###############################################################################
-# Standard formats we know about. 
+# Standard formats we know about.
 # Probably just add the entity-sets to these, and ditch the enum.
 #
 class CharStd(IntEnum):  # TODO: Drop
@@ -288,14 +288,14 @@ class CharStd(IntEnum):  # TODO: Drop
     prop            = 17
     font            = 18  # Special (tuple)
     description     = 19
-    
+
 # The names for different charset standards or expressions. These are
 # mostly element type names in the source, with the corresponding name
 # or string as their text content. However:
-#     "entity" is repeatable and has a set-name and ent name; 
+#     "entity" is repeatable and has a set-name and ent name;
 #     "slashu" is custom, to hold the \\u or similar value
 #     "description" is just that.
-#     "font", not yet supported, has to be a tuple. 
+#     "font", not yet supported, has to be a tuple.
 #
 # First item:  says whether to show by default in tostring(), --chart,...
 INCL = True
@@ -352,76 +352,76 @@ propNames = {
 # TODO: Provide way to scan for outright conflicts over the same name?
 #
 entitySetMap = {
-    "8879-isoamsa":		"=",  # freq 56
-    "8879-isoamsb":		"=",  # freq 42
-    "8879-isoamsc":		"=",  # freq 10
-    "8879-isoamsn":		"=",  # freq 59
-    "8879-isoamso":		"=",  # freq 18
-    "8879-isoamsr":		"=",  # freq 84
-    "8879-isobox":		"=",  # freq 40
-    "8879-isocyr1":		"=",  # freq 67
-    "8879-isocyr2":		"=",  # freq 26
-    "8879-isodia":		"=",  # freq 14
-    "8879-isogrk1":		"=",  # freq 49
-    "8879-isogrk2":		"=",  # freq 20
-    "8879-isogrk3":		"=",  # freq 43
-    "8879-isogrk4":		"=",  # freq 43
-    "8879-isolat1":		"=",  # freq 62
-    "8879-isolat2":		"=",  # freq 121
-    "8879-isonum":		"=",  # freq 76
-    "8879-isopub":		"=",  # freq 84
-    "8879-isotech":		"=",  # freq 62
+    "8879-isoamsa":     "=",  # freq 56
+    "8879-isoamsb":     "=",  # freq 42
+    "8879-isoamsc":     "=",  # freq 10
+    "8879-isoamsn":     "=",  # freq 59
+    "8879-isoamso":     "=",  # freq 18
+    "8879-isoamsr":     "=",  # freq 84
+    "8879-isobox":      "=",  # freq 40
+    "8879-isocyr1":     "=",  # freq 67
+    "8879-isocyr2":     "=",  # freq 26
+    "8879-isodia":      "=",  # freq 14
+    "8879-isogrk1":     "=",  # freq 49
+    "8879-isogrk2":     "=",  # freq 20
+    "8879-isogrk3":     "=",  # freq 43
+    "8879-isogrk4":     "=",  # freq 43
+    "8879-isolat1":     "=",  # freq 62
+    "8879-isolat2":     "=",  # freq 121
+    "8879-isonum":      "=",  # freq 76
+    "8879-isopub":      "=",  # freq 84
+    "8879-isotech":     "=",  # freq 62
     #
-    "9573-13-isoamsa":	"=",  # freq 146
-    "9573-13-isoamsb":	"=",  # freq 119
-    "9573-13-isoamsc":	"=",  # freq 22
-    "9573-13-isoamsn":	"=",  # freq 90
-    "9573-13-isoamso":	"=",  # freq 52
-    "9573-13-isoamsr":	"=",  # freq 180
-    "9573-13-isogrk3":	"=",  # freq 43
-    "9573-13-isogrk4":	"=",  # freq 43
-    "9573-13-isomfrk":	"=",  # freq 52
-    "9573-13-isomopf":	"=",  # freq 26
-    "9573-13-isomscr":	"=",  # freq 52
-    "9573-13-isotech":	"=",  # freq 161
+    "9573-13-isoamsa":  "=",  # freq 146
+    "9573-13-isoamsb":  "=",  # freq 119
+    "9573-13-isoamsc":  "=",  # freq 22
+    "9573-13-isoamsn":  "=",  # freq 90
+    "9573-13-isoamso":  "=",  # freq 52
+    "9573-13-isoamsr":  "=",  # freq 180
+    "9573-13-isogrk3":  "=",  # freq 43
+    "9573-13-isogrk4":  "=",  # freq 43
+    "9573-13-isomfrk":  "=",  # freq 52
+    "9573-13-isomopf":  "=",  # freq 26
+    "9573-13-isomscr":  "=",  # freq 52
+    "9573-13-isotech":  "=",  # freq 161
     #
-    "html4-lat1":		"=",  # freq 96
-    "html4-special":	"=",  # freq 32
-    "html4-symbol":		"=",  # freq 124
+    "html4-lat1":       "=",  # freq 96
+    "html4-special":    "=",  # freq 32
+    "html4-symbol":     "=",  # freq 124
     #
-    "ISOAMSA":		    "=",  # freq 10
-    "ISOAMSC":		    "=",  # freq 1    # Is this right? TODO
-    "ISOAMSO":		    "=",  # freq 1    # Is this right? TODO
-    "ISOAMSR":		    "=",  # freq 4
+    "ISOAMSA":          "=",  # freq 10
+    "ISOAMSC":          "=",  # freq 1    # Is this right? TODO
+    "ISOAMSO":          "=",  # freq 1    # Is this right? TODO
+    "ISOAMSR":          "=",  # freq 4
     #
-    "ISObox":	        "=",  # freq 40
+    "ISObox":           "=",  # freq 40
     #
-    "ISOCYR1":		    "=",  # freq 67
-    "ISOCYR2":		    "=",  # freq 26
+    "ISOCYR1":          "=",  # freq 67
+    "ISOCYR2":          "=",  # freq 26
     #
-    "ISODIA":		    "=",  # freq 9
+    "ISODIA":           "=",  # freq 9
     #
-    "ISOGRK1":		    "=",  # freq 49
-    "ISOGRK2":		    "=",  # freq 20
-    "ISOGRK3":		    "=",  # freq 2    # Is this right? TODO
+    "ISOGRK1":          "=",  # freq 49
+    "ISOGRK2":          "=",  # freq 20
+    "ISOGRK3":          "=",  # freq 2    # Is this right? TODO
     #
-    "ISOLAT2":		    "=",  # freq 117  # I guess lat1 is redundant w/ html4?
+    "ISOLAT2":          "=",  # freq 117  # I guess lat1 is redundant w/ html4?
     #
-    "ISOPUB":		    "=",  # freq 66
+    "ISOPUB":           "=",  # freq 66
     #
-    "ISOTECH":		    "=",  # freq 1    # Is this right? TODO
+    "ISOTECH":          "=",  # freq 1    # Is this right? TODO
     #
-    "mmlalias":		    "=",  # freq 548
-    "mmlextra":		    "=",  # freq 107
+    "mmlalias":         "=",  # freq 548
+    "mmlextra":         "=",  # freq 107
     #
-    "predefined":		"=",  # freq 5    # XML predefined set, useful w/ --fallback.
+    "predefined":       "=",  # freq 5    # XML predefined set, useful w/ --fallback.
     #
-    "STIX":		        "=",  # freq 688
+    "STIX":             "=",  # freq 688
 }
 
 # Provide shorthand for set of entity sets. See expandEntitySets(),
 # which is called from processOptions().
-entitySetGroups = [ 
+entitySetGroups = [
     "8879", "9573", "html49", "ISOAMS", "ISOCYR", "ISOGRK", "mml"
 ]
 
@@ -442,14 +442,14 @@ def expandEntitySets(eSets:list):
             assert False
     return newList
 
-    
+
 ###############################################################################
 #
 class CharStdInfo:
     """Data on one Unicode character, as expressed in a ton of systems.
     """
     NOT_AVAILABLE = "--"  # Show for missing code in --chart.
-    
+
     def __init__(self, codePoint:int):
         assert codePoint >= 0 and codePoint <= 0x1FFFF
         self.codePoint  = codePoint
@@ -457,7 +457,7 @@ class CharStdInfo:
         self.names = {}
         self.names["slashu"] = self.getSlash(codePoint, args.short)
         self.names["literal"] = chr(codePoint)
-        
+
     def addStd(self, whichStd:str, value:str):
         try:
             if (whichStd in self.names):
@@ -492,12 +492,12 @@ class CharStdInfo:
 
         if (compact):
             buf = "<code n=\"0x%05x\" desc=\"%s\"\n    %s />" % (self.codePoint, desc, buf)
-        else: 
+        else:
             buf = "U+%05x: \n%s" % (self.codePoint, buf)
         return buf
 
     def getXML(self):
-        """Find, assemble, and return an XML entity reference to the given 
+        """Find, assemble, and return an XML entity reference to the given
         character. This depends on which entity set(s) are chosen.
         If no named entity is found among the chosen sets, a fallback is
         generated, to a numeric character reference, a backslash code,
@@ -523,7 +523,7 @@ class CharStdInfo:
         return None
 
     def findAllEntities(self, eSets:list) -> List:
-        """Search the sequence of selected entity sets and return a list of 
+        """Search the sequence of selected entity sets and return a list of
         pairs, each of (entitySetName, entityName).
         """
         found = []
@@ -571,7 +571,7 @@ class charNameConvert():
             self.displayProps = []
             for k, v in propNames.items():
                 if (v[0]): self.displayProps.append(k)
-                    
+
     def downloadData(self) -> None:
         if (not os.path.exists(self.path)):
             check_output([ "curl", self.sourceUrl, ">>", self.path ])
@@ -644,7 +644,7 @@ class charNameConvert():
                     rc = ci.addStd("font", val)
                 elif (prop == "description"):
                     rc = ci.addStd("description", val)
-                elif (prop in propNames): 
+                elif (prop in propNames):
                     rc = ci.addStd(prop, val)
                 else:
                     if (not args.quiet):
@@ -674,7 +674,7 @@ class charNameConvert():
                     codePointsByCodename[codename].append( (std,cp) )
                 else:
                     codePointsByCodename[codename] = [ (std,cp) ]
-        
+
         # Now we have an inverted table
         allCodeNames = sorted(codePointsByCodename.keys())
         conflictCount = 0
@@ -686,7 +686,7 @@ class charNameConvert():
             print("%s: %s" % (codename, buf))
             conflictCount += 1
         return conflictCount
-                    
+
     def getMap(self, fr, to) -> Dict:
         """Create a dict mapping codePoint -> (fr, to) for all pairs known.
         TODO: Need to handle the multiple-entity-sets and multiple LaTeX sets cases!
@@ -705,7 +705,7 @@ class charNameConvert():
                 fatal("getMap failed to get from '%s' to '%s' for %04x:\n    %s" %
                     (fr, to, codePoint, e))
         if (targetMissing):
-            lg.warning("%d characters in '%s' not mappable to '%s'.", 
+            lg.warning("%d characters in '%s' not mappable to '%s'.",
                 targetMissing, fr, to)
         return newMap
 
@@ -727,7 +727,7 @@ class charNameConvert():
     def maybeXml(node:Node):
         #if (not args.verbose): return ""
         return re.sub(r"\n\s*\n+", "\n", node.toprettyxml(), flags=re.M)
-        
+
 
 ###############################################################################
 #
@@ -737,7 +737,7 @@ def doChart(frCode:str, toCode:str, oformat:str="texdefs", incl:List=None) -> No
     lg.info("Starting chart, '%s' to '%s'.", frCode, toCode)
     cnc = charNameConvert(os.environ["sjdUtilsDir"] + "/CharSets/unicode.xml")
     lg.info("%d chars loaded.", len(cnc.charDict))
-    
+
     cnmap:Dict = cnc.getMap(frCode, toCode)
 
     opener = """
@@ -761,7 +761,7 @@ def doChart(frCode:str, toCode:str, oformat:str="texdefs", incl:List=None) -> No
         if (oformat == "chart"):
             print(cnc.charDict[codePoint].tostring())
         elif (oformat == "texdefs"):  # toCode better be TeX-like
-            texPart = "\\def{%s}{^^^^^%05x} " % (toString, codePoint) 
+            texPart = "\\def{%s}{^^^^^%05x} " % (toString, codePoint)
             cmtPart = "'%s' = %s" % (fromString, cnc.charDict[codePoint].names["description"])
             print("%-40s %% %s" % (texPart, cmtPart))
         else:
@@ -775,7 +775,7 @@ def doChart(frCode:str, toCode:str, oformat:str="texdefs", incl:List=None) -> No
 def doFindConflicts():
     lg.fatal("findConflicts() not yet finished.")
     #findConflicts()
-    
+
 cmap = None
 notFound = defaultdict(int)
 
@@ -797,11 +797,11 @@ def doOneFile(path:str) -> int:
 
     cnc = charNameConvert(os.environ["sjdUtilsDir"] + "/CharSets/unicode.xml")
     cmap = cnc.getMap(args.fromCode, args.toCode)
-    
+
     for rec in fh.readlines():
         rec = re.sub(r"(\\\w+)(?!\w)", fixChar, rec)
         print(rec)
-        
+
     if (len(notFound) > 0):
         lg.warning("Some characters not mapped in '%s'.", path)
         # TODO: Option to print the list
@@ -820,7 +820,7 @@ if __name__ == "__main__":
     import argparse
 
     esChoices = list(entitySetMap.keys()).extend(entitySetGroups)
-    
+
     def processOptions() -> argparse.Namespace:
         try:
             from BlockFormatter import BlockFormatter
@@ -892,7 +892,7 @@ if __name__ == "__main__":
         # Support shorthand for groups, like all 8879, etc.
         if (args0.entitySets):
             args0.entitySets = expandEntitySets(args0.entitySets)
-        
+
         return(args0)
 
 
@@ -913,7 +913,7 @@ if __name__ == "__main__":
     if (args.findConflicts):
         doFindConflicts()
         sys.exit()
-        
+
     if (len(args.files) == 0):
         info0("charNameConvert.py: No files specified....")
         doOneFile(None)

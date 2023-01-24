@@ -203,7 +203,7 @@ This is gradually becoming a package.
     2012-11-29: ???
     2020-11-19: New layout.
     2022-08-15: Add I<--runs>, I<--allQuotes>, I<underscore>.
-  
+
 
 =head1 Rights
 
@@ -221,23 +221,23 @@ L<https://github.com/sderose>.
 ###############################################################################
 # Options
 #
-my $accents	      = "unchanged";
+my $accents       = "unchanged";
 my $allLigatures  = 0;
 my $allQuotes     = 0;
-my $bquote	      = 0;
-my $dashes	      = 0;
-my $dquotes	      = 0;
+my $bquote        = 0;
+my $dashes        = 0;
+my $dquotes       = 0;
 my $ignoreCase    = 0;
 my $ilineends     = "U";
-my $ligatures	  = "unchanged";
-my $maths	      = "unchanged";
+my $ligatures     = "unchanged";
+my $maths         = "unchanged";
 my $oencoding     = "";
 my $olineends     = "U";
 my $quiet         = 0;
-my $quotes	      = 0;
+my $quotes        = 0;
 my $runs          = 0;
-my $spaces	      = 0;
-my $squotes	      = 0;
+my $spaces        = 0;
+my $squotes       = 0;
 my $tickInterval  = 10000;
 my $underscores   = 0;
 my $verbose       = 0;
@@ -287,7 +287,7 @@ if ($file) {
     (-f $file) || die "Can't find input file '$file'.\n";
 }
 else {
-	($quiet) || warn "Reading from stdin...\n";
+    ($quiet) || warn "Reading from stdin...\n";
     $file = "-";
 }
 
@@ -572,21 +572,21 @@ sub setupDashes {
         chr(0x02027) . # hyphenation point
         chr(0x02043) . # hyphen bullet
         chr(0x02053) . # swung dash
-        #chr(0x21E0) .	# LEFTWARDS DASHED ARROW
-        #chr(0x21E1) .	# UPWARDS DASHED ARROW
-        #chr(0x21E2) .	# RIGHTWARDS DASHED ARROW
-        #chr(0x21E3) .	# DOWNWARDS DASHED ARROW
+        #chr(0x21E0) .  # LEFTWARDS DASHED ARROW
+        #chr(0x21E1) .  # UPWARDS DASHED ARROW
+        #chr(0x21E2) .  # RIGHTWARDS DASHED ARROW
+        #chr(0x21E3) .  # DOWNWARDS DASHED ARROW
         chr(0x0229d) . # circled dash
         chr(0x02448) . # ocr dash
 
         # Box-drawing dashes
         #
-        #chr(0x2504) .	# ... LIGHT TRIPLE DASH HORIZONTAL
-        #chr(0x2505) .	# ... HEAVY TRIPLE DASH HORIZONTAL
-        #chr(0x2508) .	# ... LIGHT QUADRUPLE DASH HORIZONTAL
-        #chr(0x2509) .	# ... HEAVY QUADRUPLE DASH HORIZONTAL
-        #chr(0x254C) .	# ... LIGHT DOUBLE DASH HORIZONTAL
-        #chr(0x254D) .	# ... HEAVY DOUBLE DASH HORIZONTAL
+        #chr(0x2504) .  # ... LIGHT TRIPLE DASH HORIZONTAL
+        #chr(0x2505) .  # ... HEAVY TRIPLE DASH HORIZONTAL
+        #chr(0x2508) .  # ... LIGHT QUADRUPLE DASH HORIZONTAL
+        #chr(0x2509) .  # ... HEAVY QUADRUPLE DASH HORIZONTAL
+        #chr(0x254C) .  # ... LIGHT DOUBLE DASH HORIZONTAL
+        #chr(0x254D) .  # ... HEAVY DOUBLE DASH HORIZONTAL
 
         chr(0x02e17) . # double oblique hyphen
         chr(0x02E1A) . # HYPHEN WITH DIAERESIS
@@ -605,19 +605,19 @@ sub setupDashes {
 sub setupDQuotes {
     my ($self) = @_;
     my $dQuoteChars =
-    chr(0x00AB) .	# LEFT-POINTING DOUBLE ANGLE QUOTATION MARK *
-    chr(0x00BB) .	# RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK *
-    chr(0x201C) .	# LEFT DOUBLE QUOTATION MARK
-    chr(0x201D) .	# RIGHT DOUBLE QUOTATION MARK
-    chr(0x201E) .	# DOUBLE LOW-9 QUOTATION MARK
-    chr(0x201F) .	# DOUBLE HIGH-REVERSED-9 QUOTATION MARK
-    chr(0x2358) .	# APL FUNCTIONAL SYMBOL QUOTE UNDERBAR
-    chr(0x235E) .	# APL FUNCTIONAL SYMBOL QUOTE QUAD
-    chr(0x275D) .	# HEAVY DOUBLE TURNED COMMA QUOTATION MARK ORNAMENT
-    chr(0x275E) .	# HEAVY DOUBLE COMMA QUOTATION MARK ORNAMENT
-    chr(0x301D) .	# REVERSED DOUBLE PRIME QUOTATION MARK
-    chr(0x301E) .	# DOUBLE PRIME QUOTATION MARK
-    chr(0x301F) .	# LOW DOUBLE PRIME QUOTATION MARK
+    chr(0x00AB) .   # LEFT-POINTING DOUBLE ANGLE QUOTATION MARK *
+    chr(0x00BB) .   # RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK *
+    chr(0x201C) .   # LEFT DOUBLE QUOTATION MARK
+    chr(0x201D) .   # RIGHT DOUBLE QUOTATION MARK
+    chr(0x201E) .   # DOUBLE LOW-9 QUOTATION MARK
+    chr(0x201F) .   # DOUBLE HIGH-REVERSED-9 QUOTATION MARK
+    chr(0x2358) .   # APL FUNCTIONAL SYMBOL QUOTE UNDERBAR
+    chr(0x235E) .   # APL FUNCTIONAL SYMBOL QUOTE QUAD
+    chr(0x275D) .   # HEAVY DOUBLE TURNED COMMA QUOTATION MARK ORNAMENT
+    chr(0x275E) .   # HEAVY DOUBLE COMMA QUOTATION MARK ORNAMENT
+    chr(0x301D) .   # REVERSED DOUBLE PRIME QUOTATION MARK
+    chr(0x301E) .   # DOUBLE PRIME QUOTATION MARK
+    chr(0x301F) .   # LOW DOUBLE PRIME QUOTATION MARK
     "";
     return($dQuoteChars);
 }
@@ -625,16 +625,16 @@ sub setupDQuotes {
 sub setupSQuotes {
     my ($self) = @_;
     my $sQuoteChars =
-    chr(0x2018) .	# LEFT SINGLE QUOTATION MARK
-    chr(0x2019) .	# RIGHT SINGLE QUOTATION MARK
-    chr(0x201A) .	# SINGLE LOW-9 QUOTATION MARK
-    chr(0x201B) .	# SINGLE HIGH-REVERSED-9 QUOTATION MARK
-    chr(0x2039) .	# SINGLE LEFT-POINTING ANGLE QUOTATION MARK
-    chr(0x203A) .	# SINGLE RIGHT-POINTING ANGLE QUOTATION MARK
-    chr(0x275B) .	# HEAVY SINGLE TURNED COMMA QUOTATION MARK ORNAMENT
-    chr(0x275C) .	# HEAVY SINGLE COMMA QUOTATION MARK ORNAMENT
-    chr(0x276E) .	# HEAVY LEFT-POINTING ANGLE QUOTATION MARK ORNAMENT
-    chr(0x276F) .	# HEAVY RIGHT-POINTING ANGLE QUOTATION MARK ORNAMENT
+    chr(0x2018) .   # LEFT SINGLE QUOTATION MARK
+    chr(0x2019) .   # RIGHT SINGLE QUOTATION MARK
+    chr(0x201A) .   # SINGLE LOW-9 QUOTATION MARK
+    chr(0x201B) .   # SINGLE HIGH-REVERSED-9 QUOTATION MARK
+    chr(0x2039) .   # SINGLE LEFT-POINTING ANGLE QUOTATION MARK
+    chr(0x203A) .   # SINGLE RIGHT-POINTING ANGLE QUOTATION MARK
+    chr(0x275B) .   # HEAVY SINGLE TURNED COMMA QUOTATION MARK ORNAMENT
+    chr(0x275C) .   # HEAVY SINGLE COMMA QUOTATION MARK ORNAMENT
+    chr(0x276E) .   # HEAVY LEFT-POINTING ANGLE QUOTATION MARK ORNAMENT
+    chr(0x276F) .   # HEAVY RIGHT-POINTING ANGLE QUOTATION MARK ORNAMENT
     "";
     return($sQuoteChars);
 }
@@ -690,12 +690,12 @@ sub setupLigatures {
         );
 
     my %seq2lig = (
-        "AE"    => chr(0x00C6), #	= latin capital ligature ae (1.0)
-        "ae"    => chr(0x00E6), #	= latin small ligature ae (1.0)
-        "IJ"    => chr(0x0132), #	LATIN CAPITAL LIGATURE IJ
-        "ij"    => chr(0x0133), #	LATIN SMALL LIGATURE IJ
-        "OE"    => chr(0x0152), #	LATIN CAPITAL LIGATURE OE
-        "oe"    => chr(0x0153), #	LATIN SMALL LIGATURE OE
+        "AE"    => chr(0x00C6), #   = latin capital ligature ae (1.0)
+        "ae"    => chr(0x00E6), #   = latin small ligature ae (1.0)
+        "IJ"    => chr(0x0132), #   LATIN CAPITAL LIGATURE IJ
+        "ij"    => chr(0x0133), #   LATIN SMALL LIGATURE IJ
+        "OE"    => chr(0x0152), #   LATIN CAPITAL LIGATURE OE
+        "oe"    => chr(0x0153), #   LATIN SMALL LIGATURE OE
         "st"    => chr(0xFB06), #   LATIN SMALL LIGATURE ST
 
       # (chr(0x017F)."t") => chr(0xFB05), # long-s t
@@ -721,22 +721,22 @@ sub setupLigatures {
     }
 
     my $foo = qq {
-0587	ARMENIAN SMALL LIGATURE ECH YIWN
-FB13	ARMENIAN SMALL LIGATURE MEN NOW
-FB14	ARMENIAN SMALL LIGATURE MEN ECH
-FB15	ARMENIAN SMALL LIGATURE MEN INI
-FB16	ARMENIAN SMALL LIGATURE VEW NOW
-FB17	ARMENIAN SMALL LIGATURE MEN XEH
+0587    ARMENIAN SMALL LIGATURE ECH YIWN
+FB13    ARMENIAN SMALL LIGATURE MEN NOW
+FB14    ARMENIAN SMALL LIGATURE MEN ECH
+FB15    ARMENIAN SMALL LIGATURE MEN INI
+FB16    ARMENIAN SMALL LIGATURE VEW NOW
+FB17    ARMENIAN SMALL LIGATURE MEN XEH
 
-04A4	CYRILLIC CAPITAL LIGATURE EN GHE
-04B4	CYRILLIC CAPITAL LIGATURE TE TSE (Abkhasian)
-04D4	CYRILLIC CAPITAL LIGATURE A IE
+04A4    CYRILLIC CAPITAL LIGATURE EN GHE
+04B4    CYRILLIC CAPITAL LIGATURE TE TSE (Abkhasian)
+04D4    CYRILLIC CAPITAL LIGATURE A IE
 
-FB1F	HEBREW LIGATURE YIDDISH YOD YOD PATAH
-FB4F	HEBREW LIGATURE ALEF LAMED
-05F0	HEBREW LIGATURE YIDDISH DOUBLE VAV
-05F1	HEBREW LIGATURE YIDDISH VAV YOD
-05F2	HEBREW LIGATURE YIDDISH DOUBLE YOD
+FB1F    HEBREW LIGATURE YIDDISH YOD YOD PATAH
+FB4F    HEBREW LIGATURE ALEF LAMED
+05F0    HEBREW LIGATURE YIDDISH DOUBLE VAV
+05F1    HEBREW LIGATURE YIDDISH VAV YOD
+05F2    HEBREW LIGATURE YIDDISH DOUBLE YOD
     };
 }
 

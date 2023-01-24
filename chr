@@ -140,7 +140,7 @@ Getopt::Long::Configure ("ignore_case");
 GetOptions(%getoptHash) || die("Bad options.\n");
 
 ($ARGV[0]) ||
-	die "Must have a non-negative numeric argument.\n";
+    die "Must have a non-negative numeric argument.\n";
 
 
 ###############################################################################
@@ -226,7 +226,7 @@ exit;
 ###############################################################################
 #
 sub doOneChar {
-	my ($n, $u) = @_;
+    my ($n, $u) = @_;
     $n = oct $n if ($n =~ m/^0/);
     if (!defined $u) { $u = chr($n); }
 

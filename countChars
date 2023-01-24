@@ -757,11 +757,11 @@ if ($oencoding eq "utf-8") {
 my $UNK = "-?";
 
 my @C0names = (
-	"NUL", "SOH", "STX", "ETX", "EOT", "ENQ", "ACK", "BEL",
-	"BS ", "HT ", "LF ", "VT ", "FF ", "CR ", "SO ", "SI ",
-	"DLE", "DC1", "DC2", "DC3", "DC4", "NAK", "SYN", "ETB",
-	"CAN", "EM ", "SUB", "ESC", "FS ", "GS ", "RS ", "US ",
-	"SP ");
+    "NUL", "SOH", "STX", "ETX", "EOT", "ENQ", "ACK", "BEL",
+    "BS ", "HT ", "LF ", "VT ", "FF ", "CR ", "SO ", "SI ",
+    "DLE", "DC1", "DC2", "DC3", "DC4", "NAK", "SYN", "ETB",
+    "CAN", "EM ", "SUB", "ESC", "FS ", "GS ", "RS ", "US ",
+    "SP ");
 
 my @C1names = (
     "PAD", "HOP",  "BPH", "NBH", "IND", "NEL", "SSA", "ESA", # x80-
@@ -1186,7 +1186,7 @@ sub report {
     if ($filesWithMatches) { return; }
 
     if (defined $freqs[128] && $freqs[128] > 0 && $iencoding ne "utf8") {
-	    print "*** d128 encountered, consider '--iencoding' option?\n";
+        print "*** d128 encountered, consider '--iencoding' option?\n";
     }
     if ($totalNamedEnts > 0) {
         print "$totalNamedEnts named SGML/HTML/XML entities found:\n";
@@ -1416,19 +1416,19 @@ sub ascdisplay {
     elsif ($n<127)  { $rc = chr($n); }                # G0
     elsif ($n==127) { $rc = "DEL"; }
     elsif ($n<160)  {                                 # C1
-	    if ($cp1252)  { $rc = $C1names1252[$n-128]; }
-		else          { $rc = $C1names[$n-128]; }
+        if ($cp1252)  { $rc = $C1names1252[$n-128]; }
+        else          { $rc = $C1names[$n-128]; }
     }
     elsif ($n<256)  {                                 # G1
-	    if ($g1names && defined $htmlNames[$n])
-			{ $rc = $htmlNames[$n]; }
-		else {
+        if ($g1names && defined $htmlNames[$n])
+            { $rc = $htmlNames[$n]; }
+        else {
             $rc = charnames::viacode($n);
             if (!$rc) { $rc = $UNK; }
         }
     }
     else {                                            # On beyond zebra
-	    $rc = charnames::viacode($n);
+        $rc = charnames::viacode($n);
         if (!$rc) { $rc = $UNK; }
     }
     my $paddingNeeded = $width - length(" $rc");

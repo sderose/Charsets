@@ -65,7 +65,7 @@ if ($file) {
     (-f $file) || die "Can't find input file '$file'.\n";
 }
 else {
-	($quiet) || warn "Reading from stdin...\n";
+    ($quiet) || warn "Reading from stdin...\n";
     $file = "-";
 }
 
