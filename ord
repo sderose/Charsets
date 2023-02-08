@@ -295,6 +295,13 @@ Choose the output layout for results from the several I<--find...> options:
 =item * STRING: A string of just the selected literal characters.
     u"* ͙⁎"
 
+=item * REGEX: A regular expression "[..]" construct, that matches just 
+the selected literal characters.  At least as of now, non-ASCII
+characters, hyphen, caret, or rsqb, and C0 controls are expressed via 
+backslashed hex codes. Runs of contiguous code points should be, but are not yet,
+coalesced into ranges.
+    u"[*.\u204e]"
+
 =item * PERL: Hash entries, from hex code point to name.
 
     0x0002a => 'ASTERISK',
@@ -487,8 +494,7 @@ forms such as Mathematical double-struck, etc.
 
 =item * Make `--listFormat` apply to the main list, not just `-f`.
 
-=item * Add --listformat REGEX to output a []-set, with ranges
-coalesced and everything \\u-encoded.
+=item * Extend --listformat REGEX to coalesce contiguous ranges.
 
 =item * Integrate remainder of C<chr> command functionality:
 Allow numbers on command line. Compare/sync report format.
@@ -573,6 +579,8 @@ ignore case for name lookups, have more named ranges.
 
 =item * 2022-10-10: Add names for Unicode categories, from CharDisplay.py.
 
+=item * 2023-02-08: Add REGEX as output format option, though it doesn't yet
+coalesce contiguous ranges.
 =back
 
 
@@ -762,6 +770,7 @@ my %listFormats = (
     "PYTHONU"   => 1,
     "PYTHONC"   => 1,
     "STRING"    => 1,
+    "REGEX"     => 1,
     );
 (defined $listFormats{$listFormat}) || die
     "Unknown --listFormat '$listFormat'. Known: "
@@ -1214,8 +1223,12 @@ sub findMatchingCharacters {
             printf("%s  %s  %s\n", uDisp($i), chr($i), $iname);
         }
         elsif ($listFormat eq "STRING") {              # Printed below
-            #print(chr($i));
             $s .= ($i == 0x27) ? "\\'" : chr($i);
+        }
+        elsif ($listFormat eq "REGEX") {               # Printed below
+            # TODO: Add code to coalesce ranges
+            my $noEsc = ($i > 31 && $i < 128 && index("-^]", chr($i)) == -1);
+            $s .= ($noEsc) ? chr($i) : getPyForm($i, 128);
         }
         elsif ($listFormat eq "PERL") {
             printf("    %s => '%s',\n", hexDisp($i), $iname);
@@ -1248,8 +1261,13 @@ sub findMatchingCharacters {
             die "Unknown --listFormat '$listFormat'. \n";
         }
     }
+    
+    # For ones that accumulate without printing, print them now.
     if ($listFormat eq "STRING") {
         print("    '" . $s . "'\n");
+    }
+    elsif ($listFormat eq "REGEX") {
+        print("    [" . $s . "]\n");
     }
 
     my $msg = sprintf(
@@ -1344,8 +1362,13 @@ sub showOne {
     }
 } # showOne
 
+# Convert characters to Python-style backslash hex escapes.
+# If the second argument is given, just return the literal char for codepoints < it
+# (but C0 controls are always escaped anyway).
 sub getPyForm {
-    my ($n) = @_;
+    my ($n, $minToEscape) = @_;
+    if (!$minToEscape) { $minToEscape = 128; }
+    if ($n < $minToEscape && $n > 31) { return chr($n); }
     if ($n <= 0xFF) { return sprintf("\\x%02x", $n); }
     if ($n <= 0xFFFF) { return sprintf("\\u%04x", $n); }
     return sprintf("\\U%08x", $n);
