@@ -30,6 +30,8 @@ descr = """
 
 =Description=
 
+[superceded by showUnicodeCharsInClass.py]
+
 ==Usage==
 
     findCodePointsInClass.py [options] [files]
@@ -37,7 +39,7 @@ descr = """
 Scan for characters that are in some one- or two-letter Unicode category.
 By default, searches for category "Cn", "Unassigned".
 
-Note: The following characters do not come back as unicodedata.category 
+Note: The following characters do not come back as unicodedata.category
 "Unassigned", but seem to have "meta" names, and are kind of weird/special:
 
     0080;<control>;Cc;0;BN;;;;;N;;;;;
@@ -67,13 +69,13 @@ The Private Use areas can also be considered an edge-case of "defined":
 
 =See also=
 
+`showUnicodeCharsInClass.py` is a much better version.
+
 
 =Known bugs and Limitations=
 
 
 =To do=
-
-Option to write as literals instead of backslash codes, or to include names.
 
 
 =History=
@@ -154,27 +156,27 @@ if __name__ == "__main__":
             print("\\u%04x  '%s'" % (cp, chr(cp)), end=ender)
         else:
             print("\\u%04x" % (cp), end=ender)
-        
+
     def printRange(cp1:int, cp2) -> None:
         if (args.literal):
             print("\\u%04x-\\u%04x  '%s'-'%s'" %
                 (cp1, cp2, chr(cp1), chr(cp2)), end=ender)
         else:
             print("\\u%04x-\\u%04x" % (cp1, cp2), end=ender)
-        
-        
+
+
     ###########################################################################
     #
     args = processOptions()
-    if (len(args.category) < 1 or len(args.category) > 2 or 
+    if (len(args.category) < 1 or len(args.category) > 2 or
         not args.category.istitle()):
         sys.stderr.write("--category must be one or two letters.")
         sys.exit()
-    
+
     #global ender
     ender = "\n"
     if args.join: ender = ""
-    
+
     lastU = 0x0000
     nFound = 0
     for i in range(args.min, args.max+1):
@@ -190,6 +192,6 @@ if __name__ == "__main__":
 
     if (args.group and lastU < i-1):
         printRange(lastU+1, i-1)
-    
+
     print("")
     print("*** Total code points in category '%s': %d." % (args.category, nFound))

@@ -150,6 +150,8 @@ C<sjdUtils.pm> provides functions to do the transformations.
 
 C<colorManager.pm> provides ANSI terminal color support.
 
+Library calls (see `man 3`) strvis(), etc.
+
 
 =head1 Known bugs and limitations
 

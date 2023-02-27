@@ -3,43 +3,49 @@
 # showCharsInPythonClass: Retrieve lists of characters by category (Ll, etc).
 # 2015-03-31: Written by Steven J. DeRose.
 #
-from __future__ import print_function
 import sys
 import argparse
-import regex
 import unicodedata
 
-PY3 = sys.version_info[0] == 3
-if PY3:
-    def unichr(nn): return chr(nn)
-    #def unicode(s, encoding='utf-8', errors='strict'): return str(s, encoding, errors)
+import regex
 
 __metadata__ = {
-    'title'        : "showUnicodeCharsInClass.py",
-    'description'  : "Retrieve lists of characters by category (Ll, etc).",
-    'rightsHolder' : "Steven J. DeRose",
-    'creator'      : "http://viaf.org/viaf/50334488",
-    'type'         : "http://purl.org/dc/dcmitype/Software",
-    'language'     : "Python 2.7.6, 3.6",
-    'created'      : "2015-03-31",
-    'modified'     : "2021-07-24",
-    'publisher'    : "http://github.com/sderose",
-    'license'      : "https://creativecommons.org/licenses/by-sa/3.0/"
+    "title"        : "showUnicodeCharsInClass.py",
+    "description"  : "Retrieve lists of characters by category (Ll, etc).",
+    "rightsHolder" : "Steven J. DeRose",
+    "creator"      : "http://viaf.org/viaf/50334488",
+    "type"         : "http://purl.org/dc/dcmitype/Software",
+    "language"     : "Python 2.7.6, 3.6",
+    "created"      : "2015-03-31",
+    "modified"     : "2023-02-27",
+    "publisher"    : "http://github.com/sderose",
+    "license"      : "https://creativecommons.org/licenses/by-sa/3.0/"
 }
-__version__ = __metadata__['modified']
+__version__ = __metadata__["modified"]
 
 descr = """
 =Description=
 
 [Unfinished]
 
-Display all Unicode characters in a given numeric range, that are in a given
-Unicode character category.
+Display all Unicode characters in a given numeric range (default U+0020 to U+FFFF),
+that are in a given Unicode character category or categories. For example:
 
-Use ''--showCategories'' to get a list of the category mnemonics.
+    showUnicodeCharsInClass.py Lt
+
+will display all titlecase characters (Unicode category "Letter, Titlecase").
+
+The --find [regex] option may be used as an additional filter, to discard any
+characters whose full Unicode name do not match [regex].
+
+Use ""--showCategories'' to get a list of the category mnemonics (single-letter
+mnemonics may be used to catch a broader category).
 
 
 =Output formats available=
+
+The resulting list is available in several forms, though always in
+numeric code point order.
 
 For example, for various values of [F] and [Category] in:
     showUnicodeCharsInClass.py --format [F] [Category]
@@ -103,7 +109,7 @@ using the smallest hex escape they can (probably should add a `--width` option).
 
 `ord`, `mathAlphanumerics`, `countChars`,
 `makeCharChart.py`, `getCharsByScript`.
-
+`findCodePointsInClass.py' (obsolete, I forgot I wrote this...)
 
 =Known bugs and Limitations=
 
@@ -115,6 +121,13 @@ would get confused.
 Long lines with <--format bracket> are not wrapped.
 
 Should have a way to find all chars matching some regex (but see `ord`).
+
+You cannot currently request category 'LC' (Letter, cased). I believe it is
+just shorthand for anything in Lu, Ll, or Lt, and no character is directly "in"
+it. But I need to check that.
+
+Note that by default, this searches only the BMP (specifically, U+0020 to U+FFFF).
+Options allow setting a wider or narrower range.
 
 
 =To do=
@@ -129,6 +142,7 @@ option there.
 * 2018-11-07: Cleanup, move to Python 3.
 * 2020-02-14: New layout. Lint.
 * 2021-07-24: Allow requesting multiple categories.
+* 2023-02-27: Lint, testing, various fixes esp. to options, controls, unassigned chars.
 
 
 =Rights=
@@ -149,12 +163,20 @@ For the most recent version, see [http://www.derose.net/steve/utilities] or
 # http://www.fileformat.info/info/unicode/category/index.htm
 #
 unicodeCategories = {
+    "C":   "Other",
+    "L":   "Letter",
+    "M":   "Mark",
+    "N":   "Number",
+    "P":   "Punctuation",
+    "S":   "Symbol",
+    "Z":   "Separator",
+
     "Cc":  "Other, Control",
     "Cf":  "Other, Format",
-    "Cn":  "Other, Not Assigned (no characters in the file have this property)",
+    "Cn":  "Other, Not Assigned",
     "Co":  "Other, Private Use",
     "Cs":  "Other, Surrogate",
-    "LC":  "Letter, Cased",
+    "LC":  "Letter, Cased",  # sic -- two caps!
     "Ll":  "Letter, Lowercase",
     "Lm":  "Letter, Modifier",
     "Lo":  "Letter, Other",
@@ -197,38 +219,38 @@ def processOptions():
         parser = argparse.ArgumentParser(description=descr)
 
     parser.add_argument(
-        '--find', type=str,
-        help='Retrieve characters whose formal names match this regex.')
+        "--find", type=str, default="",
+        help="Retrieve characters whose formal names match this regex.")
     parser.add_argument(
-        '--first', type=any_int, default=32,
-        help='First code point to check.')
+        "--first", "--min", type=any_int, default=0x0020,
+        help="First code point to check.")
 
     oChoices = [ "chart", "xsv", "bycode", "byname", "bracket" ]
     parser.add_argument(
-        '--format', type=str, default="chart", choices=oChoices,
-        help='How to arrange the output. Choices: ' + str(oChoices))
+        "--format", type=str, default="chart", choices=oChoices,
+        help="How to arrange the output. Choices: " + str(oChoices))
     parser.add_argument(
-        '--last', type=any_int, default=65535,
-        help='Last code point to check.')
+        "--last", "--max", type=any_int, default=0xFFFF,
+        help="Last code point to check.")
     parser.add_argument(
-        "--metaregex", action='store_true',
-        help='With --bracket, make a regex to expand \\p{xx} to a []-group.')
+        "--metaregex", action="store_true",
+        help="With --bracket, make a regex to expand \\p{xx} to a []-group.")
     parser.add_argument(
-        "--quiet", "-q", action='store_true',
-        help='Suppress most messages.')
+        "--quiet", "-q", action="store_true",
+        help="Suppress most messages.")
     parser.add_argument(
-        "--showCategories", action='store_true',
-        help='Display the 2-letter codes and their meanings.')
+        "--showCategories", action="store_true",
+        help="Display the 2-letter codes and their meanings.")
     parser.add_argument(
-        "--verbose", "-v", action='count', default=0,
-        help='Add more messages (repeatable).')
+        "--verbose", "-v", action="count", default=0,
+        help="Add more messages (repeatable).")
     parser.add_argument(
-        "--version", action='version', version='Version of '+__version__,
-        help='Display version information, then exit.')
+        "--version", action="version", version="Version of "+__version__,
+        help="Display version information, then exit.")
 
     parser.add_argument(
-        'charCategories', type=str, default="", nargs=argparse.REMAINDER,
-        help='1- or 2-letter abbreviation(s) for character category(s) to display.')
+        "charCategories", type=str, default="", nargs=argparse.REMAINDER,
+        help="1- or 2-letter abbreviation(s) for character category(s) to display.")
 
     args0 = parser.parse_args()
     return(args0)
@@ -241,7 +263,7 @@ def makeEsc(nn, literals=False):
     @param nn: The code point
     @param literals: If True, leave most ASCII G0 characters as themselves.
     """
-    ch = unichr(nn)
+    ch = chr(nn)
     if (literals):
         if (ch in "\\()[]{}'\"-^"): return("\\x%02x" % (nn))
         if (nn>32 and nn<127): return(ch)
@@ -254,15 +276,21 @@ def inAnyRequestedCategory(uchar:str):
     requested by the user.
     """
     thisCat = unicodedata.category(uchar)
-    for ccat in args.charCategories:
-        if thisCat.startswith(ccat): return True
+    warn(1, "U+%04x '%s' is category '%s'." % (ord(uchar), uchar, thisCat))
+    for cc in args.charCategories:
+        if thisCat.startswith(cc): return True
     return False
-    
-    
+
+
 ###############################################################################
 # Main
 #
+def warn(level:int, msg:str):
+    if (args.verbose >= level): sys.stderr.write(msg + "\n")
+
 args = processOptions()
+
+if (args.find): args.find = "(?i)" + args.find  # No regex.IGNORECASE
 
 if (args.showCategories):
     print("Unicode character category mnemonics:")
@@ -272,47 +300,69 @@ if (args.showCategories):
     sys.exit()
 
 if (not args.charCategories):
-    sys.stderr.write("No cateogory mnemonic(s) requested. Use --showCategories for a list.\n")
+    warn(0, "No category mnemonic(s) requested. Use --showCategories for a list.\n")
     sys.exit()
 
 for ccat in args.charCategories:
+    if (ccat == "LC"):
+        warn(0, "Category 'LC' is for Ll | Lu | Lt; no character is 'LC' per se.")
+        sys.exit()
     if (ccat in unicodeCategories): continue
-    sys.stderr.write("Unknown cateogory mnemonic '%s'." % (ccat))
+    warn(0, "Unknown cateogory mnemonic '%s'." % (ccat))
     sys.exit()
 
-#ex = r'\d'                      # yes
-ex = r'[\p{Letter}]'            # no
-#ex = r'[[:Digit:]]'             # no
-#ex = r'\p{Ll}'                  # no
+#ex = r"\d"                      # yes
+ex = r"[\p{Letter}]"            # no
+#ex = r"[[:Digit:]]"             # no
+#ex = r"\p{Ll}"                  # no
 
-cex = regex.compile(ex, regex.UNICODE)
+cex = regex.compile(ex)  # (inherently UNICODE)
 
 if (args.format == "chart"):
     print("    codept lit cat  Unicode name")
-    
+
 brack = "["
 nFound = 0
 lastOne = -99
 inARange = False
+
+warn(1, "Scanning code points from U+%04x to U+%04x..." % (args.first, args.last))
+nTried = 0
+nUnnamed = 0
+nNotInCat = 0
+nNoMatch = 0
+
 for codePoint in range(args.first, args.last+1):
-    c = unichr(codePoint)
+    nTried += 1
+    c = chr(codePoint)
+
+    # Control, private use, unassigned characters have no names available.
     try:
         nm = unicodedata.name(c)
     except ValueError:
+        nUnnamed += 1
+        if (not args.quiet):
+            warn(2, "Code point U+%04x has no unicodedata.name." % (codePoint))
+        nm = "[???]"
+
+    if (not inAnyRequestedCategory(c)):
+        nNotInCat += 1
         continue
 
-    gotOne = False
-    if (args.find):
-        if (not regex.search(args.find, nm, regex.IGNORECASE)): continue
-    else:
-        if (not inAnyRequestedCategory(c)): continue
+    if (args.find and not regex.search(args.find, nm)):
+        nNoMatch += 1
+        continue
 
     theCat = unicodedata.category(c)
+    if (theCat == "Cn"): continue
+
     nFound += 1
-    
+
     if (args.format == "chart"):  # the default
-        print("    U+%04x '%s' (%-2s) %s" %
-            (codePoint, c, theCat, nm))
+        try:
+            print("    U+%04x '%s' (%-2s) %s" % (codePoint, c, theCat, nm))
+        except UnicodeEncodeError:
+            print("    U+%04x [???]] (%-2s) %s" % (codePoint, theCat, nm))
     elif (args.format == "xsv"):
         print("<Rec Hex='%04x' Cat='%s' Name='%s' />" %
             (codePoint, theCat, nm))
@@ -339,16 +389,8 @@ for codePoint in range(args.first, args.last+1):
         sys.exit()
     lastOne = codePoint
 
-if (args.format == "bracket"):
-    if (inARange): brack += makeEsc(lastOne, literals=False)
-    brack += "]"
-    if (args.metaregex):
-        lhs = "\\\\p\\{" + ccat + "\\}"
-        brack = "R = regex.sub(r'%s', '%s', R)" % (lhs, brack)
-    print(brack)
-
 if (not args.quiet):
-    sys.stderr.write("Done. %d of %d characters [u+%04x:u+%04x] in categories:\n" %
+    warn(0, "Done. %d of %d characters [U+%04x:U+%04x] in categories:\n" %
         (nFound, args.last-args.first+1, args.first, args.last+1))
     qual = ""
     for ccat in args.charCategories:
@@ -356,3 +398,5 @@ if (not args.quiet):
     if (args.find):
         qual = "    matching /%s/\n" % (args.find)
     print(qual, end="")
+    print("Totals:  Tried %d, unnamed %d, not in category %d, in but not matched %d." %
+        (nTried, nUnnamed, nNotInCat, nNoMatch))
