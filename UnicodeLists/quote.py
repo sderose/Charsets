@@ -41,26 +41,28 @@ URQuotes = {
     0x02E21:  "RIGHT VERTICAL BAR WITH QUILL",
 }
 
+# Only some of these (as marked) are in Unicode categories Pi/Pf
+#
 qPairs = {
     # 'back':   [ 0x0060, 0x0060 ],  # "GRAVE ACCENT",
     'splain':   [ 0x0027, 0x0027 ],  # "APOSTROPHE",
     'dplain':   [ 0x0022, 0x0022 ],  # "QUOTATION MARK",
-    'single':   [ 0x2018, 0x2019 ],  # "SINGLE QUOTATION MARK",
-    'double':   [ 0x201C, 0x201D ],  # "DOUBLE QUOTATION MARK",
-    'sangle':   [ 0x2039, 0x203A ],  # "SINGLE ANGLE QUOTATION MARK",
-    'dangle':   [ 0x00AB, 0x00BB ],  # "DOUBLE ANGLE QUOTATION MARK *",
+    'dangle':   [ 0x00AB, 0x00BB ],  # "DOUBLE ANGLE QUOTATION MARK *", # PiPf
+    'single':   [ 0x2018, 0x2019 ],  # "SINGLE QUOTATION MARK",         # PiPf
+    'double':   [ 0x201C, 0x201D ],  # "DOUBLE QUOTATION MARK",         # PiPf
+    'sangle':   [ 0x2039, 0x203A ],  # "SINGLE ANGLE QUOTATION MARK",   # PiPf
     'slow9':    [ 0x201A, 0x201B ],  # "SINGLE LOW-9 QUOTATION MARK",
     'dlow9':    [ 0x201E, 0x201F ],  # "DOUBLE LOW-9 QUOTATION MARK",
     'sprime':   [ 0x2032, 0x2035 ],  # "PRIME",
     'dprime':   [ 0x301E, 0x301E ],  # "DOUBLE PRIME QUOTATION MARK",
     'tprime':   [ 0x2034, 0x2037 ],  # "TRIPLE PRIME", "REVERSED TRIPLE PRIME",
 
-    'subst':    [ 0x2E02, 0x2E03 ],  # "SUBSTITUTION BRACKET",
-    'dotsubst': [ 0x2E04, 0x2E05 ],  # "DOTTED SUBSTITUTION BRACKET",
-    'transp':   [ 0x2E09, 0x2E0A ],  # "TRANSPOSITION BRACKET",
-    'romission':[ 0x2E0C, 0x2E0D ],  # "RAISED OMISSION BRACKET",
-    'lpara':    [ 0x2E1C, 0x2E1D ],  # "LOW PARAPHRASE BRACKET",
-    'vbarq':    [ 0x2E20, 0x2E21 ],  # "VERTICAL BAR WITH QUILL",
+    'subst':    [ 0x2E02, 0x2E03 ],  # "SUBSTITUTION BRACKET",          # PiPf
+    'dotsubst': [ 0x2E04, 0x2E05 ],  # "DOTTED SUBSTITUTION BRACKET",   # PiPf
+    'transp':   [ 0x2E09, 0x2E0A ],  # "TRANSPOSITION BRACKET",         # PiPf
+    'romission':[ 0x2E0C, 0x2E0D ],  # "RAISED OMISSION BRACKET",       # PiPf
+    'lpara':    [ 0x2E1C, 0x2E1D ],  # "LOW PARAPHRASE BRACKET",        # PiPf
+    'vbarq':    [ 0x2E20, 0x2E21 ],  # "VERTICAL BAR WITH QUILL",       # PiPf
     #'rdprime':  [ 0x301D, 0x301F ], # "DOUBLE PRIME QUOTATION MARK",
     'rdprime':  [ 0x2057, 0x301D ],  # "DOUBLE PRIME QUOTATION MARK",
         # = "QUADRUPLE PRIME"
@@ -73,7 +75,7 @@ qPairs = {
 }
 
 
-# Not in:  "the Unicode categories, but perhaps relevant:
+# Not in the Unicode categories, but perhaps relevant:
 UOtherQuotes = {
     0x00060:  "GRAVE ACCENT",
 
