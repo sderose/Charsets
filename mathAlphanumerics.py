@@ -19,9 +19,9 @@ __metadata__ = {
     "rightsHolder" : "Steven J. DeRose",
     "creator"      : "http://viaf.org/viaf/50334488",
     "type"         : "http://purl.org/dc/dcmitype/Software",
-    "language"     : "Python 2.7.6, 3.7",
+    "language"     : "Python 3.7",
     "created"      : "<2006-10-04",
-    "modified"     : "2021-12-20",
+    "modified"     : "2023-03-08",
     "publisher"    : "http://github.com/sderose",
     "license"      : "https://creativecommons.org/licenses/by-sa/3.0/"
 }
@@ -30,50 +30,59 @@ __version__ = __metadata__["modified"]
 descr = """
 =Description=
 
-Provide support for using the many Unicode variations on alphabets and digits,
+Provide support for using the many Unicode font-like variations on the 
+Latin and Greek alphabets and digits,
 either as a command-line filter or via an API.
 
-You can just pipe Unicode text through this like, with options for
-the desired script to translate (`--script`,
-and the Unicode range (`--font` because that's how it's being used).
+==Command line usage==
+
+To see samples of all the available variations (using sentences the use all the 
+letters, or text you provide via `--sample`), use:
+    mathAlphanumerics.py --script Latin --language English --test
+    
+    (my `ord --math` displays a similar list and samples)
+    
+To pipe Unicode text through this, use options to select
+the desired script (`--script`, as in Latin, Greek, or Digits)
+and variation (called `--font` because that's how it's being used here):
 
     cat eggs.txt | mathAlphanumerics.py --script Latin --font 'BOLD ITALIC'
 
-You can test on a sample phrase:
+To convert a sample phrase rather than using stdin (for example, to paste into
+a Web form that doesn't support markup):
 
     mathAlphanumerics.py --script Latin --font 'FRAKTUR' --sample "Spam and eggs"
 
+==Library usage==
 
-Or you can call the package from Python:
+To call the package from Python:
 
     import mathAlphanumerics
     s2 = mathAlphanumerics.convert(text,
-            script="Latin", font="Mathematical Bold", decompose=True)
+        script="Latin", font="Mathematical Bold", decompose=True)
 
-The `decompose` option separates diacritics from their base characters, so that the
-base characters can be converted.
+The `decompose` option separates diacritics from their base characters before
+conversion, so that the base characters are converted.
+
+To generate the corresponding translation table separately:
 
     xtab = mathAlphanumerics.getTranslateTable(
         "Latin", "Mathematical Sans-serif Bold Italic")
     s = s.translate(xtab)
 
-The "scripts" known are "Latin", "Greek", and "Digits" (each has a different
-selection of available "font" variations).
-To see a list of the "fonts" available for the selected
-`--script`
+See the "Methods" section below for more details.
 
-    mathAlphanumerics.py --script Greek --show
+The sample sentences are available in MathAlphanumerics.pangrams, 
+a dict keyed by language name.
 
-Add `-v` to also display a sample of each, and
-the code point where each starts.
-
-'''Note:''' This will only work is your display medium supports Unicode,
-and the exact results depend on the font(s) in use. Even then, a few
-characters seem to be unavailable in Unicode, such as
-"PARENTHESIZED DIGIT ZERO".
-When a mapping is not available, the character is left unchanged.
+==Available "scripts" and "fonts"==
 
 The `--script` choices are "Latin" (the default), "Greek", or "Digits".
+Each has a different selection of available "font" variations).
+To see a list of the "fonts" available for a "script"`
+(add -v to include samples and the code point where each starts):
+
+    mathAlphanumerics.py --script Greek --show
 
 The `--font` options (the default is "ITALIC") are:
 
@@ -152,7 +161,7 @@ for most of these; error reports are welcome):
     "CHAM"
     "MEETEI MAYEK"
 
-Some additional digit sets are available except for ZERO.
+Some additional digit sets are available except for ZERO:
 
     "CIRCLED"
     "DINGBAT NEGATIVE CIRCLED"
@@ -171,9 +180,12 @@ I expect to add other special "effects", but some might not be supported in the 
 
 =Cautions=
 
+* This will only work if your display medium supports Unicode,
+and the exact results depend on the font(s) in use. 
+*When a mapping is not available, the character is left unchanged.
 * Some of the "fonts" are available only in uppercase, or lack digits.
 * Some of the digit sets lack zero, as noted in the list above.
-* Some fonts may not have include all these sets.
+* Some fonts may not include all these characters.
 * Some fonts may not be aesthetically consistent for all these sets.
 As an example, the role of MATHEMATICAL ITALIC SMALL H is filled by
 PLANCK CONSTANT, which was added to Unicode much earlier than the rest
@@ -182,26 +194,28 @@ size, stroke weight, alignment, or other characteristics with the rest
 of the MATHEMATICAL ITALIC characters.
 * Accented characters are only supported if decomposed. See the next
 section for more detail on that.
+*This should probably not be used for output destined for an audio screen-reader.
 
 ==Accented and other characters==
 
-This only translates the unaccented basic letters and digits. However, you can
-use Unicode `canonical decomposition` first, so diacritics become separate
-characters. You can then use this package to modify the base characters:
+This program only translates the unaccented basic letters and digits.
+Use Unicode `canonical decomposition` first if desired, then modify the base characters:
 
     import unicodedata
     s = unicodedata.normalize('NFD', myString).translate(xtab)
 
-The result should be reasonable, although imperfect. For example,
+The result should be reasonable, if imperfect. For example,
 diacritic placement could conflicting with an enclosing circle,
 or be off center for italics. And the diacritic itself will not be bold, etc.
+Re-composing the result is probably pointless, because few if any of the MATHEMATICAL and
+other visually special characters come in accented versions anyway.
 
 ''Note:'' Throughout this package, "font" does not refer to typographic fonts
 per se, but to Unicode's sets of variations (mostly intended for special
 uses in mathematics),
 such as "MATHEMATICAL SANS-SERIF BOLD ITALIC". The names used here are taken
 directly from the Unicode character names, except that "MATHEMATICAL" may be
-omitted and case is ignored).
+omitted and case is ignored.
 
 
 =Methods=
@@ -215,8 +229,8 @@ See their descriptions below.
 
 ==getStartCodePoint(script="Latin", font="BOLD", group="U")==
 
-Return the code point of the first character for the given `script` in
-the given `font` variation (such as "SANS-SERIF BOLD", etc.). By default, gets
+Return the code point of the first character for the given "script" in
+the given "font" variation (such as "SANS-SERIF BOLD", etc.). By default, gets
 the position of A for Latin, alpha for Greek, or Digit for 0). Pass `group`
 as "U", "L", or "D" respectively, to get the position of the first uppercase,
 lowercase, or digit for "fonts" as needed.
@@ -241,57 +255,85 @@ For "Digits", only digits 0-9 are converted (and only when available).
 
 ==getTranslateTable(script="Latin", font="BOLD")==
 
-Return a Python 3 translation table generated for the specified `script`
-and `font`. Exceptions are integrated, and omissions are omitted.
+Return a Python 3 translation table generated for the specified "script"
+and "font". Exceptions are integrated, and omissions are omitted.
 
 ==makePartialXtab(srcStart, srcEnd, tgtStart)==
 
 
 =Related Commands=
 
-My `ord --math` will display a list of these characters.
+My `ord --math` displays a list of these character variations, with samples.
 
 
 =Known bugs and Limitations=
 
-You can't specify "font" -names with re-ordered tokens. For example,
-"BOLD FRAKTUR" (regardless of case) works, but not "FRAKTUR BOLD".
+"font" names are not recognized with re-ordered tokens. For example,
+"BOLD FRAKTUR" works (regardless of case), but not "FRAKTUR BOLD".
 
 With `--makeHtmlComparison`, the generated HTML includes a few custom elements,
-with styles applied via <head>:
+with styles applied via CSS in <head>:
 
-    sans            { font-family:sans-serif; }
-    serif           { font-family:serif; }
-    cursive         { font-family:cursive; }
-    monospace       { font-family:monospace; }
+    sans        { font-family:sans-serif; }
+    serif       { font-family:serif; }
+    cursive     { font-family:cursive; }
+    monospace   { font-family:monospace; }
 
 Modern browsers are fine with this, but it's not precisely "HTML". If that's a problem,
-change them to something like '<span class="sans">', etc. Or better, change the
+change them to something like '<span class="sans">', etc. Or change the
 DOCTYPE to reference a schema that adds them.
 
-The `--family` choice (if any) is applied to <body>, so these will override if for
+The `--family` choice (if any) is applied to <body>, so these will override it for
 the appropriate cases (I don't know what happens, for example, if you specify
 a cursive font for --family, and then the SCRIPT row applies cursive on top of it --
-perhaps it notices it's already cursive and keeps the active one; or perhaps it does
+perhaps it notices it's already cursive and keeps the active one, or perhaps it does
 its own search and gives you the first one it finds.
 
+==Script-specific issues==
 
-==Script-specific issues
-
-I'm note sure what "REGIONAL INDICATOR SYMBOL" is for -- it comes up as
+I'm not sure what "REGIONAL INDICATOR SYMBOL" is for -- it comes up as
 flags on some systems; if that's normal it should be dropped here.
 
-Many scripts that use accented Latin or Greek characters, do not have accents
-on all characters. So if you don't decompose first (discussed above), you'll
-get only '''some''' of the characters translated.
-
-Cannot translate multiple scripts simultaneously.
+This program cannot translate multiple scripts simultaneously.
 
 Punctuation is not yet supported, such as superscript and subscript
 parentheses, plus, minus, etc. For many of the (pseudo-) fonts it might not
 make sense anyway; but for some it does.
 
 Superscript, subscript, turned, and strikethrough are not finished.
+Note that the superscript and subscript characters commonly do not look and align
+the same as browser-rendered HTML <sup> and <sub>
+(cf [https://en.wikipedia.org/wiki/Unicode_subscripts_and_superscripts])
+Also, Unicode superscripts provide only two Latin letters (i and n), although most
+can be found as similar combining marks (apparently meant for representing German
+medieval practice):
+
+    U+00363  COMBINING LATIN SMALL LETTER A ok
+    U+01de8  COMBINING LATIN SMALL LETTER B (missing in my test font)
+    U+00368  COMBINING LATIN SMALL LETTER C ok
+    U+00369  COMBINING LATIN SMALL LETTER D ok
+    U+00364  COMBINING LATIN SMALL LETTER E ok
+    U+01deb  COMBINING LATIN SMALL LETTER F (missing in my test font)
+    U+01dda  COMBINING LATIN SMALL LETTER G (missing in my test font) (uc at U+01ddb)
+    U+0036a  COMBINING LATIN SMALL LETTER H ok
+    U+00365  COMBINING LATIN SMALL LETTER I ok
+    *** J?
+    U+01ddc  COMBINING LATIN SMALL LETTER K ok
+    U+01ddd  COMBINING LATIN SMALL LETTER L ok (uc at U+01DDE)
+    U+0036b  COMBINING LATIN SMALL LETTER M ok (uc at U+01DDF)
+    U+01de0  COMBINING LATIN SMALL LETTER N ok (uc at U+01DE1)
+    U+00366  COMBINING LATIN SMALL LETTER O ok
+    U+01dee  COMBINING LATIN SMALL LETTER P (missing in my test font)
+    *** Q?
+    U+0036c  COMBINING LATIN SMALL LETTER R ok (uc at U+01DE2)
+    U+01de4  COMBINING LATIN SMALL LETTER S ok
+    U+0036d  COMBINING LATIN SMALL LETTER T ok
+    U+00367  COMBINING LATIN SMALL LETTER U ok
+    U+0036e  COMBINING LATIN SMALL LETTER V ok
+    U+01df1  COMBINING LATIN SMALL LETTER W (missing in my test font)
+    U+0036f  COMBINING LATIN SMALL LETTER X ok
+    *** Y?
+    U+01de6  COMBINING LATIN SMALL LETTER Z ok
 
 Non-Latin digit series are not well integrated or tested.
 
@@ -320,18 +362,19 @@ If the display environment doesn't handle Unicode, or the font in use has
 problems with any of the characters needed, the result may not be ideal.
 
 Unicode intends most of these characters for special mathematical uses, such
-as ensuring that you get the fancy "R" (U+0211d), which is used to refer to
-the set of real numbers because the set takes too long write out in full. Using
+as ensuring that you get the fancy "R" (U+0211d) needed to refer to
+the set of real numbers (a symbol is needed because it takes too long to
+write the full set of real numbers on a blackboard). Using
 these characters for formatting is a little weird. But Gæð a wyrd swa hio scel.
 
 Sets such as MATHEMATICAL ITALIC are generally defined in Unicode as a contiguous
 range, but occasionally one or a few members are somewhere else
 (such as MATHEMATICAL ITALIC SMALL H), and the "expected" slot among
 the rest of the letter is left undefined. In practice, this also means that
-Unicode fonts do not always define quite the same "look" to those  characters.
+Unicode fonts do not always define quite the same "look" to those characters.
 It strikes me that leaving those slots blank is mainly useful because it
 slightly simplifies programs like this: ones that want to translate the entire
-block rather than particular characters like
+block rather than particular characters like the "R" for real numbers.
 
 Monospace fonts for Unicode may not always display with all the characters the
 same width. "FULLWIDTH" may pose similar problems.
@@ -354,7 +397,7 @@ For example, PARENTHESIZED DIGIT ONE is U+2474, so we would expect the ZERO
 at U+2473. But U+2473 is CIRCLED NUMBER TWENTY. This package takes the
 exceptions into account when building a translation table. When the character
 is entirely missing (as in this example), the "basic" character (in this
-case "1") is left unchanged (it is not even added to the translation table.
+case "1") is left unchanged (it is not even added to the translation table).
 
 Characters with diacritics must be decomposed first, because the specialized
 "fonts" do not generally include composed characters. To decompose
@@ -397,7 +440,7 @@ and suppl for rest of lc latin except jqy (seriously???)
 
 =History=
 
-# Written sometime before 2006-10-04, by Steven J. DeRose.
+# Written (originally in Perl) sometime before 2006-10-04, by Steven J. DeRose.
 * 2008-02-11 sjd: Add `--perl`, `perl -w`.
 * 2008-09-03 sjd: BSD. Improve doc, error-checking, fix bug in `-all`.
 * 2010-03-28 sjd: perldoc. Add [] to `-ps`.
@@ -413,8 +456,7 @@ Change 'fg2_' prefix to 'bold_' and factor out of code.
 * 2016-07-21: Merge doc on color names w/ sjdUtils.p[my], etc.
 * 2016-10-25: Clean up to integrate w/ ColorManager. Change names.
 Debug new (hashless) way of doing colors.
-* 2018-08-29: Port to Python.
-* 2018-08-29ff: Split from Perl colorstring, and Ported.
+* 2018-08-29ff: Port to Python. Split from Perl colorstring.
 * 2018-09-04: Merged from incomplete `UnicodeAltLatin.py`
 * 2020-07-25: Lose remaining upper/lower separations. Big cleanup.
 Support complete upper/lower/digit translation tables. Add `--test`.
@@ -425,6 +467,7 @@ Add support for in-pipe translation.
 * 2021-12-20: Add --makeHtmlComparison. Add type hints.
 * 2022-01-07: Add SMALLCAP, SUBSCRIPT, SUPERSCRIPT, ROTATED, UNDERLINE, DUNDERLINE,
 OVERLINE, DOVERLINE, STRIKE, SLASHED, DSLASHED.
+* 2023-03-08: Clean up sample generation, proof help.
 
 
 =To do=
@@ -626,8 +669,7 @@ def warn(lvl, msg):
 
 
 ###############################################################################
-# Support Unicode alternate forms of Latin alphabet
-# Greek and digits also defined for some of these
+# Support Unicode alternate forms of Latin, Greek, and digits.
 # See also bin/data/unicodeLatinAlphabets.py
 #
 class mathAlphanumerics:
@@ -639,7 +681,7 @@ class mathAlphanumerics:
 
     # These are the "fonts" available as Unicode "Mathematical" variations on
     # Latin. A similar list is available for Greek, and for digits.
-    # NOTE: "MATHEMATICAL is omitted for compactness.
+    # NOTE: "MATHEMATICAL" is omitted for compactness.
     #
     LatinFontDict = {
         ####### Following are "Mathematical":
@@ -1170,91 +1212,93 @@ class mathAlphanumerics:
 
     # See https://en.wikipedia.org/wiki/Pangram
     #
-    EnglishSentences = [
-        "Sphinx of black quartz, judge my vow",
-        "Jackdaws love my big sphinx of quartz",
-        "Pack my box with five dozen liquor jugs",
-        "The quick onyx goblin jumps over the lazy dwarf",
-        "Cwm fjord bank glyphs vext quiz",  # Perfect
-        # = "Symbols in a mountain hollow on the bank of an inlet
-        # vexed an eccentric person."
-        "How razorback-jumping frogs can level six piqued gymnasts!",
-        "Cozy lummox gives smart squid who asks for job pen",
-        "Amazingly few discotheques provide jukeboxes",
-        "'Now fax quiz Jack!', my brave ghost pled",
-        "Watch Jeopardy!, Alex Trebek's fun TV quiz game.",
-        "Jived fox nymph grabs quick waltz.",
-        "Glib jocks quiz nymph to vex dwarf.",
-        "How vexingly quick daft zebras jump!",
-        "The five boxing wizards jump quickly.",
-        "Mr Jock, TV quiz PhD, bags few lynx",
-    ]
+    pangrams = {
+        "English": [
+            "Sphinx of black quartz, judge my vow",
+            "Jackdaws love my big sphinx of quartz",
+            "Pack my box with five dozen liquor jugs",
+            "The quick onyx goblin jumps over the lazy dwarf",
+            "Cwm fjord bank glyphs vext quiz",  # Perfect
+            # = "Symbols in a mountain hollow on the bank of an inlet
+            # vexed an eccentric person."
+            "How razorback-jumping frogs can level six piqued gymnasts!",
+            "Cozy lummox gives smart squid who asks for job pen",
+            "Amazingly few discotheques provide jukeboxes",
+            "'Now fax quiz Jack!', my brave ghost pled",
+            "Watch Jeopardy!, Alex Trebek's fun TV quiz game.",
+            "Jived fox nymph grabs quick waltz.",
+            "Glib jocks quiz nymph to vex dwarf.",
+            "How vexingly quick daft zebras jump!",
+            "The five boxing wizards jump quickly.",
+            "Mr Jock, TV quiz PhD, bags few lynx",
+        ],
 
-    LatinSentences = [
-        "gaza frequens Libycum duxit Karthago triumphum",
+        "Latin": [
+            "gaza frequens Libycum duxit Karthago triumphum",
 
-        "heu Zama, quam Scipio celeber dux frangit inique",
+            "heu Zama, quam Scipio celeber dux frangit inique",
 
-        "venerat, insano Cassandrae incensus amore" +
-        "et gener auxilium Priamo Phrygibusque ferebat",
+            "venerat, insano Cassandrae incensus amore" +
+            "et gener auxilium Priamo Phrygibusque ferebat",
 
-        "obstipui, steteruntque comae et vox faucibus haesit." +
-        "Hunc Polydorum auri quondam cum pondere magno",
+            "obstipui, steteruntque comae et vox faucibus haesit." +
+            "Hunc Polydorum auri quondam cum pondere magno",
 
-        "Nox erat, et terris animalia somnus habebat:" +
-        "effigies sacrae divom Phrygiique Penates",
+            "Nox erat, et terris animalia somnus habebat:" +
+            "effigies sacrae divom Phrygiique Penates",
 
-        "infelix Theseus; Phlegyasque miserrimus omnis" +
-        "admonet, et magna testatur voce per umbras:",
+            "infelix Theseus; Phlegyasque miserrimus omnis" +
+            "admonet, et magna testatur voce per umbras:",
 
-        "Forte die sollemnem illo rex Arcas honorem" +
-        "Amphitryoniadae magno divisque ferebat",
+            "Forte die sollemnem illo rex Arcas honorem" +
+            "Amphitryoniadae magno divisque ferebat",
 
-        "a quo post Itali fluvium cognomine Thybrim" +
-        "diximus, amisit verum vetus Albula nomen;",
+            "a quo post Itali fluvium cognomine Thybrim" +
+            "diximus, amisit verum vetus Albula nomen;",
 
-        "Haud procul hinc saxo incolitur fundata vetusto" +
-        "urbis Agyllinae sedes, ubi Lydia quondam",
+            "Haud procul hinc saxo incolitur fundata vetusto" +
+            "urbis Agyllinae sedes, ubi Lydia quondam",
 
-        "quid gravidam bellis urbem et corda aspera temptas?" +
-        "Nosne tibi fluxas Phrygiae res vertere fundo",
+            "quid gravidam bellis urbem et corda aspera temptas?" +
+            "Nosne tibi fluxas Phrygiae res vertere fundo",
 
-        "Nosne tibi fluxas Phrygiae res vertere fundo" +
-        "conamur, nos, an miseros qui Troas Achivis",
+            "Nosne tibi fluxas Phrygiae res vertere fundo" +
+            "conamur, nos, an miseros qui Troas Achivis",
 
-        "Tarquitus exultans contra fulgentibus armis" +
-        "silvicolae Fauno Dryope quem nympha crearat",
+            "Tarquitus exultans contra fulgentibus armis" +
+            "silvicolae Fauno Dryope quem nympha crearat",
 
-        "ut bivias armato obsidam milite fauces." +
-        "Tu Tyrrhenum equitem conlatis excipe signis;",
+            "ut bivias armato obsidam milite fauces." +
+            "Tu Tyrrhenum equitem conlatis excipe signis;",
 
-        "Fovit ea volnus lympha longaevus Iapyx" +
-        "ignorans, subitoque omnis de corpore fugit",
+            "Fovit ea volnus lympha longaevus Iapyx" +
+            "ignorans, subitoque omnis de corpore fugit",
 
-        "quantus Athos aut quantus Eryx aut ipse coruscis" +
-        "cum fremit ilicibus quantus gaudetque nivali",
-    ]
+            "quantus Athos aut quantus Eryx aut ipse coruscis" +
+            "cum fremit ilicibus quantus gaudetque nivali",
+        ],
 
-    # From https://backpacker.gr/pangrams
-    # (apparently Modern)
-    #
-    GreekSentences = [
-        "κόλφω, βάδιζε μπροστά ξανθή ψυχή!",
-        "Ξεσκεπάζω την ψυχοφθόρα βδελυγμία.",
-        "Φθηνό μπλε βράδυ, στο Γκάζι ξεψυχώ.",
-        "Βυθίζετε ψηφιακό εξοπλισμό εγχόρδων.",
-        "Βύθιζες ψηφιακά χόρτα ξαπλωμένε δόγη!",
-        "Ξοπίσω, ραβδίζω φλεγματικά τα ψυχανθή.",
-        "Θα ξεφύγω με βία στην ψυχεδελική πρόζα.",
-        "Βράζω γόπες με το φθηνό λάδι και ξεψυχώ.",
-        "Βυθίζω χοντρή γίδα με ψηφιακό εξοπλισμό.",
-        "Τρηχύν δ' υπερβάς φραγμόν εξύνθιζε κλώψ.",
-    ]
+        # From https://backpacker.gr/pangrams
+        # (apparently Modern)
+        #
+        "Greek": [
+            "κόλφω, βάδιζε μπροστά ξανθή ψυχή!",
+            "Ξεσκεπάζω την ψυχοφθόρα βδελυγμία.",
+            "Φθηνό μπλε βράδυ, στο Γκάζι ξεψυχώ.",
+            "Βυθίζετε ψηφιακό εξοπλισμό εγχόρδων.",
+            "Βύθιζες ψηφιακά χόρτα ξαπλωμένε δόγη!",
+            "Ξοπίσω, ραβδίζω φλεγματικά τα ψυχανθή.",
+            "Θα ξεφύγω με βία στην ψυχεδελική πρόζα.",
+            "Βράζω γόπες με το φθηνό λάδι και ξεψυχώ.",
+            "Βυθίζω χοντρή γίδα με ψηφιακό εξοπλισμό.",
+            "Τρηχύν δ' υπερβάς φραγμόν εξύνθιζε κλώψ.",
+        ],
 
-    # Other languages
-    # (see http://clagnut.com/blog/2380)
-    #
-
+        # Other languages
+        # (see http://clagnut.com/blog/2380)
+        #
+    }
+    
 
 ###############################################################################
 # Main
@@ -1284,8 +1328,9 @@ provide Mathematical and similar variants for most of them.""")
             "--font", type=str, default="ITALIC",
             help="Character variant to convert to. Default: ITALIC.")
         parser.add_argument(
-            "--indeosperamus", action="store_true",
-            help="Use actual Latin for sample sentences.")
+            "--language", type=str, default="English",
+            choices=[ "Latin", "Greek", "English" ],
+            help="Choose language for sample sentences.")
         parser.add_argument(
             "--makeHtmlComparison", action="store_true",
             help="Write out an HTML document that compares Math quasi-fonts to formatted regulars.")
@@ -1371,7 +1416,7 @@ provide Mathematical and similar variants for most of them.""")
         translate tables and print the result on a sample sentence.
         """
         print("Testing xtabs for script '%s'." % (script))
-        if (not sample): sample = getRandomSentence()
+        if (not sample): sample = getRandomSentence(args.language)
 
         for k in (sorted(exceptionDict.keys())):
             if (exceptionDict[k] is None):
@@ -1389,12 +1434,9 @@ provide Mathematical and similar variants for most of them.""")
             if (digits == "0123456789"): digits = "[not available]"
             print("    Digit:" + digits)
 
-    def getRandomSentence():
+    def getRandomSentence(languageName:str="English"):
         import random
-        if (args.indeosperamus):
-            return random.choice(mathAlphanumerics.LatinSentences)
-        else:
-            return random.choice(mathAlphanumerics.EnglishSentences)
+        return random.choice(mathAlphanumerics.pangrams[languageName])
 
     def makeHC(fontFamily: str = ""):
         """Create an HTML file to show the special forms next to their
@@ -1514,9 +1556,9 @@ provide Mathematical and similar variants for most of them.""")
         print("\nSample conversion for script '%s', font '%s':" %
             (scr, args.font))
         if (args.sample is None):
-            args.sample = getRandomSentence()
+            args.sample = getRandomSentence(args.language)
         txt = args.sample
-        if (txt == "" or txt == "*"): txt = getRandomSentence()
+        if (txt == "" or txt == "*"): txt = getRandomSentence(args.language)
         s0 = mathAlphanumerics.convert(txt,
             script=args.script, font=args.font, decompose=args.decompose)
         print("    Original:  " + txt +
