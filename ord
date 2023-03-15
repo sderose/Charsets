@@ -24,7 +24,7 @@ our %metadata = (
     'type'         => "http://purl.org/dc/dcmitype/Software",
     'language'     => "Perl 5.18",
     'created'      => "2007-10",
-    'modified'     => "2022-10-10",
+    'modified'     => "2023-03-15",
     'publisher'    => "http://github.com/sderose",
     'license'      => "https://creativecommons.org/licenses/by-sa/3.0/"
 );
@@ -295,9 +295,9 @@ Choose the output layout for results from the several I<--find...> options:
 =item * STRING: A string of just the selected literal characters.
     u"* ͙⁎"
 
-=item * REGEX: A regular expression "[..]" construct, that matches just 
+=item * REGEX: A regular expression "[..]" construct, that matches just
 the selected literal characters.  At least as of now, non-ASCII
-characters, hyphen, caret, or rsqb, and C0 controls are expressed via 
+characters, hyphen, caret, or rsqb, and C0 controls are expressed via
 backslashed hex codes. Runs of contiguous code points should be, but are not yet,
 coalesced into ranges.
     u"[*.\u204e]"
@@ -581,6 +581,9 @@ ignore case for name lookups, have more named ranges.
 
 =item * 2023-02-08: Add REGEX as output format option, though it doesn't yet
 coalesce contiguous ranges.
+
+=item * 2023-03-15: Show name and mapping for CP1252 usage of C1 controls.
+
 =back
 
 
@@ -990,36 +993,41 @@ sub searchForSymmetricPairs {
 ###############################################################################
 # (Data also available in tupleSets/cp1252.xsv, and in 'chr')
 #
-my %cp1252 = (
-    # CP1252 => Unicode
-    0x000080 => 0x20AC,   # EURO SIGN
-    0x000082 => 0x201A,   # SINGLE LOW-9 QUOTATION MARK
-    0x000083 => 0x0192,   # LATIN SMALL LETTER F WITH HOOK
-    0x000084 => 0x201E,   # DOUBLE LOW-9 QUOTATION MARK
-    0x000085 => 0x2026,   # HORIZONTAL ELLIPSIS
-    0x000086 => 0x2020,   # DAGGER
-    0x000087 => 0x2021,   # DOUBLE DAGGER
-    0x000088 => 0x02C6,   # MODIFIER LETTER CIRCUMFLEX ACCENT
-    0x000089 => 0x2030,   # PER MILLE SIGN
-    0x00008A => 0x0160,   # LATIN CAPITAL LETTER S WITH CARON
-    0x00008B => 0x2039,   # SINGLE LEFT-POINTING ANGLE QUOTATION MARK
-    0x00008C => 0x0152,   # LATIN CAPITAL LIGATURE OE
-    0x00008E => 0x017D,   # LATIN CAPITAL LETTER Z WITH CARON
-    0x000091 => 0x2018,   # LEFT SINGLE QUOTATION MARK
-    0x000092 => 0x2019,   # RIGHT SINGLE QUOTATION MARK
-    0x000093 => 0x201C,   # LEFT DOUBLE QUOTATION MARK
-    0x000094 => 0x201D,   # RIGHT DOUBLE QUOTATION MARK
-    0x000095 => 0x2022,   # BULLET
-    0x000096 => 0x2013,   # EN DASH
-    0x000097 => 0x2014,   # EM DASH
-    0x000098 => 0x02DC,   # SMALL TILDE
-    0x000099 => 0x2122,   # TRADE MARK SIGN
-    0x00009A => 0x0161,   # LATIN SMALL LETTER S WITH CARON
-    0x00009B => 0x203A,   # SINGLE RIGHT-POINTING ANGLE QUOTATION MARK
-    0x00009C => 0x0153,   # LATIN SMALL LIGATURE OE
-    0x00009E => 0x017E,   # LATIN SMALL LETTER Z WITH CARON
-    0x00009F => 0x0178,   # LATIN CAPITAL LETTER Y WITH DIAERESIS
-    );
+my %cp1252Info = (
+    # CP1252 => [ Unicode, name ]
+    0x000080 => [ 0x20AC, "EURO SIGN" ],
+    0x000081 => [ 0x0000, "*unassigned*" ],
+    0x000082 => [ 0x201A, "SINGLE LOW-9 QUOTATION MARK" ],
+    0x000083 => [ 0x0192, "LATIN SMALL LETTER F WITH HOOK" ],
+    0x000084 => [ 0x201E, "DOUBLE LOW-9 QUOTATION MARK" ],
+    0x000085 => [ 0x2026, "HORIZONTAL ELLIPSIS" ],
+    0x000086 => [ 0x2020, "DAGGER" ],
+    0x000087 => [ 0x2021, "DOUBLE DAGGER" ],
+    0x000088 => [ 0x02C6, "MODIFIER LETTER CIRCUMFLEX ACCENT" ],
+    0x000089 => [ 0x2030, "PER MILLE SIGN" ],
+    0x00008A => [ 0x0160, "LATIN CAPITAL LETTER S WITH CARON" ],
+    0x00008B => [ 0x2039, "SINGLE LEFT-POINTING ANGLE QUOTATION MARK" ],
+    0x00008C => [ 0x0152, "LATIN CAPITAL LIGATURE OE" ],
+    0x00008D => [ 0x0000, "*unassigned*" ],
+    0x00008E => [ 0x017D, "LATIN CAPITAL LETTER Z WITH CARON" ],
+    0x00008F => [ 0x0000, "*unassigned*" ],
+    0x000090 => [ 0x0000, "*unassigned*" ],
+    0x000091 => [ 0x2018, "LEFT SINGLE QUOTATION MARK" ],
+    0x000092 => [ 0x2019, "RIGHT SINGLE QUOTATION MARK" ],
+    0x000093 => [ 0x201C, "LEFT DOUBLE QUOTATION MARK" ],
+    0x000094 => [ 0x201D, "RIGHT DOUBLE QUOTATION MARK" ],
+    0x000095 => [ 0x2022, "BULLET" ],
+    0x000096 => [ 0x2013, "EN DASH" ],
+    0x000097 => [ 0x2014, "EM DASH" ],
+    0x000098 => [ 0x02DC, "SMALL TILDE" ],
+    0x000099 => [ 0x2122, "TRADE MARK SIGN" ],
+    0x00009A => [ 0x0161, "LATIN SMALL LETTER S WITH CARON" ],
+    0x00009B => [ 0x203A, "SINGLE RIGHT-POINTING ANGLE QUOTATION MARK" ],
+    0x00009C => [ 0x0153, "LATIN SMALL LIGATURE OE" ],
+    0x00009D => [ 0x0000, "*unassigned*" ],
+    0x00009E => [ 0x017E, "LATIN SMALL LETTER Z WITH CARON" ],
+    0x00009F => [ 0x0178, "LATIN CAPITAL LETTER Y WITH DIAERESIS" ],
+);
 
 # Return the UTF-8 byte sequences for a given character code,
 # punctuated as needed to put in a URI.
@@ -1261,7 +1269,7 @@ sub findMatchingCharacters {
             die "Unknown --listFormat '$listFormat'. \n";
         }
     }
-    
+
     # For ones that accumulate without printing, print them now.
     if ($listFormat eq "STRING") {
         print("    '" . $s . "'\n");
@@ -1292,7 +1300,9 @@ sub showOne {
     my $c = chr($n);
 
     if ($cp1252 && $n>=128 && $n<160) {
-        $n2 = cp1252ToUnicode($n);
+        $n2 = $cp1252Info{$n}->[0];
+        printf("*** Assuming 0x%02x is CP1252, converted to 0x%02x\n",
+            $n, $n2, $cp1252Info{$n}->[1]);
     }
     if ($short) {
         pline(sprintf(" %6s", "'" . getShortName($n2 ? $n2:$n) . "'"));
@@ -1382,8 +1392,10 @@ sub pline {
 sub showUnicodeInfo {
     my ($n) = @_;
     print("\n");
-    if ($n >= 0x000080 && $n < 0x0000a0) {
+    if ($n >= 0x80 && $n < 0xa0) {
         pline("WARNING:", "Not a Unicode graphical code point (C1 control char)");
+        printf("    *** In CP1252, 0x%02x is %s (-> U+%04x) ***\n",
+            $n, $cp1252Info{$n}->[1], $cp1252Info{$n}->[0]);
     }
     if (!isUnicodeCodePoint($n)) {
         pline("WARNING:", "Not a Unicode code point");
@@ -1831,14 +1843,6 @@ sub setupMathAlphabets {  # Not really all *math*....
         [ 'mahjong tiles, bamboos',             'DIGITS', 0x1f010, 1,  9 ],
         [ 'mahjong tiles, circles',             'DIGITS', 0x1f019, 1,  9 ],
     ];
-}
-
-###############################################################################
-# See http://www.microsoft.com/typography/unicode/1252.htm
-#
-sub cp1252ToUnicode {
-    my ($char) = @_;
-    return($cp1252{$char});
 }
 
 
