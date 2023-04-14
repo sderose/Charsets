@@ -36,7 +36,7 @@ that are in a given Unicode character category or categories. For example:
 will display all titlecase characters (Unicode category "Letter, Titlecase").
 
 The --find [regex] option may be used as an additional filter, to discard any
-characters whose full Unicode name do not match [regex].
+characters whose full Unicode names do not match [regex].
 
 Use ""--showCategories'' to get a list of the category mnemonics (single-letter
 mnemonics may be used to catch a broader category).
@@ -44,13 +44,15 @@ mnemonics may be used to catch a broader category).
 
 =Output formats available=
 
-The resulting list is available in several forms, though always in
+The resulting list is available in several forms via --format, though always in
 numeric code point order.
 
-For example, for various values of [F] and [Category] in:
+Examples below show the first several items displayed
+for various values of --format and various categories in:
+
     showUnicodeCharsInClass.py --format [F] [Category]
 
-==chart==
+== --format chart==
 
 Category ''Po'':
 
@@ -71,8 +73,9 @@ Category ''Po'':
     U+003b ';' (Po) (0) SEMICOLON
     U+003f '?' (Po) (0) QUESTION MARK
     U+0040 '@' (Po) (0) COMMERCIAL AT
+    ...
 
-==xsv==
+== --format xsv==
 
 Category ''Cf'':
 
@@ -81,21 +84,21 @@ Category ''Cf'':
     <Rec Hex='070f' Cat='Cf' Name='SYRIAC ABBREVIATION MARK' />
     <Rec Hex='200b' Cat='Cf' Name='ZERO WIDTH SPACE' />
 
-==bycode==
+== --format bycode==
 
     \\xad        : 'SOFT HYPHEN',
     \\u0600      : 'ARABIC NUMBER SIGN',
     \\u070f      : 'SYRIAC ABBREVIATION MARK',
     \\u200b      : 'ZERO WIDTH SPACE',
 
-==byname==
+== --format byname==
 
     "SOFT HYPHEN"                           : \\xad,
     "ARABIC NUMBER SIGN"                    : \\u0600,
     "SYRIAC ABBREVIATION MARK"              : \\u070f,
     "ZERO WIDTH SPACE"                      : \\u200b,
 
-==bracket==
+== --format bracket==
 
 This generates the list in a form that can be put into a regular expression as
 a [...] group:
@@ -111,12 +114,13 @@ using the smallest hex escape they can (probably should add a `--width` option).
 `makeCharChart.py`, `getCharsByScript`.
 `findCodePointsInClass.py' (obsolete, I forgot I wrote this...)
 
+
 =Known bugs and Limitations=
 
 Should offer same display layouts as `ord`.
 
-Should "-" or "^" be the first member of a category, I<--format brakcet>
-would get confused.
+Should "-" or "^" be the first member of a category, I<--format bracket>
+will get confused.
 
 Long lines with <--format bracket> are not wrapped.
 

@@ -22,7 +22,7 @@ our %metadata = (
     'type'         => "http://purl.org/dc/dcmitype/Software",
     'language'     => "Perl 5",
     'created'      => "2006-04-27",
-    'modified'     => "2020-11-18",
+    'modified'     => "2023-04-14",
     'publisher'    => "http://github.com/sderose",
     'license'      => "https://creativecommons.org/licenses/by-sa/3.0/"
 );
@@ -48,9 +48,8 @@ use I<--no-includeg0>. To suppress all reporting of character counts
 use I<--no-count>.
 
 B<Note>: Be sure to set the character encoding if applicable,
-using I<--unicode>, I<--cp1252>, or I<--iencoding> (see also I<--listEncodings>).
-If you don't specify an encoding, it will guess,
-which basically means use bytes raw.
+using I<--unicode>, I<--cp1252>, I<--cpmac> or I<--iencoding>
+(see also I<--listEncodings>).
 
 For example, to run this over all the I<.txt> files under the current
 directory, but ignoring all characters between pointy-brackets:
@@ -153,7 +152,14 @@ Show a table of how many times each char was found (see also I<--rank>).
 
 Sets I<--iencoding encoding(cp1252)>, and also
 shows mnemonics for MS code page 1252, which uses 0x80-0x9F as graphical
-characters rather than control characters as in other character sets).
+characters rather than control characters.
+
+
+=item * B<--cpmac>
+
+Sets I<--iencoding encoding(MacRoman)>, and also
+shows mnemonics for that character set, which uses 0x80-0x9F as graphical
+characters rather than control characters.
 
 =item * B<--fields> I<f>
 
@@ -487,6 +493,10 @@ counted as part of block "Arabic Presentation Forms-B".
 =item * 2020-11-18: Make I<--upop> handle both U'xxxx and U+xxxx, and
 handle from 1 to 5 hex digits, not just exactly 4.
 
+=item * 2023-04-14: Add I<--cpmac> to enable display of old MacRoman names
+for C1 control characters (like I<--cp1252 for Windows). Recognize more
+recent backslash forms \\U and \\x{}.
+
 =back
 
 
@@ -494,7 +504,7 @@ handle from 1 to 5 hex digits, not just exactly 4.
 
 This script was formerly known as C<nonascii>.
 
-Copyright 2006-2020, Steven J. DeRose.
+Copyright 2006, Steven J. DeRose.
 This work is licensed under a Creative Commons
 Attribution-Share Alike 3.0 Unported License. For further information on
 this license, see L<http://creativecommons.org/licenses/by-sa/3.0/>.
@@ -528,7 +538,8 @@ my @columns           = ();      # What columns to check?
 my $context           = 30;
 my $controls          = 0;       # Count C0 control chars are odd?
 my $count             = 1;       # Show a table of char frequencies?
-my $cp1252            = 0;       # Windows char set
+my $cp1252            = 0;       # Old Windows char set
+my $cpmac             = 0;       # Old Mac char set
 my @fieldsToSearch    = ();      # Where to look among fields of a CSV
 my $filesOnly         = 0;       # Don't allow reading stdin
 my $filesWithMatches  = 0;
@@ -588,6 +599,9 @@ my %getoptHash = (
     "count!"               => \$count,
     "cp1252"               => sub {
         $cp1252 = 1; $iencoding = "cp1252";
+    },
+    "cpmac"               => sub {
+        $cpmac = 1; $iencoding = "MacRoman";
     },
     "fieldsToSearch=i"     => \@fieldsToSearch,
     "first!"               => \$first,
@@ -722,7 +736,7 @@ my $pad = (" " x $context);
 ($minFreq < 0) && die "-minFreq value too small.\n";
 ($minFreq > $maxFreq) && die "-minFreq greater than -maxFreq.\n";
 
-if ($cp1252 || $g1names) { $width = 7; }
+if ($cp1252 || $cpmac || $g1names) { $width = 7; }
 
 $ilineends = uc(substr($ilineends."U",0,1));
 if    ($ilineends eq "M") { $/ = chr(13); }
@@ -781,14 +795,14 @@ my @C1names1252 = (
     "rrquo",  "bull",   "ndash",  "mdash",      # x94-
     "stilde", "trade",  "scaron", "raquo",      # x98-
     "oelig",   $UNK,    "zcaron", "ydiaer",     # x9C-
-    "NBS");
+    "NBSP");  # Sometimes considered a control?
 
-# Apple code page (pre-OS-X; OS X uses utf8) -- UNUSED for now
+# Apple code page (pre-OS-X; OS X uses utf8)
 #
 my @C1namesMac = (
     "Auml",   "Aring",  "Ccedil", "Eacute",     # x80-
     "Ntilde", "Ouml",   "Uuml",   "aacute",     # x84-
-    "agrace", "acarat", "auml",   "atilde",     # x88-
+    "agrave", "acarat", "auml",   "atilde",     # x88-
     "aring",  "ccedil", "eacute", "egrave",     # x8C-
     "ecarat", "euml",   "iacute", "igrave",     # x90-
     "icarat", "iuml",   "ntilde", "oacute",     # x94-
@@ -1042,15 +1056,23 @@ sub tryOtherForms {
 
     if (($perl || $javascript) && $c eq "\\") {             # Backslashes
         my $remainder = substr($context, $theCol);
-        if ($remainder =~ m/\\d(\d\d\d)/) {                       # Decimal
+        if ($remainder =~ m/^\\d(\d\d\d)/) {                       # Decimal
             checkAndScream(chr($1), "\\d",$theCol,$path);
             $theCol += length($1)+1;
         }
-        elsif ($remainder =~ m/\\x([[:xdigit:]][[:xdigit:]])/) {  # Hex
+        elsif ($remainder =~ m/^\\x([[:xdigit:]][[:xdigit:]])/) {  # Hex
             checkAndScream(chr(hex($1)), "\\x",$theCol,$path);
             $theCol += length($1)+1;
         }
-        elsif ($remainder =~ m/\\u([[:xdigit:]]{4})/) {           # Unicode
+        elsif ($remainder =~ m/^\\x\{([[:xdigit:]]+)\}/)        {  # Hex var
+            checkAndScream(chr(hex($1)), "\\x",$theCol,$path);
+            $theCol += length($1)+1;
+        }
+        elsif ($remainder =~ m/^\\u([[:xdigit:]]{4})/) {           # Unicode 4
+            checkAndScream(chr(hex($1)), "\\u",$theCol,$path);
+            $theCol += length($1)+1;
+        }
+        elsif ($remainder =~ m/^\\U([[:xdigit:]]{8})/) {           # Unicode 8
             checkAndScream(chr(hex($1)), "\\u",$theCol,$path);
             $theCol += length($1)+1;
         }
@@ -1257,7 +1279,7 @@ sub report {
             percentLine("  non-space", $ns, $charCount);
             percentLine("G0 graphics", $g0, $charCount);
             percentLine("C1 controls", $c1, $charCount);
-            if ($c1>0 && !$cp1252) {
+            if ($c1>0 && !($cp1252 || $cpmac)) {
                 print "    ***** SHOULD NOT BE HERE *****\n";
                 alogging::eMsg(0,
                     "Warning: $c1 characters found (128-159)! Not Unicode!");
@@ -1396,8 +1418,9 @@ BEGIN {
         }
         if ($color && $i>=128 && $i<=159) {
             $toPrint =~ s/\s+$//;
-            $toPrint = $cred . $toPrint .
-                " (CP1252: " . getCP1252name($i) . ")" . $coff;
+            my $alts = sprintf(" (CP1252: %s; MacRoman: %s)",
+                getCP1252name($i), getCPMacName($i));
+            $toPrint = $cred . $toPrint . $alts . $coff;
         }
         print "$toPrint\n";
         $last = $i;
@@ -1416,8 +1439,9 @@ sub ascdisplay {
     elsif ($n<127)  { $rc = chr($n); }                # G0
     elsif ($n==127) { $rc = "DEL"; }
     elsif ($n<160)  {                                 # C1
-        if ($cp1252)  { $rc = $C1names1252[$n-128]; }
-        else          { $rc = $C1names[$n-128]; }
+        if ($cp1252)   { $rc = $C1names1252[$n-128]; }
+        elsif ($cpmac) { $rc = $C1namesMac[$n-128]; }
+        else           { $rc = $C1names[$n-128]; }
     }
     elsif ($n<256)  {                                 # G1
         if ($g1names && defined $htmlNames[$n])
@@ -1525,5 +1549,48 @@ BEGIN {
     sub getCP1252name {
         my ($n) = @_;
         return($cp1252Names[$n] || "???");
+    }
+} # END
+
+
+BEGIN {  # TODO: Expand to full names, do something for G1 range
+    my @cpMacNames = ();
+    $cpMacNames[0x80] = "Auml";
+    $cpMacNames[0x81] = "Aring";
+    $cpMacNames[0x82] = "Ccedil";
+    $cpMacNames[0x83] = "Eacute";
+    $cpMacNames[0x84] = "Ntilde";
+    $cpMacNames[0x85] = "Ouml";
+    $cpMacNames[0x86] = "Uuml";
+    $cpMacNames[0x87] = "aacute";
+    $cpMacNames[0x88] = "agrave";
+    $cpMacNames[0x89] = "acarat";
+    $cpMacNames[0x8A] = "auml";
+    $cpMacNames[0x8B] = "atilde";
+    $cpMacNames[0x8C] = "aring";
+    $cpMacNames[0x8D] = "ccedil";
+    $cpMacNames[0x8E] = "eacute";
+    $cpMacNames[0x8F] = "egrave";
+    $cpMacNames[0x90] = "ecarat";
+    $cpMacNames[0x91] = "euml";
+    $cpMacNames[0x92] = "iacute";
+    $cpMacNames[0x93] = "igrave";
+    $cpMacNames[0x94] = "icarat";
+    $cpMacNames[0x95] = "iuml";
+    $cpMacNames[0x96] = "ntilde";
+    $cpMacNames[0x97] = "oacute";
+    $cpMacNames[0x98] = "ograve";
+    $cpMacNames[0x99] = "ocarat";
+    $cpMacNames[0x9A] = "ouml";
+    $cpMacNames[0x9B] = "otilde";
+    $cpMacNames[0x9C] = "uacute";
+    $cpMacNames[0x9D] = "ugrave";
+    $cpMacNames[0x9E] = "ucarat";
+    $cpMacNames[0x9F] = "uuml";
+
+
+    sub getCPMacName {
+        my ($n) = @_;
+        return($cpMacNames[$n] || "???");
     }
 } # END
