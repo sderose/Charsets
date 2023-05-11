@@ -245,7 +245,8 @@ def processOptions():
         "--lfAs", type=str, default="LF", choices=lfChoices,
         help='Whether to show Line Feeds as SELF, LF: LF, or NL: NL symbol.')
     parser.add_argument(
-        "--oformat", type=str, default="ENTITY16", choices=oformatChoices,
+        "--oformat", "--outputFormat", "--output-format",
+        type=str, default="ENTITY16", choices=oformatChoices,
         help="How to write out invisible characters.")
     parser.add_argument(
         "--quiet", "-q", action='store_true',

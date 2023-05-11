@@ -229,7 +229,7 @@ my $result = GetOptions(
     "iencoding=s"       => \$iencoding,
     "lfAs=s"            => \$lfAs,
     "oencoding=s"       => \$oencoding,
-    "oFormat=s"         => \$oFormat,
+    "oFormat|outputFormat|output-format=s" => \$oFormat,
     "pics|pix!"         => \$pics,
     "q|quiet!"          => \$quiet,
     "s|allSpaces!"      => sub { $lfAs = "LF"; $tabAs = "HT"; $spaceAs = "SP"; },

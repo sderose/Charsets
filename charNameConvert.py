@@ -859,7 +859,8 @@ if __name__ == "__main__":
             "--oencoding", type=str, metavar="E", default="utf-8",
             help="Use this character coding for output. Default: iencoding.")
         parser.add_argument(
-            "--oformat", type=str, choices=[ "texdefs", "chart" ], default="chart",
+            "--oformat", "--outputFormat", "--output-format",
+            type=str, choices=[ "texdefs", "chart" ], default="chart",
             help="With --chart, what output layout to generate.")
         parser.add_argument(
             "--quiet", "-q", action="store_true",

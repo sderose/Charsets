@@ -726,7 +726,7 @@ my $result = GetOptions(
     "hex!"                => \$hex,
     "iconv!"              => \$iconv,
     "jargon!"             => \$jargon,
-    "listFormat|outFormat|oFormat=s" => \$listFormat,
+    "listFormat|oFormat|outputFormat|output-format=s" => \$listFormat,
     "literal!"            => \$literal,
     "long!"               => \$long,
     "math!"               => \$math,
