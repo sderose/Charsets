@@ -24,7 +24,7 @@ __metadata__ = {
 }
 __version__ = __metadata__['modified']
 
-def warn(msg):
+def warning(msg):
     if (args.verbose): sys.stderr.write(msg+"\n")
 
 descr = """
@@ -158,7 +158,7 @@ def mapControlChar(charNum, what=""):
         return chr(0x2400 + charNum)
     if (args.name):
         if (charNum > len(names)):
-            warn("Control U+%04x out of range for names -- check code." % (charNum))
+            warning("Control U+%04x out of range for names -- check code." % (charNum))
         return "*%s*" % (names[charNum])
     if (args.backSlashes and backslashCodes[charNum]):
         return backslashCodes[charNum]
@@ -203,7 +203,7 @@ def doOneFile(path, fh):
         rec = fh.readline()
 
     if (not args.quiet): return
-    warn("File '%s': Control characters: %d, chars > 127: %d." %
+    warning("File '%s': Control characters: %d, chars > 127: %d." %
         (path, nControls, nHigh))
 
 
@@ -272,11 +272,11 @@ def processOptions():
         help='Path(s) to input file(s).')
 
     args0 = parser.parse_args()
-    if (args0.verbose): print(args)
     return args0
 
 
 args = processOptions()
+warning(repr(args))
 
 su = sjdUtils()
 cs = ""
@@ -295,7 +295,7 @@ if (not args.files):
 
 for path0 in args.files:
     if (not os.path.isfile(path0)):
-        warn("Can't find file '%s'." % (path0))
+        warning("Can't find file '%s'." % (path0))
     else:
         with codecs.open(path0, "rb", encoding=args.iencoding) as fh0:
             doOneFile(path0, fh0)
