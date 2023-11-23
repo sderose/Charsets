@@ -7,7 +7,6 @@
 #
 import sys
 import re
-import os
 import codecs
 import unicodedata
 import xml
@@ -15,15 +14,15 @@ import html
 from html.entities import codepoint2name  # name2codepoint
 from urllib.parse import quote as urlquote
 from enum import Enum
-from subprocess import check_output
 #from typing import Union
+from functools import partial
 
 from CharDisplay import getCharInfo
 # TODO Fix
 from CharDisplay import myCodepoint2script, myCodepoint2block, unicodeCategories, unixJargon
 import CharDisplay
 
-import DomExtensions
+#import DomExtensions
 from alogging import ALogger
 lg = ALogger(1)
 
@@ -35,7 +34,7 @@ __metadata__ = {
     "type"         : "http://purl.org/dc/dcmitype/Software",
     "language"     : "Python 3.6",
     "created"      : "2021-04-08",
-    "modified"     : "2021-10-28",
+    "modified"     : "2023-11-23",
     "publisher"    : "http://github.com/sderose",
     "license"      : "https://creativecommons.org/licenses/by-sa/3.0/"
 }
@@ -153,7 +152,7 @@ or [https://github.com/sderose].
 verbose = 0
 def log(lvl:int, msg:str) -> None:
     if (verbose >= lvl): sys.stderr.write(msg+"\n")
-    
+
 try:
     import charNameConvert
     sebastian = charNameConvert.charNameConvert()
@@ -280,134 +279,135 @@ OCTO    = True  # Signals that "#" is ok
 # Many more unihan properties, all starting with "k".
 #
 UnicodeProperties = {
-    # Attribute name                  (  freq, ),  #
-    "AHex":                           (   254, None, UBOOL,   ),  # ASCII_Hex_Digit
-    "Alpha":                          (  2122, None, UBOOL,   ),  # Alphabetic
-    "Bidi_C":                         (   239, None, UBOOL,   ),  # Bidi_Control
-    "Bidi_M":                         (   595, None, UBOOL,   ),  # mirrored
-    "CE":                             (   310, None, UBOOL,   ),  # Composition_Exclusion
-    "CI":                             (  1136, None, UBOOL,   ),  # Case_Ignorable
-    "CWCF":                           (  1302, None, UBOOL,   ),  # Changes_When_Casefolded
-    "CWCM":                           (   682, None, UBOOL,   ),  # Changes_When_Casemapped
-    "CWKCF":                          (  1637, None, UBOOL,   ),  # Changes_When_NFKC_Casefolded
-    "CWL":                            (  1255, None, UBOOL,   ),  # Changes_When_Lowercased
-    "CWT":                            (  1278, None, UBOOL,   ),  # Changes_When_Titlecased
-    "CWU":                            (  1256, None, UBOOL,   ),  # Changes_When_Uppercased
-    "Cased":                          (   742, None, UBOOL,   ),  # Cased
-    "Comp_Ex":                        (   363, None, UBOOL,   ),  # Full_Composition_Exclusion
-    "DI":                             (   276, None, UBOOL,   ),  # Default_Ignorable_Code_Point
-    "Dash":                           (   257, None, UBOOL,   ),  # Dash
-    "Dep":                            (   247, None, UBOOL,   ),  #
-    "Dia":                            (   683, None, UBOOL,   ),  # Diacritic
+    # Attribute name   (  freq, ),  #
+    "AHex":            (   254, None, UBOOL,   ),  # ASCII_Hex_Digit
+    "Alpha":           (  2122, None, UBOOL,   ),  # Alphabetic
+    "Bidi_C":          (   239, None, UBOOL,   ),  # Bidi_Control
+    "Bidi_M":          (   595, None, UBOOL,   ),  # mirrored
+    "CE":              (   310, None, UBOOL,   ),  # Composition_Exclusion
+    "CI":              (  1136, None, UBOOL,   ),  # Case_Ignorable
+    "CWCF":            (  1302, None, UBOOL,   ),  # Changes_When_Casefolded
+    "CWCM":            (   682, None, UBOOL,   ),  # Changes_When_Casemapped
+    "CWKCF":           (  1637, None, UBOOL,   ),  # Changes_When_NFKC_Casefolded
+    "CWL":             (  1255, None, UBOOL,   ),  # Changes_When_Lowercased
+    "CWT":             (  1278, None, UBOOL,   ),  # Changes_When_Titlecased
+    "CWU":             (  1256, None, UBOOL,   ),  # Changes_When_Uppercased
+    "Cased":           (   742, None, UBOOL,   ),  # Cased
+    "Comp_Ex":         (   363, None, UBOOL,   ),  # Full_Composition_Exclusion
+    "DI":              (   276, None, UBOOL,   ),  # Default_Ignorable_Code_Point
+    "Dash":            (   257, None, UBOOL,   ),  # Dash
+    "Dep":             (   247, None, UBOOL,   ),  #
+    "Dia":             (   683, None, UBOOL,   ),  # Diacritic
     # Emoji properties
-    "Emoji":                          (   683, None, UBOOL,   ),  #
-    "EPres":                          (   683, None, UBOOL,   ),  #
-    "EMod":                           (   683, None, UBOOL,   ),  #
-    "EBase":                          (   683, None, UBOOL,   ),  #
-    "EComp":                          (   683, None, UBOOL,   ),  #
-    "ExtPict":                        (   683, None, UBOOL,   ),  #
+    "Emoji":           (   683, None, UBOOL,   ),  #
+    "EPres":           (   683, None, UBOOL,   ),  #
+    "EMod":            (   683, None, UBOOL,   ),  #
+    "EBase":           (   683, None, UBOOL,   ),  #
+    "EComp":           (   683, None, UBOOL,   ),  #
+    "ExtPict":         (   683, None, UBOOL,   ),  #
     #
-    "EqUIdeo":                        (     0, None, UHEXINT, ),  # Equivalent_Unified_Ideograph
-    "Ext":                            (   260, None, UBOOL,   ),  # Extender
-    "FC_NFKC":                        (   840, None,    "",   ),  #
-    "GCB":                            (  1672, None,   str,   ),  # Grapheme_Cluster_Break (2-3 letter code  )
-    "Gr_Base":                        (  1429, None, UBOOL,   ),  # Grapheme_Base
-    "Gr_Ext":                         (   921, None, UBOOL,   ),  # Grapheme_Extend
-    "Gr_Link":                        (   259, None, UBOOL,   ),  # Grapheme_Link
-    "Hex":                            (   276, None, UBOOL,   ),  # Hex_Digit
-    "Hyphen":                         (   243, None, UBOOL,   ),  # Hyphen
-    "IDC":                            (  1482, None, UBOOL,   ),  # ID_Continue,
-    "IDS":                            (  2472, None, UBOOL,   ),  # ID_Start
-    "IDSB":                           (   235, None, UBOOL,   ),  # IDS_Binary_Operator
-    "IDST":                           (   234, None, UBOOL,   ),  # IDS_Trinary_Operator
-    "Ideo":                           (   254, None, UBOOL,   ),  # Ideographic
-    "InSC":                           (     0, None, UTOKEN,  ),  # Indic_Syllabic_Category
-    "JSN":                            (   298, None, UTOKEN,  ),  # Jamo_Short_Name { xsd:string { pattern="[A-Z]{0,3}" }}?
-    "Join_C":                         (   234, None, UBOOL,   ),  # Join_Control
-    "LOE":                            (   247, None, UBOOL,   ),  # Logical_Order_Exception
-    "Lower":                          (  1805, None, UBOOL,   ),  # Lower_Case
-    "Math":                           (   521, None, UBOOL,   ),  # Math
-    "NChar":                          (   250, None, UBOOL,   ),  #
+    "EqUIdeo":         (     0, None, UHEXINT, ),  # Equivalent_Unified_Ideograph
+    "Ext":             (   260, None, UBOOL,   ),  # Extender
+    "FC_NFKC":         (   840, None,    "",   ),  #
+    "GCB":             (  1672, None,   str,   ),  # Grapheme_Cluster_Break (2-3 letter code  )
+    "Gr_Base":         (  1429, None, UBOOL,   ),  # Grapheme_Base
+    "Gr_Ext":          (   921, None, UBOOL,   ),  # Grapheme_Extend
+    "Gr_Link":         (   259, None, UBOOL,   ),  # Grapheme_Link
+    "Hex":             (   276, None, UBOOL,   ),  # Hex_Digit
+    "Hyphen":          (   243, None, UBOOL,   ),  # Hyphen
+    "IDC":             (  1482, None, UBOOL,   ),  # ID_Continue,
+    "IDS":             (  2472, None, UBOOL,   ),  # ID_Start
+    "IDSB":            (   235, None, UBOOL,   ),  # IDS_Binary_Operator
+    "IDST":            (   234, None, UBOOL,   ),  # IDS_Trinary_Operator
+    "Ideo":            (   254, None, UBOOL,   ),  # Ideographic
+    "InSC":            (     0, None, UTOKEN,  ),  # Indic_Syllabic_Category
+    "JSN":             (   298, None, UTOKEN,  ),  # Jamo_Short_Name r"[A-Z]{0,3}"?
+    "Join_C":          (   234, None, UBOOL,   ),  # Join_Control
+    "LOE":             (   247, None, UBOOL,   ),  # Logical_Order_Exception
+    "Lower":           (  1805, None, UBOOL,   ),  # Lower_Case
+    "Math":            (   521, None, UBOOL,   ),  # Math
+    "NChar":           (   250, None, UBOOL,   ),  #
     # Normal forms
-    "NFC_QC":                         (   466, None, UTBOOL,  ),  # ..._Quick_Check { "Y" | "N" | "M" }?
-    "NFD_QC":                         (   754, None, UBOOL,   ),  # ..._Quick_Check { "Y" | "N" }?
-    "NFKC_CF":                        (  5952, OCTO, OHEXINT, ),  #  NKFC_Casefold { "#" | zero-or-more-code-points }?
-    "NFKC_QC":                        (   822, None, UTBOOL,  ),  # ..._Quick_Check { "Y" | "N" | "M" }?
-    "NFKD_QC":                        (  1048, None, UBOOL,   ),  # ..._Quick_Check { "Y" | "N" }?
+    "NFC_QC":          (   466, None, UTBOOL,  ),  # ..._Quick_Check { "Y" | "N" | "M" }?
+    "NFD_QC":          (   754, None, UBOOL,   ),  # ..._Quick_Check { "Y" | "N" }?
+    "NFKC_CF":         (  5952, OCTO, OHEXINT, ),  #  NKFC_Casefold { "#" | code-points }?
+    "NFKC_QC":         (   822, None, UTBOOL,  ),  # ..._Quick_Check { "Y" | "N" | "M" }?
+    "NFKD_QC":         (  1048, None, UBOOL,   ),  # ..._Quick_Check { "Y" | "N" }?
     #
-    "OAlpha":                         (   959, None, UBOOL,   ),  # Other_Alphabetic
-    "ODI":                            (   242, None, UBOOL,   ),  # Other_Default_Ignorable_Code_Point
-    "OGr_Ext":                        (   255, None, UBOOL,   ),  # Other_Grapheme_Extend
-    "OIDC":                           (   243, None, UBOOL,   ),  # Other_ID_Continue
-    "OIDS":                           (   236, None, UBOOL,   ),  # Other_ID_Start
-    "OLower":                         (   381, None, UBOOL,   ),  # Other_Lower_Case
-    "OMath":                          (   484, None, UBOOL,   ),  # Other_Math
-    "OUpper":                         (   274, None, UBOOL,   ),  # Other_Upper_Case
-    "Pat_Syn":                        (   384, None, UBOOL,   ),  # Pattern_Syntax
-    "Pat_WS":                         (   243, None, UBOOL,   ),  # Pattern_White_Space
-    "QMark":                          (   261, None, UBOOL,   ),  # Quotation_Mark
-    "Radical":                        (   235, None, UBOOL,   ),  # Radical
-    "RI":                             (     0, None, UBOOL,   ),  # Regional_Indicator
-    "SB":                             (  4514, None,   str,   ),  # Sentence_Break (2 letter code  )
-    "SD":                             (   278, None, UBOOL,   ),  # Soft_Dotted
-    "STerm":                          (   298, None, UBOOL,   ),  # Sentence_Terminal
-    "Term":                           (   393, None, UBOOL,   ),  # Terminal_Punctuation
-    "UIdeo":                          (   248, None, UBOOL,   ),  # Unified_Ideograph
-    "Upper":                          (  1701, None, UBOOL,   ),  # Upper_Case
-    "VS":                             (   235, None, UBOOL,   ),  #
-    "WB":                             (  2933, None,  str,    ),  # Word_Break (2-8 letter code)
-    "WSpace":                         (   258, None, UBOOL,   ),  # White_Space
-    "XIDC":                           (  1501, None, UBOOL,   ),  # XID_Continue
-    "XIDS":                           (  2493, None, UBOOL,   ),  # XID_Start
-    "XO_NFC":                         (   314, None, UBOOL,   ),  #
-    "XO_NFD":                         (   729, None, UBOOL,   ),  #
-    "XO_NFKC":                        (   818, None, UBOOL,   ),  #
-    "XO_NFKD":                        (  1205, None, UBOOL,   ),  #
-    "age":                            (  2213, None,  "1.1",  ),  # Version introduced, as \d+\.\d+
-    "bc":                             (  1745, None,  "BN",   ),  # bidirectional class
-    "blk":                            (                       ),  # Block name (_ not space)
-    "bmg":                            (   594, None, UHEXINT, ),  # code point of  a mirrored image of the current character
-    "bpb":                            (     0,                ),  # bidi paired bracket
-    "bpt":                            (     0,                ),  # bidi paired bracket type
-    "ccc":                            (   694, None, UDECINT, ),  # decimal representation of the combining class.
-    "cf":                             (  1349, OCTO, UHEXINT, ),  # Case_Folding { "#" | one-or-more-code-points }?
-    "cp":                             ( 33248, None, UHEXINT, ),  # code point (hex)
-    "cps":                            (   511, None, UNKNOWN, ),  #
-    "desc":                           (    93, None, UNKNOWN, ),  #
-    "dm":                             ( 17062, OCTO,     "#", ),  # decomposition mapping { "#" | zero-or-more-code-points }?
-    "dt":                             (  1968, None,     str, ),  # decomposition type { "can"  | "com" | "enc" | "fin"  | "font" | "fra" | "init" | "iso" | "med" | "nar"  | "nb"   | "sml" | "sqr"  | "sub" | "sup" | "vert" | "wide" | "none"}?
-    "ea":                             (   929, None, UBOOL,   ),  # East Asian Width { "A" | "F" | "H" | "N" | "Na" | "W" }?
-    "first-cp":                       (   631, None, UNKNOWN, ),  #
-    "gc":                             (  4986, None,  UGCAT,  ),  # General Category (Lu, etc.)
-    "hst":                            (   658, None,  "NA",   ),  # Hangul_Syllable_Type { "L" | "LV" | "LVT" | "T" | "V" | "NA" }?
-    "ideograph":                      (   237, None, UNKNOWN, ),  #
-    "isc":                            (   232, None,   str,   ),  # ISO 10646 comment
-    "jg":                             (   460, None,   str,   ),  # joining group (bug enum)
-    "jt":                             (  1093, None,   str,   ),  # joining class { "U" | "C" | "T" | "D" | "L" | "R" }?
-    "last-cp":                        (   631, None, UNKNOWN, ),  #
-    "lb":                             (  3254, None,   str,   ),  # Line_Break  (big enum of 2-3 letter codes)
-    "lc":                             (  1261, OCTO,   "#",   ),  #
-    "na":                             ( 32416, None,    "",   ),  # Current name
-    "na1":                            (  2236, None, UNKNOWN, ),  # Name in 1.0
-    "name":                           (   615, None, UNKNOWN, ),  #
-    "new":                            (     6, None, UNKNOWN, ),  #
-    "nt":                             (  1120, None,  "None", ),  # numeric type { "None" | "De" | "Di" | "Nu" }?
-    "number":                         (   237, None, UNKNOWN, ),  #
-    "nv":                             (  1384, None,    "",   ),  # numeric value, represented as a fraction
-    "old":                            (     6, None, UNKNOWN, ),  #
-    "radical":                        (   237, None, UNKNOWN, ),  #
-    "sc":                             (  1371, None,  "Zyyy", ),  # script (big enum of 4-char abbrs)
-    "scf":                            (  1273, None, OHEXINT, ),  # Simple_Case_Folding
-    "slc":                            (  1261, OCTO,  "#",    ),  #
-    "scx":                            (     0, None,          ),  # script extension { list { script + }}?
-    "stc":                            (  1269, OCTO,  "#",    ),  #
-    "suc":                            (  1269, OCTO,  "#",    ),  #
-    "tc":                             (  1317, OCTO,  "#",    ),  #
-    "uc":                             (  1344, OCTO,  "#",    ),  #
-    "version":                        (     6, None, UNKNOWN, ),  #
-    "vo":                             (     0, None, str,     ),  # Vertical_Orientation { "U" | "R" | "Tu" | "Tr" }?
-    "when":                           (    93, None, UNKNOWN, ),  #
-    "xmlns":                          (     1, None, UNKNOWN, ),  #
+    "OAlpha":          (   959, None, UBOOL,   ),  # Other_Alphabetic
+    "ODI":             (   242, None, UBOOL,   ),  # Other_Default_Ignorable_Code_Point
+    "OGr_Ext":         (   255, None, UBOOL,   ),  # Other_Grapheme_Extend
+    "OIDC":            (   243, None, UBOOL,   ),  # Other_ID_Continue
+    "OIDS":            (   236, None, UBOOL,   ),  # Other_ID_Start
+    "OLower":          (   381, None, UBOOL,   ),  # Other_Lower_Case
+    "OMath":           (   484, None, UBOOL,   ),  # Other_Math
+    "OUpper":          (   274, None, UBOOL,   ),  # Other_Upper_Case
+    "Pat_Syn":         (   384, None, UBOOL,   ),  # Pattern_Syntax
+    "Pat_WS":          (   243, None, UBOOL,   ),  # Pattern_White_Space
+    "QMark":           (   261, None, UBOOL,   ),  # Quotation_Mark
+    "Radical":         (   235, None, UBOOL,   ),  # Radical
+    "RI":              (     0, None, UBOOL,   ),  # Regional_Indicator
+    "SB":              (  4514, None,   str,   ),  # Sentence_Break (2 letter code  )
+    "SD":              (   278, None, UBOOL,   ),  # Soft_Dotted
+    "STerm":           (   298, None, UBOOL,   ),  # Sentence_Terminal
+    "Term":            (   393, None, UBOOL,   ),  # Terminal_Punctuation
+    "UIdeo":           (   248, None, UBOOL,   ),  # Unified_Ideograph
+    "Upper":           (  1701, None, UBOOL,   ),  # Upper_Case
+    "VS":              (   235, None, UBOOL,   ),  #
+    "WB":              (  2933, None,  str,    ),  # Word_Break (2-8 letter code)
+    "WSpace":          (   258, None, UBOOL,   ),  # White_Space
+    "XIDC":            (  1501, None, UBOOL,   ),  # XID_Continue
+    "XIDS":            (  2493, None, UBOOL,   ),  # XID_Start
+    "XO_NFC":          (   314, None, UBOOL,   ),  #
+    "XO_NFD":          (   729, None, UBOOL,   ),  #
+    "XO_NFKC":         (   818, None, UBOOL,   ),  #
+    "XO_NFKD":         (  1205, None, UBOOL,   ),  #
+    "age":             (  2213, None,  "1.1",  ),  # Version introduced, as \d+\.\d+
+    "bc":              (  1745, None,  "BN",   ),  # bidirectional class
+    "blk":             (                       ),  # Block name (_ not space)
+    "bmg":             (   594, None, UHEXINT, ),  # code point of mirror character
+    "bpb":             (     0,                ),  # bidi paired bracket
+    "bpt":             (     0,                ),  # bidi paired bracket type
+    "ccc":             (   694, None, UDECINT, ),  # decimal representation of the combining class.
+    "cf":              (  1349, OCTO, UHEXINT, ),  # Case_Folding { "#" | code-points }?
+    "cp":              ( 33248, None, UHEXINT, ),  # code point (hex)
+    "cps":             (   511, None, UNKNOWN, ),  #
+    "desc":            (    93, None, UNKNOWN, ),  #
+    "dm":              ( 17062, OCTO,     "#", ),  # decomposition mapping { "#"|code-points }?
+    "dt":              (  1968, None,     str, ),  # decomposition type { "can" |"com"|"enc"|"fin"
+    #|"font"|"fra"|"init"|"iso"|"med"|"nar" |"nb"  |"sml"|"sqr" |"sub"|"sup"|"vert"|"wide"|"none"}?
+    "ea":              (   929, None, UBOOL,   ),  # East Asian Width { "A"|"F"|"H"|"N"|"Na"|"W" }?
+    "first-cp":        (   631, None, UNKNOWN, ),  #
+    "gc":              (  4986, None,  UGCAT,  ),  # General Category (Lu, etc.)
+    "hst":             (   658, None,  "NA",   ),  # Hangul_Syll_Type { L|LV|LVT|T|V|NA }?
+    "ideograph":       (   237, None, UNKNOWN, ),  #
+    "isc":             (   232, None,   str,   ),  # ISO 10646 comment
+    "jg":              (   460, None,   str,   ),  # joining group (bug enum)
+    "jt":              (  1093, None,   str,   ),  # joining class { "U"|"C"|"T"|"D"|"L"|"R" }?
+    "last-cp":         (   631, None, UNKNOWN, ),  #
+    "lb":              (  3254, None,   str,   ),  # Line_Break  (big enum of 2-3 letter codes)
+    "lc":              (  1261, OCTO,   "#",   ),  #
+    "na":              ( 32416, None,    "",   ),  # Current name
+    "na1":             (  2236, None, UNKNOWN, ),  # Name in 1.0
+    "name":            (   615, None, UNKNOWN, ),  #
+    "new":             (     6, None, UNKNOWN, ),  #
+    "nt":              (  1120, None,  "None", ),  # numeric type { "None"|"De"|"Di"|"Nu" }?
+    "number":          (   237, None, UNKNOWN, ),  #
+    "nv":              (  1384, None,    "",   ),  # numeric value, represented as a fraction
+    "old":             (     6, None, UNKNOWN, ),  #
+    "radical":         (   237, None, UNKNOWN, ),  #
+    "sc":              (  1371, None,  "Zyyy", ),  # script (big enum of 4-char abbrs)
+    "scf":             (  1273, None, OHEXINT, ),  # Simple_Case_Folding
+    "slc":             (  1261, OCTO,  "#",    ),  #
+    "scx":             (     0, None,          ),  # script extension { list { script + }}?
+    "stc":             (  1269, OCTO,  "#",    ),  #
+    "suc":             (  1269, OCTO,  "#",    ),  #
+    "tc":              (  1317, OCTO,  "#",    ),  #
+    "uc":              (  1344, OCTO,  "#",    ),  #
+    "version":         (     6, None, UNKNOWN, ),  #
+    "vo":              (     0, None, str,     ),  # Vertical_Orientation { "U"|"R"|"Tu"|"Tr" }?
+    "when":            (    93, None, UNKNOWN, ),  #
+    "xmlns":           (     1, None, UNKNOWN, ),  #
 }
 
 
@@ -455,11 +455,16 @@ class UnicodeDBAccess:  # TODO: Unfinished
     <char cp="0006" na1="ACKNOWLEDGE"/>
     <char cp="0007" na1="BELL"/>
     <char cp="0008" na1="BACKSPACE"/>
-    <char cp="0009" bc="S" lb="BA" WSpace="Y" Pat_WS="Y" SB="SP" na1="CHARACTER TABULATION"/>
-    <char cp="000A" bc="B" lb="LF" WSpace="Y" Pat_WS="Y" GCB="LF" WB="LF" SB="LF" na1="LINE FEED (LF)"/>
-    <char cp="000B" bc="S" lb="BK" WSpace="Y" Pat_WS="Y" WB="NL" SB="SP" na1="LINE TABULATION"/>
-    <char cp="000C" bc="WS" lb="BK" WSpace="Y" Pat_WS="Y" WB="NL" SB="SP" na1="FORM FEED (FF)"/>
-    <char cp="000D" bc="B" lb="CR" WSpace="Y" Pat_WS="Y" GCB="CR" WB="CR" SB="CR" na1="CARRIAGE RETURN (CR)"/>
+    <char cp="0009" bc="S" lb="BA" WSpace="Y" Pat_WS="Y" SB="SP"
+        na1="CHARACTER TABULATION"/>
+    <char cp="000A" bc="B" lb="LF" WSpace="Y" Pat_WS="Y" GCB="LF" WB="LF" SB="LF"
+        na1="LINE FEED (LF)"/>
+    <char cp="000B" bc="S" lb="BK" WSpace="Y" Pat_WS="Y" WB="NL" SB="SP"
+        na1="LINE TABULATION"/>
+    <char cp="000C" bc="WS" lb="BK" WSpace="Y" Pat_WS="Y" WB="NL" SB="SP"
+        na1="FORM FEED (FF)"/>
+    <char cp="000D" bc="B" lb="CR" WSpace="Y" Pat_WS="Y" GCB="CR" WB="CR" SB="CR"
+        na1="CARRIAGE RETURN (CR)"/>
     <char cp="000E" na1="SHIFT OUT"/>
     <char cp="000F" na1="SHIFT IN"/>
     <char cp="0010" na1="DATA LINK ESCAPE"/>
@@ -546,8 +551,6 @@ class UnicodeDBAccess:  # TODO: Unfinished
         self.charEntries = {}
 
     def readUdbXml(self, path:str):
-        """
-        """
         #FILENAME = "ucd.nounihan.flat.xml"
         #FILENAME2 = "ucd.unihan.flat.xml"
         _TYPES = [ ]
@@ -576,8 +579,6 @@ class UnicodeDBAccess:  # TODO: Unfinished
                 self.charEntries[cpInt] = UdbEntry(charProperties)
 
     def readUdbTextish(self, path:str):
-        """
-        """
         #charEntries = {}
         ufh = codecs.open(path, "rb", encoding="utf-8")
         lastN = 0
@@ -698,13 +699,13 @@ class CharInfo:
 
     def setProp(self, k, value):
         if (k not in CharInfo.__infoItems__ and
-            (sebastian and k not in sebastian.propNames)):
+            (sebastian and k not in charNameConvert.propNames)):
             raise KeyError("Unknown character property '%s'." % (k))
-        self.__setattr__(k, value)
+        setattr(self, k, value)
 
     def getitem(self, k):
         if (k not in CharInfo.__infoItems__ and
-            (sebastian and k not in sebastian.propNames)):
+            (sebastian and k not in charNameConvert.propNames)):
             raise KeyError("Unknown character property '%s'." % (k))
 
     # For forms we can easily calculate, use properties.
@@ -726,7 +727,7 @@ class CharInfo:
         elif (pnum >= 3):  pname = "Unassigned"
         else: pname = "-UNKNOWN-"
         return pname
-        
+
     @property
     def JARGON(self):
         if (self.c in unixJargon): return unixJargon[self.c]
@@ -1059,8 +1060,8 @@ __texDiacritics__ = [  # Can these be combined?
     ( "bar above",    "",         chr(0x0304), r"=",  r"{\=A}" ),  # macron
     ( "breve above",  "",         chr(0x0306), r"u ", r"{\u A}" ),
     ( "dot above",    "",         chr(0x0307), r".",  r"{\.C}" ),
-    ( "umlaut",       "uml",      chr(0x0308), r"\"", r'{\"A}' ),  # two dots above, trema, diaeresis
-    ( "ring above",   "ring",     chr(0x030A), r"r ", r"{\r A}" ), # We use generic LaTeX2e notation \r
+    ( "umlaut",       "uml",      chr(0x0308), r"\"", r'{\"A}' ),
+    ( "ring above",   "ring",     chr(0x030A), r"r ", r"{\r A}" ),
     ( "double acute", "",         chr(0x030B), r"H ", r"{\H O}" ),
     ( "hachek",       "caron",    chr(0x030C), r"v ", r"{\v C}" ),  # caron
     ( "cedilla",      "",         chr(0x0327), r"c ", r"{\c C}" ),
@@ -1073,8 +1074,6 @@ for td in __texDiacritics__:
     combinersKnownInTex[td[2]] = td
 
 def entityToTex(eref:str) -> str:
-    """
-    """
     ec = html.unescape(eref)
     if (len(ec) != 1): raise KeyError()
     decomp = unicodedata.normalize("NFKD", ec)
@@ -1091,10 +1090,9 @@ def entityToTex(eref:str) -> str:
 # https://tex.stackexchange.com/questions/9790/mapping-from-unicode-character-to-latex-symbol-for-bibtex
 # https://www.w3.org/Math/characters/unicode.xml
 
+
 ###############################################################################
 #
-from functools import partial
-
 def strfchr(n, fmt:str) -> str:
     """Make something from a character or code point, kind of like strftime().
     Replace instances of %x, %%, and %{name} with the right data.

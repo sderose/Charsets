@@ -17,7 +17,7 @@ __metadata__ = {
     "type"         : "http://purl.org/dc/dcmitype/Software",
     "language"     : "Python 3.9",
     "created"      : "2022-10-04",
-    "modified"     : "2022-10-04",
+    "modified"     : "2023-11-23",
     "publisher"    : "http://github.com/sderose",
     "license"      : "https://creativecommons.org/licenses/by-sa/3.0/"
 }
@@ -147,7 +147,8 @@ if __name__ == "__main__":
             help="Display version information, then exit.")
 
         args0 = parser.parse_args()
-        if (lg and args0.verbose): lg.setLevel(logging.INFO - args0.verbose)
+        if (lg and args0.verbose):
+            logging.basicConfig(level=logging.INFO - args0.verbose)
 
         return(args0)
 

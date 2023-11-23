@@ -131,7 +131,7 @@ def doHTML():
         finalBlanks = 0
 
     nRows = floor((theEnd-theStart) / args.perRow)
-    lg.vMsg(1, "range: %d to %d, in %d rows." % (theStart, theEnd, nRows))
+    lg.info1("range: %d to %d, in %d rows." % (theStart, theEnd, nRows))
 
     uprint("""<?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
@@ -211,7 +211,7 @@ def doText():
         finalBlanks = 0
 
     nRows = floor((theEnd-theStart) / args.perRow)
-    lg.vMsg(1, "range: %d to %d, in %d rows." % (theStart, theEnd, nRows))
+    lg.info1("range: %d to %d, in %d rows." % (theStart, theEnd, nRows))
 
     head = makeTextHead()
     sepLine  = "-" * len(head)

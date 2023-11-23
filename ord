@@ -14,6 +14,8 @@ use Encode;
 use URI::Escape;
 use POSIX;
 
+#use Char::Unicode::Bidi;  # ???
+
 #use sjdUtils;  # getUTF8(), isUnicodeCodePoint() are copied locally.
 
 our %metadata = (
@@ -43,69 +45,54 @@ Displays Unicode character code point numbers and other information
 about a character(s), or searches the Unicode character database for
 particular characters are provides the list of matches in useful formats.
 
-For example, "ord BULLET" produces:
+For example, the "BULLET" character can be specified in any of these ways:
 
-    Unicode Name:    BULLET
-    Unicode Script:  Common
-    Unicode Block:   General Punctuation
-    Unicode Plane:   0: Basic Multilingual
-    Literal:         •
-    Bases:           o20042 d08226 x02022
-    Unicode:         U+02022, utf8 \xe2\x80\xa2, URI(%e2%80%a2)
-    Entities:        &#08226; &#x02022; &bull;
+    ord •            [the literal character]
+    ord 0x2022       [the code point in hexadecimal]
+    ord 8226         [the code point in decimal]
+    ord 020042       [the code point in octal]
+    ord BULLET       [the Unicode name]
+    ord bull         [the HTML 4 entity name]
+    ord %e2%80%a2    [UTF-8 byte sequence as escaped for use in URIs]
 
-You can specify the character(s) to describe in several ways (to describe
-several, separate their specifications by spaces):
+Any of these produces:
+    Unicode Name:      BULLET
+    Unicode Category:  Po (Punctuation, Other)
+    Unicode Script:    Common
+    Unicode Block:     General Punctuation
+    Unicode Plane:     0: Basic Multilingual
+    Literal:           •
+    Bases:             o20042 d08226 x02022
+    Unicode:           U+02022, utf8 \xe2\x80\xa2, URI (%e2%80%a2), Python \u2022
+    Entities:          &#8226; &#x2022; &bull;
 
-=over
+Control characters can also be specified by "^" plus a letter, or by mnemonic.
+For example, LINE FEED may be specified as "^J" or "LF".
+Unix jargon names such as "splat" for "*" are recognized.
 
-=item * ord [char]
+Full unicode names ignore case, but if there are spaces the name needs to be
+quoted, or to use "_" instead of actual space. For example:
+    ord APL_FUNCTIONAL_SYMBOL_LEFTWARDS_VANE
 
-A single literal character.
+You can find all characters whose Unicode name contains a given
+string or regex, like:
+    ord --findRegex "LEFT.*QUO"
 
-=item * ord [entityName]
-
-An HTML 4 or XML special-character entity name, such as "nbsp".
-
-=item * ord [number]
-
-a numeric code point, in octal, decimal, or hex,
-e.g. C<012>, C<10>, or C<0xB9>.
-However, a single decimal digit is taken as a request for information on that
-ASCII character, not on the (C0 control) character (U+0000-0x0009).
+A single decimal digit is taken as a request for information on that
+graphic character, not on the (C0 control) character (U+0000-0x0009).
 Since all decimal digits are also hex digits, you can
-prefix them with "0x" and get the right result.
+describe characters U+0 through U+9 by prefixing them with "0x".
 
-=item * ord [mnemonic]
-
-For control characters, their short mnemonics such as C<LF>,
-or the control-letter equivalent such as C<C-J> or C<^J>.
-
-=item * ord [name]
-
-Full unicode names like "APL FUNCTIONAL SYMBOL LEFTWARDS VANE",
-ignoring case. If there are spaces in the name, you need to
-quote it or use "_" instead of each space. To use partial names,
-see I<--findString> or I<--findRegex>.
-
-=item * ord [jargon]
-
-A fairly large selection of *nix jargon names, such as "splat" or "ket"
-(quote them if they contain spaces).
-
-=item * ord [%utfhex]
-
-A literal percent sign followed by a sequence of bytes specified in
-hexadecimal, to be interpreted as a UTF-8 character (e.g., '%e280a2'
-for U+2022 (Bullet).
-
-=back
+==Searching for characters==
 
 To search for all Unicode characters whose names contain a certain
 string or regex, that are in a given Unicode block, or that would be matched
-by a given regex (say, '\\sLATIN'), use I<--findString>,
+by a given regex (for example '\\sLATIN'), use the I<--findString>,
 I<--findRegex>, B<--findBlock>, or I<--findSet> option.
 All I<--find...> matches ignore case.
+
+You can limit a search to a certain numeric range with I<--minU> and I<--maxU>.
+For example: I<--maxU 0xFFFF> to only search the Base Multilingual Plane.
 
 The list resulting from any of these I<--find...> options can be written out
 in many formats, including as a string of the literal characters, a detailed
@@ -116,8 +103,8 @@ for each found character, like this:
 
     U+02022  •  BULLET
 
-You can limit the search to a certain numeric range with I<--minU> and I<--maxU>.
-For example: I<--maxU 0xFFFF> to only search the Base Multilingual Plane.
+See also my C<CharDisplay.py>, which provides a strftime-like way to
+specify custom output formats.
 
 I<--findString> searches for a literal match within the character's full name.
 To gather up Unicode characters whose formal names include "star"
@@ -128,8 +115,8 @@ Such a search may not get all and only stars, much less all characters one might
 consider using for the purpose one has in mind -- for example:
 
     "*" (asterisk) does not have "star" in its name
-    Nor do many other asterisks, snowflakes, florettes, and sparkles.
-    Some character have "star" in their name but may not be wanted:
+    Nor do many snowflakes, florettes, and sparkles.
+    Some characters have "star" in their name but may not be wanted:
         U+00001     START OF HEADING
         U+00f0c ༌   TIBETAN MARK DELIMITER TSHEG BSTAR
         U+029e6 ⧦   GLEICH STARK
@@ -147,9 +134,17 @@ regex. For example, to find what characters are included by (Perl's)
 regex '\\s' shorthand, use:
     ord --findSet "\\s"
 
-I<--pairs> is a special "find", that searches for symmetric pairs of characters,
+I<--pairs> is a special "find" that searches for symmetric pairs of characters,
 such as brackets, quotes, etc, and writes them out as HTML similar
 to I<--listFormat HTML>.
+
+The parellel lists of tokens are in arrays named
+\@leftWords and \@rightWords, and include a variety of left/right, open/close,
+start/end, and similar pairings.
+
+The search is a bit slow (use -v to get progress
+reports as it runs). Also, it doesn't cover characters that contain multiple
+such keywords.
 
 If you specify more than one of the I<--findXXX> options, the result is
 not defined.
@@ -175,14 +170,14 @@ Ask if you want others, or just add an entry to '%namedRanges'.
 
 The range can also be given as two (decimal or hex) integers,
 separated by non-word characters (such as  '-', ':', '...', ', ', etc.).
-See also I<--c0>, I<--c1>, I<--g0>, I<--g1>
-(which are just synonyms for I<--chart> with the corresponding value).
+See also I<--c0>, I<--c1>, I<--g0>, I<--g1>, which are just synonyms
+for I<--chart> with the corresponding value.
 See also I<--table>, I<--digits>, and I<--math> for other kinds of charts.
 Charts are not affected by I<--minU> or I<maxU>.
 
 =item * B<--cp1252>
 
-Assume the input character set is Windows(r) code page I<cp1252>.
+Assume the input character set is Windows\xAE code page I<cp1252>.
 
 =item * B<--c0>
 
@@ -200,12 +195,12 @@ Display code points in decimal (default).
 
 Show a chart of Unicode digits.
 Some of these are font/style variations, similar to the "MATHEMATICAL" alphabets
-listable using I<--math>; others are digits from non-Latin writing systems.
+listable using I<--math>; others are non-Arabic digits.
 See also I<--chart>.
 
 =item * B<--entities>
 
-Display the named HTML special-character entity (if any), and the
+Display HTML special-character entity names (if any), and the
 SGML/HTML/XML numeric character references (decimal and hexadecimal).
 
 =item * B<--findBlock>
@@ -213,13 +208,13 @@ SGML/HTML/XML numeric character references (decimal and hexadecimal).
 Like I<--findString> (q.v.), but treats the main/final argument as the name
 of a Unicode ''block'' (ignoring case), and returns all
 characters assigned to the block(s) that match
-(and in the code point range from I<--min> and I<--max>).
+(and are in the code point range from I<--min> and I<--max>).
 
 =item * B<--findRegex> or B<--regex>
 
 Like I<--findString> (q.v.), but treats the final
 argument as a (Perl-style) regex, and returns any
-characters whose names match the given (ignoring case).
+characters whose names match it (ignoring case).
 
 =item * B<--findSet> searches for characters which, as literals,
 match the specified regex.
@@ -293,7 +288,7 @@ Choose the output layout for results from the several I<--find...> options:
     U+204e  ⁎   LOW ASTERISK
 
 =item * STRING: A string of just the selected literal characters.
-    u"* ͙⁎"
+    u"* ͙,"
 
 =item * REGEX: A regular expression "[..]" construct, that matches just
 the selected literal characters.  At least as of now, non-ASCII
@@ -366,7 +361,7 @@ Show long names for characters (default).
 =item * B<--math>
 
 Show a display with all the mathematical variants of the Latin
-and Greek alphabets. See also I<--chart>, and the
+and Greek alphabets. See also the I<--chart> option and the
 C<mathAlphanumerics> package.
 
 =item * B<--maxU> I<n>
@@ -379,7 +374,7 @@ Numeric options such as I<--max> can be specified in base 8, 10, or 16.
 =item * B<--minU> I<n>
 
 Only search Unicode characters starting from code point I<n> when using
-any of the several I<--find...> options,
+the several I<--find...> options,
 or trying to resolve an unrecognized name. Default: 65535 (0xoFFFF).
 Numeric options such as I<--max> can be specified in base 8, 10, or 16.
 
@@ -391,8 +386,14 @@ Display code points in octal (default).
 
 Make a valiant attempt to find symmetric pairs of characters, such as ones
 whose names differ only in having "left" vs. "right", "open" vs. "close",
-"begin" vs. "end", etc. Write them out as pairs.
-Does not do "vertical" pairs.
+"begin" vs. "end", etc. Write them out as pairs. This is presently done
+by searching for directional keywords within character names. There is
+a Unicode database file, F<BidiMirroring.txt>, which defines such pairings,
+but I have not found a convenient interface to it from either Perl or
+Python (see "To Do").
+
+Does not do "vertical" pairs, such as U+02191 UPWARDS ARROW vs.
+U+02193 DOWNWARDS ARROW.
 
 =item * B<--regex>
 
@@ -420,7 +421,7 @@ system-dependent).
 Show a variety of information about the UTF-8 encoding for the character(s).
 Default: on.
 B<Note>: To interpret hex input as UTF-8 instead of a codepoint, prefix
-it with "%" instead of "0x" (see above). You do not need to specify
+each byte with "%" instead of "0x" (see above). You do not need to specify
 the I<--utf8> option for that.
 
 =item * B<--version>
@@ -449,18 +450,18 @@ You need to backslash and/or quote some characters to use them as arguments:
     \`  (x60,  d96, o140)
     \|  (x7c, d124, o174)
 
-And some you can't escape in some shells, including:
+Some may be difficult or impossible to escape in some shells, such as:
 
     \\t (x09,  d09,  o11) HT
-    \\n (x0a,  d10,  o12) LF (you can put the newline in double-quotes)
-    \\r (x0d,  d13,  o15) CR (you can put the return in double-quotes)
+    \\n (x0a,  d10,  o12) LF (you can put the newline in double quotes)
+    \\r (x0d,  d13,  o15) CR (you can put the return in double quotes)
 
 
 =head1 Known bugs and limitations
 
 Even with a Unicode-enabled terminal, a character > 255
 may appear to be length > 1 and so will be taken as a name. But when
-the name is not found, we print out the value anyway.
+the name is not found, the value is printed out anyway.
 
 For C<--pairs>, in addition to a list of keywords the code has a list of character
 pairs that can be considered symmetric but whose names don't contain the various
@@ -470,8 +471,18 @@ Reports look a little weird in the case of combining characters. Especially if
 you search for just the combining characters, and print them out as
 I<--listFormat STRING>.
 
-Reports code points in the private use areas as "Not a Unicode code point".
-A more specific message would be better.
+Does not catch cases with multiple direction keywords, such as:
+    U+0200e  ‎  LEFT-TO-RIGHT MARK
+    U+0200f  ‏  RIGHT-TO-LEFT MARK
+    U+021c4  ⇄  RIGHTWARDS ARROW OVER LEFTWARDS ARROW
+    U+021c6  ⇆  LEFTWARDS ARROW OVER RIGHTWARDS ARROW
+    U+02966  ⥦  LEFTWARDS HARPOON WITH BARB UP ABOVE RIGHTWARDS HARPOON WITH BARB UP
+    U+02968  ⥨  RIGHTWARDS HARPOON WITH BARB UP ABOVE LEFTWARDS HARPOON WITH BARB UP
+
+Does not implement vertical keywords (though has a list in the code).
+Does not consider clockwise/counterclockwise cases.
+
+Some additional cases should perhaps be discarded, such as BOX DRAWING characters.
 
 
 =head1 Related commands
@@ -488,11 +499,13 @@ forms such as Mathematical double-struck, etc.
 
 =over
 
+=item * Make regular reports respect --outputFormat, not just --findXXX results.
+
 =item * Tweak --table to accept numeric range like --chart.
 
 =item * Port to Python, using my C<CharDisplay.py> package.
 
-=item * Make `--listFormat` apply to the main list, not just `-f`.
+=item * Make --listFormat apply to the main list, not just -f.
 
 =item * Extend --listformat REGEX to coalesce contiguous ranges.
 
@@ -507,6 +520,11 @@ Allow numbers on command line. Compare/sync report format.
 Joel Kalvesmaki, '''A New \\u: Extending XSLT
 Regular Expressions for Unicode.''' Balisage (2020).
 [https://www.balisage.net/Proceedings/vol25/html/Kalvesmaki01/BalisageVol25-Kalvesmaki01.html]
+
+Use the Unicode database file, F<BidiMirroring.txt>, to implement --pairs,
+rather than the present keyword-search approachs (at least as an option).
+So far I have not found a convenient interface to it from either Perl or
+Python.
 
 =back
 
@@ -583,6 +601,8 @@ ignore case for name lookups, have more named ranges.
 coalesce contiguous ranges.
 
 =item * 2023-03-15: Show name and mapping for CP1252 usage of C1 controls.
+
+=item * 2023-07-25: Report private-use chars specially rather than as unassigned.
 
 =back
 
@@ -841,6 +861,74 @@ sub showMathAlphabets {
 # Not trying:
 #     intersection/union  all/exists, lt/gt,
 #
+my @leftWords = (
+    'LEFT', 'LEFTWARDS', 'LEFT-POINTING', 'LEFT-FACING',
+    'RIGHT-TO-LEFT', 'LEFT-HANDED', 'LEFT-SIDE',
+    'OPEN', 'BEGIN', 'START',
+    'LESS-THAN', 'PRECEDES', 'SUBSET', 'IMAGE', 'ELEMENT OF');
+my @rightWords = (
+    'RIGHT', 'RIGHTWARDS', 'RIGHT-POINTING', 'RIGHT-FACING',
+    'LEFT-TO-RIGHT', 'RIGHT-HANDED', 'RIGHT-SIDE',
+    'CLOSE', 'END', 'END',
+    'GREATER-THAN', 'SUCCEEDS', 'SUPERSET', 'ORIGINAL', 'CONTAINS');
+(scalar @leftWords == scalar @rightWords) || die "leftWords/rightWords mismatch.\n";
+
+my @upWords = (
+    'UP', 'UPWARDS', 'UP-POINTING', 'UP-FACING',
+    'DOWN-TO-UP', 'RISING',
+    );
+my @downWords = (
+    'DOWN', 'DOWNWARDS', 'DOWN-POINTING', 'DOWN-FACING',
+    'UP-TO-DOWN', 'FALLING',
+    );
+(scalar @upWords == scalar @downWords) || die "upWords/downWords mismatch.\n";
+
+# List cases we know we don't catch...
+my %otherPairs = (
+    # Dingbats
+    0x275B => 0x275C,  # squo ornament
+    0x275D => 0x275E,  # dquo ornament
+    0x275F => 0x2760,  # low comma ornament
+    0x27C8 => 0x27C9,  # rsol subset / superset sol
+    0x27D3 => 0x27D4,  # lower right / upper left corner (box drawing?)
+    # Dominos and mah jong tiles? Braille patterns?
+    # Emoticons? smile/frown
+    # Alchemical aqua fortis vs. regis?
+    # Punctuation (prime vs. reversed)
+    0x2032 => 0x2035,
+    0x2033 => 0x2036,
+    0x2034 => 0x2037,
+    # 2057 => ???
+    # Logical/math inversion
+    0x2200 => 0x2203,
+    0x2206 => 0x2206,
+    0x2208 => 0x2209,
+    0x220A => 0x220D,
+    0x220B => 0x220C,
+    0x22B2 => 0x22B3,
+    0x22B4 => 0x22B5,
+    # Controls
+    0x0001 => 0x0003,
+    0x0002 => 0x0002,
+    0x0005 => 0x0006,
+    0x000E => 0x000F,
+    0x2401 => 0x2403,
+    0x2402 => 0x2402,
+    0x2405 => 0x2406,
+    0x240E => 0x240F,
+    0x10140 => 0x10141,
+);
+if ($verbose > 1) {
+    while ((my $key, my $value) = each (%otherPairs)) {
+        warn sprintf("otherPairs: $theHexFormat vs. $theHexFormat\n", $key, $value);
+    }
+}
+
+# Exclude a handful of spurious matches
+my %lame = (
+    0x0FD5=>1, 0x0FD6=>1, 0x0FD7=>1, 0x0FD8=>1,       # Tobetan svasti signs
+);
+
 sub searchForSymmetricPairs {
     print(qq@<html>
 <head>
@@ -854,107 +942,48 @@ sub searchForSymmetricPairs {
 
 <table border="border">
 @);
-    # List cases we know we don't catch...
-    my %otherPairs = (
-        # Dingbats
-        0x275B => 0x275C,  # squo ornament
-        0x275D => 0x275E,  # dquo ornament
-        0x275F => 0x2760,  # low comma ornament
-        0x27C8 => 0x27C9,  # rsol subset / superset sol
-        0x27D3 => 0x27D4,  # lower right / upper left corner (box drawing?)
-        # Dominos and mah jong tiles? Braille patterns?
-        # Emoticons? smile/frown
-        # Alchemical aqua fortis vs. regis?
-        # Punctuation (prime vs. reversed)
-        0x2032 => 0x2035,
-        0x2033 => 0x2036,
-        0x2034 => 0x2037,
-        # 2057 => ???
-        # Logical/math inversion
-        0x2200 => 0x2203,
-        0x2206 => 0x2206,
-        0x2208 => 0x2209,
-        0x220A => 0x220D,
-        0x220B => 0x220C,
-        0x22B2 => 0x22B3,
-        0x22B4 => 0x22B5,
-        # Controls
-        0x0001 => 0x0003,
-        0x0002 => 0x0002,
-        0x0005 => 0x0006,
-        0x000E => 0x000F,
-        0x2401 => 0x2403,
-        0x2402 => 0x2402,
-        0x2405 => 0x2406,
-        0x240E => 0x240F,
-        0x10140 => 0x10141,
-    );
-    if ($verbose) {
-        while ((my $key, my $value) = each (%otherPairs)) {
-            warn sprintf("$theHexFormat: $theHexFormat\n", $key, $value);
-        }
-    }
-
     # Could do "-" special, but want to avoid "OPEN-HEADED ARROW", etc.
-
-    my @leftWords = (
-        'LEFT', 'LEFTWARDS', 'LEFT-POINTING', 'LEFT-FACING',
-        'RIGHT-TO-LEFT', 'LEFT-HANDED', 'LEFT-SIDE',
-        'OPEN', 'BEGIN', 'START',
-        'LESS-THAN', 'PRECEDES', 'SUBSET', 'IMAGE', 'ELEMENT OF');
-    my @rightWords = (
-        'RIGHT', 'RIGHTWARDS', , 'RIGHT-POINTING', 'RIGHT-FACING',
-        'LEFT-TO-RIGHT', 'RIGHT-HANDED', 'RIGHT-SIDE',
-        'CLOSE', 'END', 'END',
-        'GREATER-THAN', 'SUCCEEDS', 'SUPERSET', 'ORIGINAL', 'CONTAINS');
-
-    my @upWords = (
-        'UP', 'UPWARDS', 'UP-POINTING', 'UP-FACING',
-        'DOWN-TO-UP', 'RISING',
-        );
-    my @downWords = (
-        'DOWN', 'DOWNWARDS', 'DOWN-POINTING', 'DOWN-FACING',
-        'UP-TO-DOWN', 'FALLING',
-        );
 
     my $allExpr  = join("|", @leftWords) .'|' .  join("|", @rightWords);
     my $leftExpr = join("|", @leftWords);
     my $rightExpr = join("|", @rightWords);
-    if (scalar(@leftWords) != scalar(@rightWords)) {
-        die "Token count mismatch:\n$leftExpr\n$rightExpr\n";
-    }
+    ($verbose > 1) && warn sprintf(
+        "Regexes for search:\n    %s\n    %s\n", $leftExpr, $rightExpr);
 
     my %pairMap = ();
     for (my $i=0; $i<scalar(@leftWords); $i++) {
         $pairMap{$leftWords[$i]} = $rightWords[$i];
-        0 && warn sprintf("pairing '%s' => '%s'\n",
+        ($verbose > 1) && warn sprintf("pairing keyword '%s' with '%s'\n",
             $leftWords[$i], $pairMap{$leftWords[$i]});
     }
-    my %lame = ( 0x0FD5=>1, 0x0FD6=>1, 0x0FD7=>1, 0x0FD8=>1 );
 
+    # Gather characters that have any of the directional keywords as name tokens.
     my $nCandidates = 0;
     my @candidates = ();
     my %candidateIndex = ();
     for (my $i=$minU; $i<=$maxU; $i++) {
+        ($verbose && $i % 1<<12 == 0) && warn
+            sprintf("At code point %s, %d candidates\n", hexDisp($i), $nCandidates);
         if (exists $lame{$i}) { next; }
-        if (!$quiet && ($i % 0x10000)==0) {
-            warn sprintf("...starting Unicode plane at %s...\n", hexDisp($i));
-        }
         my $iname = charnames::viacode($i);
         if (!$iname) {
-            # sprintf("Cannot get name for %s.\n", uDisp($i));
+            $iname = "NONE";
+            #warn sprintf("Cannot get name for %s.\n", uDisp($i));
             next;
         }
-        # This isn't working...
-        my $isOther = exists $otherPairs{$i};
-        #($isOther) && warn "Got a special case: $i\n";
-        if ($isOther || ($iname =~ m/\b($allExpr)\b/)) {
-            if (!$iname) { warn "Not found\n"; }
+        # TODO: This isn't working...
+        if (exists $otherPairs{$i} || ($iname =~ m/\b($allExpr)\b/)) {
+            ($verbose) && warn sprintf("    Candidate %s: %s\n", hexDisp($i), $iname);
             push(@candidates, [$i, $iname]);
             $candidateIndex{$iname} = $i;
             $nCandidates++;
         }
     }
+    ($verbose) && warn "Total chars found with directional keywords: $nCandidates.\n";
+
+    # Search the candidates. For each one that matches a LEFT keyword,
+    # substitute the corresponding RIGHT keyword and see if that name exists.
+    my $nLeftOnly = 0;
     for (my $i=0; $i<$nCandidates; $i++) {
         my $lNum  = $candidates[$i][0];
         my $lName = $candidates[$i][1];
@@ -964,9 +993,13 @@ sub searchForSymmetricPairs {
         my $rName = $lName;
         $rName =~ s/\b($leftExpr)\b/{
             (exists $pairMap{$1}) || die "Missing left: ".$pairMap{$1}.".\n";
-            $pairMap{$1}
+            $pairMap{$1};
         }/e;
-        if (!exists $candidateIndex{$rName}) { next; }
+        if (!exists $candidateIndex{$rName}) {
+            ($verbose) && warn "No pair found for '$lName'.\n";
+            $nLeftOnly++;
+            next;
+        }
         my $rNum = $candidateIndex{$rName};
         my $rec = "<tr>\n"
         . sprintf("    <td class='char'>%s</td>\n", entDisp($lNum))
@@ -984,6 +1017,7 @@ sub searchForSymmetricPairs {
     if ($nCandidates<1 && $maxU < 0x10000) {
         $msg .= " Trying raising --maxU to 0x1FFFF?";
     }
+    warn "$msg\n";
 
     print("</table>\n</body>\n</html>\n");
     exit;
@@ -1056,6 +1090,14 @@ sub isUnicodeCodePoint {
         ) { return(0); }
     if (!charnames::viacode($n)) { return(0); }   # Perl can't find a name
     return(1);
+}
+
+sub isPrivateUse {
+    my ($n) = @_;
+    ($n >= 0xE000 && $n <= 0xF8FF) && return 1;
+    ($n >= 0x000F0000 && $n <= 0x000FFFFD) && return 1;
+    ($n >= 0x00100000 && $n <= 0x0010FFFD) && return 1;
+    return 0
 }
 
 sub hexDisp {
@@ -1398,7 +1440,12 @@ sub showUnicodeInfo {
             $n, $cp1252Info{$n}->[1], $cp1252Info{$n}->[0]);
     }
     if (!isUnicodeCodePoint($n)) {
-        pline("WARNING:", "Not a Unicode code point");
+        if (isPrivateUse($n)) {
+            pline("WARNING:", "[private use character]");
+        }
+        else {
+            pline("WARNING:", "[Not a Unicode code point]");
+        }
     }
     else {
         pline("Unicode Name:", charnames::viacode($n) || "-NOT FOUND-");
@@ -1896,51 +1943,44 @@ while (my $origName = shift) {
     else { # Search for the name
         my $entRef = '&'.$name.';';
         my $c = HTML::Entities::decode($entRef);
-        if ($c ne $entRef) {                # HTML entity (case sensitive!)
+        if ($c ne $entRef) {                        # HTML entity (case sensitive!)
             $n = ord($c);
             printf("Found HTML entity name '$name' = %s.\n", uDisp($n));
         }
-        $name = uc($name);                  # C0 name?
+        $name = uc($name);                          # C0 name?
         for (my $i=0; $i<scalar @C0names; $i++) {
             if ($C0names[$i] eq $name) { $n = $i; last; }
         }
-        if (!$n) {                          # C1 name?
+        if (!$n) {                                  # C1 name?
             for (my $i=0; $i<scalar @C1names; $i++) {
                 if (lc($C1names[$i]) eq lc($name)) { $n = $i+128; last; }
             }
         }
-        if (!$n) {                          # Long Unicode name
+        if (!$n) {                                  # Long Unicode name
             (my $tname = uc($name)) =~ s/_+/ /g;
             $n = charnames::vianame($tname);
         }
-        if (!$n) {                          # Unix Jargon name?
+        if (!$n) {                                  # Unix Jargon name?
             for my $k (keys %unixJargon) {
                 if ($unixJargon{$k} =~ m/\b$name\b/i) { $n = ord($k); last; }
             }
         }
-        if (!$n) {                          # Number per se?
+        if (!$n) {                                  # Number per se?
             if ($name =~ m/^0?x[0-9a-f]+$/i) {
                 $name =~ s/0?x//i; $n = hex($name);
             }
             elsif ($name =~ m/^0[0-7]+$/)    { $n = oct($name); }
             elsif ($name =~ m/^[0-9]+$/)     { $n = $name - 0; }
         }
-        if (!$n) {                          # ^J C-S
+        if (!$n) {                                  # ^J C-S
             if ($name =~ m/^(\^|C-)([A-Z])$/) {
                 $n = index($upper, $2) + 1;
             }
         }
-        if (!$n) {                          # %e2809c
-            if ($name =~ m/^%([0-9A-F]+)$/i) {
-                if (length($name) % 2 == 0) {
-                    warn "%utf8 must have even length after '%'.\n";
-                }
-                else {
-                    my $uriForm = substr($name,1);
-                    $uriForm =~ s/(..)/%$1/g;
-                    my $txt = Encode::decode('utf8', uri_unescape($uriForm));
-                    $n = ord(substr($txt,0,1));
-                }
+        if (!$n) {                                  # %e2%80%9c
+            if ($name =~ m/^(%[0-9a-f]{2,2})+$/i) {
+                my $txt = Encode::decode('utf8', uri_unescape($name));
+                $n = ord(substr($txt,0,1));
             }
         }
 

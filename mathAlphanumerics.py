@@ -6,7 +6,6 @@
 #
 #pylint: disable=W0603
 #
-from __future__ import print_function
 import sys
 import re
 import unicodedata
@@ -30,28 +29,41 @@ __version__ = __metadata__["modified"]
 descr = """
 =Description=
 
-Provide support for using the many Unicode font-like variations on the 
+Provide support for using the many Unicode font-like variations on the
 Latin and Greek alphabets and digits,
 either as a command-line filter or via an API.
 
 ==Command line usage==
 
-To see samples of all the available variations (using sentences the use all the 
-letters, or text you provide via `--sample`), use:
-    mathAlphanumerics.py --script Latin --language English --test
-    
-    (my `ord --math` displays a similar list and samples)
-    
-To pipe Unicode text through this, use options to select
-the desired script (`--script`, as in Latin, Greek, or Digits)
-and variation (called `--font` because that's how it's being used here):
+To see samples of all the available variations, use:
+
+    mathAlphanumerics.py --script Latin --test
+
+The alternatives for `--script` are "Greek" and "Digits". The sample text is
+chosen randomly from a set of pangrams (phrases that use all the letters).
+The sample set defaults to Enlish; you can instead specify
+`--language [Greek|Latin]]`, or your own text with `--sample [text]`.
+
+N.B.: My `ord --math` displays a similar list and samples (`ord` is for finding
+detailed information about Unicode characters, finding them based on their
+properties).
+
+To pipe Unicode text through `mathAlphanumerics.py``, use options to select
+the desired script
+and variation (called `--font` because that's how it's being used here; `--font`
+values ignore case):
 
     cat eggs.txt | mathAlphanumerics.py --script Latin --font 'BOLD ITALIC'
 
-To convert a sample phrase rather than using stdin (for example, to paste into
-a Web form that doesn't support markup):
+To convert text on the command line rather than using stdin (for example,
+to prepare a message to copy into a Web form that doesn't support markup),
+set the messages as the `--sample` text:
 
-    mathAlphanumerics.py --script Latin --font 'FRAKTUR' --sample "Spam and eggs"
+    mathAlphanumerics.py --font 'FRAKTUR' --sample "Spam and eggs"
+
+To handle accented characters, specify `--decompose` and the diacritics will
+be separated first so that the base characters are converted. This will
+not, however, make the diacritics themselves bold or italic or fraktur, etc.
 
 ==Library usage==
 
@@ -61,9 +73,6 @@ To call the package from Python:
     s2 = mathAlphanumerics.convert(text,
         script="Latin", font="Mathematical Bold", decompose=True)
 
-The `decompose` option separates diacritics from their base characters before
-conversion, so that the base characters are converted.
-
 To generate the corresponding translation table separately:
 
     xtab = mathAlphanumerics.getTranslateTable(
@@ -72,7 +81,7 @@ To generate the corresponding translation table separately:
 
 See the "Methods" section below for more details.
 
-The sample sentences are available in MathAlphanumerics.pangrams, 
+The sample sentences are available in MathAlphanumerics.pangrams,
 a dict keyed by language name.
 
 ==Available "scripts" and "fonts"==
@@ -161,7 +170,7 @@ for most of these; error reports are welcome):
     "CHAM"
     "MEETEI MAYEK"
 
-Some additional digit sets are available except for ZERO:
+Some additional sets of digits are available except for ZERO:
 
     "CIRCLED"
     "DINGBAT NEGATIVE CIRCLED"
@@ -181,7 +190,7 @@ I expect to add other special "effects", but some might not be supported in the 
 =Cautions=
 
 * This will only work if your display medium supports Unicode,
-and the exact results depend on the font(s) in use. 
+and the exact results depend on the font(s) in use.
 *When a mapping is not available, the character is left unchanged.
 * Some of the "fonts" are available only in uppercase, or lack digits.
 * Some of the digit sets lack zero, as noted in the list above.
@@ -224,7 +233,7 @@ Methods in this package are called statically.
 
 ==getFontDict(script="Latin")==
 
-Return `LatinFontDict`, `GreekFontDict`, or `DigitFontDict`, as appropriate.
+Return `LatinFontDict`, `GreekFontDict`, or `DigitsFontDict`, as appropriate.
 See their descriptions below.
 
 ==getStartCodePoint(script="Latin", font="BOLD", group="U")==
@@ -740,7 +749,7 @@ class mathAlphanumerics:
     # beginning where the zero *would* be naturally -- just before the 1.
     # TODO: Delete ones redundant with Latin list above
     #
-    DigitFontDict = {
+    DigitsFontDict = {
         # [ NAME                          UC    LC    DIGITS   exceptions ]
         # These are covered above:
         "BOLD":                         [ None, None, 0x1d7Ce, "" ],
@@ -1101,7 +1110,7 @@ class mathAlphanumerics:
         elif (script == "Greek"):
             return mathAlphanumerics.GreekFontDict
         elif (script == "Digit"):
-            return mathAlphanumerics.DigitFontDict
+            return mathAlphanumerics.DigitsFontDict
         else: raise ValueError(
             "Unknown script '%s', must be Latin|Greek|Digit." %
                 (script))
@@ -1130,13 +1139,13 @@ class mathAlphanumerics:
             uSrcStart = 0x00391; uSrcEnd = 0x003a9
             lSrcStart = 0x003b1; lSrcEnd = 0x003c9
             dSrcStart = dSrcEnd = None
-        elif (script == "Digit"):
-            tbl = mathAlphanumerics.DigitFontDict
+        elif (script == "Digits"):
+            tbl = mathAlphanumerics.DigitsFontDict
             uSrcStart = uSrcEnd = None
             lSrcStart = lSrcEnd = None
             dSrcStart = ord("0"); dSrcEnd = ord("9")
         else: raise ValueError(
-            "Unknown script '%s', must be Latin|Greek|Digit." %
+            "Unknown script '%s', must be Latin|Greek|Digits." %
                 (script))
 
         font = font.upper()
@@ -1298,7 +1307,7 @@ class mathAlphanumerics:
         # (see http://clagnut.com/blog/2380)
         #
     }
-    
+
 
 ###############################################################################
 # Main
@@ -1432,7 +1441,7 @@ provide Mathematical and similar variants for most of them.""")
             print("    Lower:" + sample.lower().translate(xtab))
             digits = "0123456789".translate(xtab)
             if (digits == "0123456789"): digits = "[not available]"
-            print("    Digit:" + digits)
+            print("    Digits:" + digits)
 
     def getRandomSentence(languageName:str="English"):
         import random
@@ -1535,7 +1544,7 @@ provide Mathematical and similar variants for most of them.""")
         fonts = mathAlphanumerics.GreekFontDict
     elif (args.script == "Digits"):
         scr = "Digits"
-        fonts = mathAlphanumerics.DigitFontDict
+        fonts = mathAlphanumerics.DigitsFontDict
     elif (args.script == "Latin"):
         scr = "Latin"
         fonts = mathAlphanumerics.LatinFontDict

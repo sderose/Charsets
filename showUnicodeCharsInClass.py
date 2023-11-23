@@ -146,7 +146,9 @@ option there.
 * 2018-11-07: Cleanup, move to Python 3.
 * 2020-02-14: New layout. Lint.
 * 2021-07-24: Allow requesting multiple categories.
-* 2023-02-27: Lint, testing, various fixes esp. to options, controls, unassigned chars.
+* 2023-02-27: Lint, testing, various fixes esp. to options, controls, report
+characters for which name lookup fails, as unassigned chars.
+* 2023-07-25: Add option to scan for unassigned characters.
 
 
 =Rights=
@@ -246,6 +248,9 @@ def processOptions():
         "--showCategories", action="store_true",
         help="Display the 2-letter codes and their meanings.")
     parser.add_argument(
+        "--unassigned", action="store_true",
+        help="Show just the unassigned code points.")
+    parser.add_argument(
         "--verbose", "-v", action="count", default=0,
         help="Add more messages (repeatable).")
     parser.add_argument(
@@ -285,6 +290,17 @@ def inAnyRequestedCategory(uchar:str):
         if thisCat.startswith(cc): return True
     return False
 
+def isControl(n:int) -> bool:
+    if (n <= 0x1F): return True
+    if (0x7F <= n <= 0x9F): return True  # Yup, \x7F is a control (DELETE)
+    return False
+
+def isPrivateUse(n:int) -> bool:
+    if (0xE000 <= n <= 0xF8FF): return True
+    if (0x000F0000 <= n <= 0x000FFFFD): return True
+    if (0x00100000 <= n <= 0x0010FFFD): return True
+    return False
+
 
 ###############################################################################
 # Main
@@ -301,6 +317,16 @@ if (args.showCategories):
     chCategories = sorted(unicodeCategories.keys())
     for chc in chCategories:
         print("    %2s: %s" % (chc, unicodeCategories[chc]))
+    sys.exit()
+
+if (args.unassigned):
+    for i in range(args.first, args.last+1):
+        if (isPrivateUse(i)): continue
+        if (isControl(i)): continue
+        try:
+            nm = unicodedata.name(chr(i))
+        except ValueError:
+            print("U+%08x" % (i))
     sys.exit()
 
 if (not args.charCategories):
@@ -345,7 +371,8 @@ for codePoint in range(args.first, args.last+1):
         nm = unicodedata.name(c)
     except ValueError:
         nUnnamed += 1
-        if (not args.quiet):
+        if (codePoint <= 0x1F or 0x80 <= codePoint <= 0x9F):  # Control
+            warn(2, "Control char")
             warn(2, "Code point U+%04x has no unicodedata.name." % (codePoint))
         nm = "[???]"
 

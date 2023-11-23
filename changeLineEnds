@@ -1,6 +1,7 @@
 #!/usr/bin/env perl -w
 #
-# changeLineEnds: Identify/normalize line-ends. By Steven J. DeRose
+# changeLineEnds: Identify/normalize line-ends.
+# 2006-11-29: Written y Steven J. DeRose.
 #
 use strict;
 use Getopt::Long;
@@ -11,7 +12,7 @@ our %metadata = (
     'creator'      => "http://viaf.org/viaf/50334488",
     'type'         => "http://purl.org/dc/dcmitype/Software",
     'language'     => "Perl 5.18",
-    'created'      => "2006-11/29",
+    'created'      => "2006-11-29",
     'modified'     => "2020-02-28",
     'publisher'    => "http://github.com/sderose",
     'license'      => "https://creativecommons.org/licenses/by-sa/3.0/"
