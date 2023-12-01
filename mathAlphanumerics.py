@@ -20,7 +20,7 @@ __metadata__ = {
     "type"         : "http://purl.org/dc/dcmitype/Software",
     "language"     : "Python 3.7",
     "created"      : "<2006-10-04",
-    "modified"     : "2023-03-08",
+    "modified"     : "2023-12-01",
     "publisher"    : "http://github.com/sderose",
     "license"      : "https://creativecommons.org/licenses/by-sa/3.0/"
 }
@@ -64,6 +64,11 @@ set the messages as the `--sample` text:
 To handle accented characters, specify `--decompose` and the diacritics will
 be separated first so that the base characters are converted. This will
 not, however, make the diacritics themselves bold or italic or fraktur, etc.
+
+In some cases, the font used by your system may not space some variants
+correctly. For example, I see Fraktur, Circledm Squared, and Parenthesized
+squeezed together. The workaround --spread will insert alternating spaces
+to accommodate this.
 
 ==Library usage==
 
@@ -280,6 +285,11 @@ My `ord --math` displays a list of these character variations, with samples.
 "font" names are not recognized with re-ordered tokens. For example,
 "BOLD FRAKTUR" works (regardless of case), but not "FRAKTUR BOLD".
 
+Some of the sets have only upper or only lower case, or are missing
+some specific characters. Fraktur, in particular, does not include
+the traditional long s, "beta", and umlauted vowels (though you can
+apply Unicode COMBINING DIAERESIS (U+00308).
+
 With `--makeHtmlComparison`, the generated HTML includes a few custom elements,
 with styles applied via CSS in <head>:
 
@@ -288,8 +298,8 @@ with styles applied via CSS in <head>:
     cursive     { font-family:cursive; }
     monospace   { font-family:monospace; }
 
-Modern browsers are fine with this, but it's not precisely "HTML". If that's a problem,
-change them to something like '<span class="sans">', etc. Or change the
+Modern browsers are fine with this, but it's not precisely "HTML". If that's a
+problem, change them to something like '<span class="sans">', etc. Or change the
 DOCTYPE to reference a schema that adds them.
 
 The `--family` choice (if any) is applied to <body>, so these will override it for
@@ -300,8 +310,9 @@ its own search and gives you the first one it finds.
 
 ==Script-specific issues==
 
-I'm not sure what "REGIONAL INDICATOR SYMBOL" is for -- it comes up as
-flags on some systems; if that's normal it should be dropped here.
+"REGIONAL INDICATOR SYMBOL" is odd but included -- I gather these 26 are intended
+to enable ISO 3166-1 alpha-2 two-letter country codes to be displayed as the
+corresponding flags (of course not all pairs are assigned).
 
 This program cannot translate multiple scripts simultaneously.
 
@@ -985,12 +996,14 @@ class mathAlphanumerics:
         "I":   0x0a4f2,     # SAME ROTATED
         "J":   0x0a4e9,     #
         "K":   0x0a4d8,     #
-        "L":   0x0a4f6,     # U+0a780 LATIN CAPITAL LETTER TURNED L, U+02142 TURNED SANS-SERIF CAPITAL L
+        "L":   0x0a4f6,     # U+0a780 LATIN CAPITAL LETTER TURNED L,
+        # See also U+02142 TURNED SANS-SERIF CAPITAL L
         "M":   0x0019c,     # MISSING, USING U+0019c LATIN CAPITAL LETTER TURNED M
         "N":   0x0a4e0,     # SAME ROTATED
         "O":   0x0a4f3,     # SAME ROTATED
         "P":   0x0a4d2,     # Use d?
-        "Q":   0x0a779,     # MISSING (cf 1/4-turn U+213A; U+0a779 LATIN CAPITAL LETTER INSULAR D)
+        "Q":   0x0a779,     # MISSING (cf 1/4-turn U+213A;
+        # U+0a779 LATIN CAPITAL LETTER INSULAR D)
         "R":   0x0a4e4,     # cf U+01d1a Latin Letter Small Capital Turned R
         "S":   0x0a4e2,     # SAME ROTATED
         "T":   0x0a4d5,     #
@@ -1033,7 +1046,8 @@ class mathAlphanumerics:
         # "0": ord("0"),    # SAME
         # "1":      # IOTA?
         # "2": 0x0218A,     # turned digit two
-        # "3": 0x0218B,     # turned digit three, latin capital letter open e - backwards 3 flipped (u+0190)
+        # "3": 0x0218B,     # turned digit three,
+        # latin capital letter open e - backwards 3 flipped (u+0190)
         # "4": 0x0152d,     # canadian syllabics ya (u+152d)
         # "5": ord("5"),    # Close to same
         # "6": ord("9"),    # => 9
@@ -1361,6 +1375,9 @@ provide Mathematical and similar variants for most of them.""")
             "--show", action="store_true",
             help="List all fonts for the chosen script. Add -v for samples.")
         parser.add_argument(
+            "--spread", action="store_true",
+            help="Put alternating space characters in output to spread it out.")
+        parser.add_argument(
             "--test", "--list", action="store_true",
             help="Test getTranslateTable().")
         parser.add_argument(
@@ -1453,27 +1470,34 @@ provide Mathematical and similar variants for most of them.""")
         a row of MATHEMATICAL BOLD vs. regular in <B>.
         """
         mapping = {
-            "BOLD":                        [ "b", ],  # UPPER LOWER DIGITS
-            "ITALIC":                      [ "i", ],  # UPPER LOWER
-            "BOLD ITALIC":                 [ "b", "i", ],  # UPPER LOWER
-            "SANS-SERIF":                  [ "sans", ],  # UPPER LOWER DIGITS
-            "SANS-SERIF BOLD":             [ "sans", "b", ],  # UPPER LOWER DIGITS
-            "SANS-SERIF ITALIC":           [ "sans", "i", ],  # UPPER LOWER
-            "SANS-SERIF BOLD ITALIC":      [ "sans", "b", "i", ],  # UPPER LOWER
-            "SCRIPT":                      [ "cursive", ],  # UPPER LOWER  font-family: cursive;
-            "BOLD SCRIPT":                 [ "cursive", "b", ],  # UPPER LOWER
-            #"FRAKTUR":                     [ "b", ],  # UPPER LOWER
-            #"BOLD FRAKTUR":                [ "b", ],  # UPPER LOWER
-            #"DOUBLE-STRUCK":               [ "b", ],  # UPPER LOWER DIGITS
-            "MONOSPACE":                   [ "mono", ],  # UPPER LOWER DIGITS  font-family: monospace;
-            #"CIRCLED":                     [ "b", ],  # UPPER LOWER DIGITS
-            #"PARENTHESIZED":               [ "b", ],  # UPPER LOWER DIGITS
-            #"FULLWIDTH":                   [ "b", ],  # UPPER LOWER DIGITS
-            #"SQUARED":                     [ "b", ],  # UPPER
-            #"NEGATIVE SQUARED":            [ "b", ],  # UPPER
-            #"NEGATIVE CIRCLED":            [ "b", ],  # UPPER
-            "SUPERSCRIPT":                 [ "sup", ],  # DIGITS
-            "SUBSCRIPT":                   [ "sub", ],  # DIGITS
+            # Upper, lower, and digits
+            "BOLD":                    [ "b", ],
+            "SANS-SERIF":              [ "sans", ],
+            "SANS-SERIF BOLD":         [ "sans", "b", ],
+
+            # Upper, lower only
+            "ITALIC":                  [ "i", ],
+            "BOLD ITALIC":             [ "b", "i", ],
+            "SANS-SERIF ITALIC":       [ "sans", "i", ],
+            "SANS-SERIF BOLD ITALIC":  [ "sans", "b", "i", ],
+            "SCRIPT":                  [ "cursive", ],
+            "BOLD SCRIPT":             [ "cursive", "b", ],
+            "MONOSPACE":               [ "mono", ],
+            #"FRAKTUR":                 [ "b", ],
+            #"BOLD FRAKTUR":            [ "b", ],
+            #"DOUBLE-STRUCK":           [ "b", ],
+            #"CIRCLED":                 [ "b", ],
+            #"PARENTHESIZED":           [ "b", ],
+            #"FULLWIDTH":               [ "b", ],
+
+            # Upper only
+            #"SQUARED":                 [ "b", ],   # UPPER
+            #"NEGATIVE SQUARED":        [ "b", ],   # UPPER
+            #"NEGATIVE CIRCLED":        [ "b", ],   # UPPER
+
+            # Digits only
+            "SUPERSCRIPT":             [ "sup", ],  # DIGITS
+            "SUBSCRIPT":               [ "sub", ],  # DIGITS
         }
 
         upp = re.sub(r"(.)", "\\1 ", string.ascii_uppercase)
@@ -1522,6 +1546,7 @@ provide Mathematical and similar variants for most of them.""")
     def makeMathSample(fontName: str, _tags: List, sample: str) -> str:
         bufMath = mathAlphanumerics.convert(
             sample, script="Latin", font=fontName, decompose=False)
+        if (args.spread): bufMath = re.sub(r"(.)", "\\1 ", bufMath)
         # TODO: Add option to escape to ASCII
         return bufMath
 
@@ -1568,10 +1593,11 @@ provide Mathematical and similar variants for most of them.""")
             args.sample = getRandomSentence(args.language)
         txt = args.sample
         if (txt == "" or txt == "*"): txt = getRandomSentence(args.language)
-        s0 = mathAlphanumerics.convert(txt,
+        rec2 = mathAlphanumerics.convert(txt,
             script=args.script, font=args.font, decompose=args.decompose)
+        if (args.spread): rec2 = re.sub(r"(.)", "\\1 ", rec2)
         print("    Original:  " + txt +
-            "\n    Converted: " + s0)
+            "\n    Converted: " + rec2)
 
     else:  # translate stdin
         if (sys.stdin.isatty()):
@@ -1583,6 +1609,7 @@ provide Mathematical and similar variants for most of them.""")
         for rec in istream:
             rec2 = mathAlphanumerics.convert(rec,
                 script=args.script, font=args.font, decompose=args.decompose)
+            if (args.spread): rec2 = re.sub(r"(.)", "\\1 ", rec2)
             print(rec2)
 
     sys.exit()
