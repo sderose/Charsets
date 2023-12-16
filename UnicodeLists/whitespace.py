@@ -6,16 +6,15 @@
 #     ^  -- This is a vertical thing
 #
 USpaces = {
-    # Unicode   width flags name
+    # Unicode  width flags  name
     0x00009:  ( 1.00, "?",  "CHARACTER TABULATION"),
     0x0000A:  ( 0.00, "^?", "LINE FEED"),
     0x0000B:  ( 1.00, "?",  "LINE TABULATION"),
     0x0000C:  ( 0.00, "^?", "FORM FEED"),
     0x0000D:  ( 0.00, "?",  "CARRIAGE RETURN"),
     0x00020:  ( 1.00, "",   "SPACE"),
-    #
+    # WARNING: In CP1252 \\x89 is per mille symbol (U+2030)
     0x00089:  ( 1.00, "?",  "CHARACTER TABULATION WITH JUSTIFICATION"),
-    0x000A0:  ( 1.00, "",   "NO-BREAK SPACE"),
     #
     0x01680:  ( 1.00, "",   "OGHAM SPACE MARK"),
     0x0180E:  ( 1.00, "?",  "MONGOLIAN VOWEL SEPARATOR"),
@@ -38,9 +37,26 @@ USpaces = {
     0x02060:  ( 1.00, "",   "WORD JOINER"),
     0x03000:  ( 1.00, "",   "IDEOGRAPHIC SPACE"),
     0x0303F:  ( 1.00, "",   "IDEOGRAPHIC HALF FILL SPACE"),
+    0x0FeFF:  ( 0.00, "",   "ZERO WIDTH NO-BREAK SPACE"  # aka BOM
 
-    # This isn't really a "space"....
-    0x02420:  ( 1.00, "",   "SYMBOL FOR SPACE"),
+
+    ### Weird/edge cases
+    #
+    #0x00008:  ( -1.00, "",  "BACKSPACE"),
+    #0x000FF:  ( -1.00, "",  "LATIN SMALL LETTER Y WITH DIAERESIS"), ## old DEL
+    #0x000A0:  ( -1.00, "",  "NO-BREAK SPACE"
+    #
+    # Symbols for whitespace control chars (class So).
+    #0x02420:  ( 1.00, "",   "SYMBOL FOR SPACE"
+    #0x02408:  ( 1.00, "",   "SYMBOL FOR BACKSPACE"
+    #0x02409:  ( 1.00, "",   "SYMBOL FOR HORIZONTAL TABULATION"
+    #0x0240a:  ( 1.00, "",   "SYMBOL FOR LINE FEED"
+    #0x0240b:  ( 1.00, "",   "SYMBOL FOR VERTICAL TABULATION"
+    #0x0240c:  ( 1.00, "",   "SYMBOL FOR FORM FEED"
+    #0x0240d:  ( 1.00, "",   "SYMBOL FOR CARRIAGE RETURN"
+    #0x02422:  ( 1.00, "",   "BLANK SYMBOL"
+    #0x02423:  ( 1.00, "",   "OPEN BOX"
+    #0x02424:  ( 1.00, "",   "SYMBOL FOR NEWLINE"
 }
 
 
