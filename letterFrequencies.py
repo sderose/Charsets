@@ -2,7 +2,7 @@
 # This includes an entry for space, and the sums with and without it.
 # Divide as needed.
 #
-# sjd, from sjdUtils.py. CCLI at-sa.
+# sjd, from my general utils.
 #
 letterFreqs = [
     ( ' ',  17000 ), # Estimate for non-word chars
@@ -41,7 +41,7 @@ ps = 0.0
 for pair in letterFreqs:
     ps += pair[1]
     partialSums.append(ps)
-    
+
 def randomWeightedLetter() -> str:
     import random
     rgen = random.Random()

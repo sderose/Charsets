@@ -521,10 +521,13 @@ Joel Kalvesmaki, '''A New \\u: Extending XSLT
 Regular Expressions for Unicode.''' Balisage (2020).
 [https://www.balisage.net/Proceedings/vol25/html/Kalvesmaki01/BalisageVol25-Kalvesmaki01.html]
 
-Use the Unicode database file, F<BidiMirroring.txt>, to implement --pairs,
+=item * Use the Unicode database file, F<BidiMirroring.txt>, to implement --pairs,
 rather than the present keyword-search approachs (at least as an option).
 So far I have not found a convenient interface to it from either Perl or
 Python.
+
+=item * Use Unicode DB NamesList.txt file '=' entries for alternative names
+(~5500; not unique).
 
 =back
 
