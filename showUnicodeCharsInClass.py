@@ -10,7 +10,7 @@ import unicodedata
 import regex
 
 __metadata__ = {
-    "title"        : "showUnicodeCharsInClass.py",
+    "title"        : "showUnicodeCharsInClass",
     "description"  : "Retrieve lists of characters by category (Ll, etc).",
     "rightsHolder" : "Steven J. DeRose",
     "creator"      : "http://viaf.org/viaf/50334488",

@@ -6,8 +6,8 @@ ligatures = {
     # x (latin small ligature oe - 0153)
     # x (cyrillic small ligature a ie - 04D5)
     # lots of math operators (le, ge,...)
-    # U+0203d	‽	INTERROBANG
-    # U+02e18	⸘	INVERTED INTERROBANG
+    # U+0203d   ‽   INTERROBANG
+    # U+02e18   ⸘   INVERTED INTERROBANG
     #     !! !? ?! ??
     # roman numerals, fractions, some letterlike symbols
 

@@ -10,13 +10,8 @@ import re
 
 from PowerWalk import PowerWalk, PWType
 
-PY2 = sys.version_info[0] == 2
-PY3 = sys.version_info[0] == 3
-if PY3:
-    def unichr(n): return chr(n)
-
 __metadata__ = {
-    'title'        : "fixQuotes.py",
+    'title'        : "fixQuotes",
     'rightsHolder' : "Steven J. DeRose",
     'creator'      : "http://viaf.org/viaf/50334488",
     'type'         : "http://purl.org/dc/dcmitype/Software",
@@ -220,7 +215,7 @@ class FixQuotes:
 
     def makeXtab(self, sp, dp,
         leftSingle, rightSingle, leftDouble, rightDouble):
-        src = tgt = u''
+        src = tgt = ""
         for l, r in sp.values():
             src += chr(l) + chr(r)
             tgt += leftSingle + rightSingle
@@ -236,7 +231,7 @@ class FixQuotes:
         """Create regex to match entire quotes.
         Does not yet handle nested cases!
         """
-        expr = u''
+        expr = ""
         for l, r in FixQuotes.singlePairs.values():
             expr += chr(l) + r'.*?' + chr(r) + '|'
         for l, r in FixQuotes.doublePairs.values():
@@ -384,12 +379,13 @@ if __name__ == "__main__":
         args0 = parser.parse_args()
         return(args0)
 
-
     def runTest(fixer):
-        sample = u"""<q class="foo">The 'quick' "brown" ‘fox’ “jumped” `over` the dog's cat's.</q>"""
+        sample = ("""<q class="foo">The 'quick' "brown" ‘fox’ “jumped” """ +
+            """`over` the dog's cat's.</q>""")
         print(sample)
         result = fixer.fix(sample)
         print(result)
+
 
     ###########################################################################
     #
@@ -409,10 +405,7 @@ if __name__ == "__main__":
     )
 
     if (args.oencoding):
-        # https://stackoverflow.com/questions/4374455/
-        if (PY2): sys.stdout = codecs.getwriter("utf-8")(sys.stdout)
-        #else: sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
-        # 3.7+ sys.stdout.reconfigure(encoding='utf-8')
+        sys.stdout.reconfigure(encoding='utf-8')
 
     pw = PowerWalk(args.files, open=True, close=True,
         encoding=args.iencoding, recursive=args.recursive)
@@ -432,6 +425,3 @@ if __name__ == "__main__":
                 doOneXmlFile(path0, fixerObj)
             else:
                 doOneFile(path0, fixerObj)
-
-    #warn(1, "fixQuotes: Done, %d files.\n" %
-    #        (pw.getStat('regular')))

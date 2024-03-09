@@ -65,8 +65,7 @@ in a given range or ranges. This is often useful after running general
 statistics, to find and fix individual problem cases.
 
 To restrict processing to certain parts of each record,
-see I<--strip>, I<--columns>, and L<Options for TabularFormats> below).
-Column or field selection requires installation of the C<TabularFormats> module.
+see I<--strip> and I<--columns>.
 
 
 =head1 Options for characters and types of representations to catch
@@ -132,7 +131,7 @@ With I<--count>, add blank lines for readability (default).
 Colorize the output for readability. In particular, color headings
 and the frequency-report lines for control characters.
 Defaults to on if environment variable C<CLI_COLOR> is set and
-STDERR is going to a terminal.
+STDERR is going to a terminal. See also I<--headColor>.
 
 =item * B<--cols> I<f-l>
 
@@ -173,7 +172,7 @@ Only allow file arguments, not stdin.
 
 =item * B<--files-with-matches> OR B<-l>
 
-Just report the filename if any reportable chars were found (see I<--instances>).
+Only report the filenames where any reportable chars were found (see I<--instances>).
 
 =item * B<--first>
 
@@ -189,6 +188,11 @@ valid UTF8 into a substitute character (default "?").
 =item * B<--g1names>
 
 Show names for G1 characters (xA0-xFF).
+
+
+=item * B<--headColor> I<name>
+
+Choose the color to use for headings in the output (if I<--color> is set).
 
 =item * B<--hex>
 
@@ -319,17 +323,6 @@ Show version information and exit.
 =back
 
 
-=head2 Options for TabularFormats
-
-By default, whole records are examined. The options of C<TabularFormats.pm>
-can be used to parse a variety of input data (JSON, SEXP, CSV,...)
-into fields, and then examine only certain selected fields (see I<--columns>,
-above).
-
-See C<TabularFormats.pm> for information on its options.
-For CSV-ish files, the most significant options are I<fieldSep>.
-
-
 =head1 Related Files
 
 F<DATA/UnicodeSamples/utf8sampler.txt> -- a sample of utf8 with a wide variety
@@ -352,10 +345,6 @@ There is other related functionality in C<CharDisplay.py> and C<strfchr.py>.
 =item * C<makeUnicodeData> can generate a file in various forms that includes
 examples of all the characters in a given range and their properties.
 
-=item * C<TabularFormats.pm> provides support for the I<--fields> option.
-This is included if the package is available, but only gives a warning otherwise,
-so C<countChars> can continue to run, just without the relevant options.
-
 =item * C<iconv> Convert text from one encoding to another.
 Also use C<iconv -f utf8 [file]> to check for invalid utf8.
 
@@ -363,7 +352,6 @@ Also use C<iconv -f utf8 [file]> to check for invalid utf8.
 gadget to convert between many possible representations of unicode.
 
 =back
-
 
 
 =head1 Known bugs and limitations
@@ -377,20 +365,17 @@ safely.
 Counts the components of an escape, entity reference, etc. as literal
 characters, too. That should become optional.
 
-Total chars/block fails to print after last block, and resets just too late.
+Total char/block fails to print after last block, and resets just too late.
 
 With I<--showNames>, ASCII printables are just displayed literally. This
 is probably preferable as a default, but there should be an option to get the
 full names, like "LATIN CAPITAL LETTER A".
 
-Fix colorizing headings.
-
-Color hyph/space/dash/quote green; non-word-chars outside ascii
+Color hyph/space/dash/quote green; non-word-chars outside ascii?
 
 `--first` appears to be broken.
 
 `--noascii` appears to be broken.
-
 
 
 =head1 To do
@@ -399,16 +384,17 @@ Color hyph/space/dash/quote green; non-word-chars outside ascii
 
 =item * Report rank of character by frequency.
 
-=item * Report total freq and % per Unicode block
+=item * Report total freq and % per Unicode category (Ll, etc.).
 
-=item * Identify HTML named entities
+=item * Identify HTML named entities.
 
 =item * Option to insert literal (or entity or \\x) in output chart.
 
 =item * Catch and complain about undetected UTF8, unicode coding errors (done?).
 
 =item * Watch for common errors, like Mac/Win char sequences that arise
-from mis-identified charset (say, quotes, etc).
+from mis-identified charset (maybe just for common problems chars
+such as C1 controls, quotes, emdash, bullet, etc).
 
 =item * Lose local escaping and entities tables.
 
@@ -497,6 +483,9 @@ handle from 1 to 5 hex digits, not just exactly 4.
 for C1 control characters (like I<--cp1252 for Windows). Recognize more
 recent backslash forms \\U and \\x{}.
 
+=item * 2024-03-09: Drop TabularFormats and support for only looking at certain
+fields. Clean up color handling and add I<--headColor> option.
+
 =back
 
 
@@ -510,13 +499,13 @@ Attribution-Share Alike 3.0 Unported License. For further information on
 this license, see L<http://creativecommons.org/licenses/by-sa/3.0/>.
 
 For the most recent version, see L<http://www.derose.net/steve/utilities/> or
-L<https://github/com/sderose/Charsets>.
+L<https://github.com/sderose/Charsets>.
 
 
 =cut
 
 
-my $badUTFsubstitute = "?";       # See --fixBadUTF8 option
+my $badUTFsubstitute = "?";       # See --fixBadUTF8 option  # TODO
 
 # Kinds of representations to catch
 #
@@ -540,15 +529,15 @@ my $controls          = 0;       # Count C0 control chars are odd?
 my $count             = 1;       # Show a table of char frequencies?
 my $cp1252            = 0;       # Old Windows char set
 my $cpmac             = 0;       # Old Mac char set
-my @fieldsToSearch    = ();      # Where to look among fields of a CSV
 my $filesOnly         = 0;       # Don't allow reading stdin
 my $filesWithMatches  = 0;
 my $first             = 0;       # Report just first occurrences of chars
 my $fixBadUTF8        = 0;       # Filter out invalid utf8 chars
 my $g1names           = 1;
+my $headColor         = "yellow";
 my $ignoreCase        = 0;
 my $iencoding         = "utf8";  # Char set for input?
-my $ilineends         = "U";     #
+my $ilineends         = "U";     # *nix-style (LF)
 my @instances         = ();      # Report char instances with context
 my $maxFreq           = 0;       # Report chars at most this frequent
 my $minFreq           = 0;       # Report chars at least this frequent
@@ -603,10 +592,10 @@ my %getoptHash = (
     "cpmac"               => sub {
         $cpmac = 1; $iencoding = "MacRoman";
     },
-    "fieldsToSearch=i"     => \@fieldsToSearch,
     "first!"               => \$first,
     "fixBadUTF8!"          => \$fixBadUTF8,
     "g1names!"             => \$g1names,
+    "headColor=s"          => \$headColor,
     "h|help|?"             => sub { system "perldoc $0"; exit; },
     "i|ignoreCase!"        => \$ignoreCase,
     "iencoding=s"          => \$iencoding,
@@ -650,27 +639,13 @@ my %getoptHash = (
     "version"              => sub {
         die "Version of $VERSION_DATE, by Steven J. DeRose.";
     },
-    );
-
-# Set up TabularFormats. If successful, add all of its options to getOptionsHash.
-# It makes getOptions() store them via $tfmt->setOption().
-#
-my $TFloaded = 0;
-my $tfmt;
-if (try_module("TabularFormats")) {
-    $TFloaded = 1;
-    ($tfmt = new TabularFormats("CSV")) ||
-        dieCleanly("Could not construct TabularFormats instance.");
-    $tfmt->addOptionsToGetoptLongArg(\%getoptHash);
-}
-else {
-    warn "TabularFormats package not installed, so some options are unavailable.\n";
-}
+);
 
 Getopt::Long::Configure ("ignore_case");
 GetOptions(%getoptHash) || die("Bad options.");
 
 sjdUtils::setVerbose($verbose);
+sjdUtils::vMsg(1, "Color option is $color.");
 sjdUtils::setColors($color);
 
 
@@ -682,11 +657,8 @@ if ($ents) {
         die "HTML::Entities package not installed.\n";
 }
 
-my $cred = my $coff = "";
 if ($color) {
     sjdUtils::setColors(1);
-    $cred = sjdUtils::getColorString("red");
-    $coff = sjdUtils::getColorString("off");
     alogging::vMsg(1, "color set up");
 }
 
@@ -950,23 +922,7 @@ sub doOneFile {
         # 'utf8 does not map to Unicode' warnings.
         #
         # no warnings "utf8"; # no effect either
-        if (defined $tfmt && scalar(@fieldsToSearch)>0) {
-            my @fields = @{$tfmt->parseRecord($rec)};
-            for my $i (@fieldsToSearch) {
-                my $f = $fields[$i];
-                my @fchars = split(//, $f);
-                for (my $theCol=0; $theCol<length($f); $theCol++) {
-                    my $c = $fchars[1];
-                    if ($expandingAnything) {
-                        tryOtherForms($c,$theCol,$f,\@fchars,$path);
-                    }
-                    else {
-                        checkAndScream($c,"Literal character",$theCol,$path);
-                    }
-                }
-            } # for
-        }
-        elsif (scalar(@colStarts)) {
+        if (scalar(@colStarts)) {
             my @fchars = split(//, $rec);
             my $lastCol = length($rec);
             for (my $i=0; $i<scalar(@colStarts); $i++) {
@@ -1046,7 +1002,7 @@ sub tryOtherForms {
         }
     } # XML
 
-    if ($uri && $c eq "%") {                                # URI
+    if ($uri && $c eq "%") {                                # URI %-escapes
         my $remainder = substr($context, $theCol);
         if ($remainder =~ m/\%([[:xdigit:]][[:xdigit:]])/) {
             checkAndScream(chr(hex($1)), "URI escape",$theCol,$path);
@@ -1054,7 +1010,7 @@ sub tryOtherForms {
         }
     }
 
-    if (($perl || $javascript) && $c eq "\\") {             # Backslashes
+    if (($perl || $javascript) && $c eq "\\") {             # Backslash codes
         my $remainder = substr($context, $theCol);
         if ($remainder =~ m/^\\d(\d\d\d)/) {                       # Decimal
             checkAndScream(chr($1), "\\d",$theCol,$path);
@@ -1122,7 +1078,7 @@ sub getCharBlockName {
 sub checkAndScream {
     my ($c,              # Literal character
         $whichForm,      # String naming how it was expressed
-        $col,            # Column it occured at (for messages)
+        $col,            # Column it occurred at (for messages)
         $path            # What file we're in (for messages)
         ) = @_;
 
@@ -1175,7 +1131,7 @@ sub scream {
 
     my $tline = $pad . $rec . $pad;
     my $forms = sprintf("(0%o, d%d, x%X)", $n, $n, $n);
-    my $cname = sjdUtils::colorize("red", charnames::viacode($n) || "?????");
+    my $cname = sjdUtils::colorize($headColor, charnames::viacode($n) || "?????");
     print "Character $forms: '$cname'\n    at line $linenum, column $col of $path:\n";
     if ($showHex) {
         my $asc = my $hex = "";
@@ -1325,7 +1281,7 @@ sub report {
 
 sub head {
     my ($msg) = @_;
-    print "\n" . sjdUtils::colorize("magenta", $msg) . "\n";
+    print "\n" . sjdUtils::colorize($headColor, $msg) . "\n";
 }
 
 sub percentLine {
@@ -1367,7 +1323,7 @@ BEGIN {
         }
 
         if ($color) {
-            $head = sjdUtils::colorize("magenta", $head);
+            $head = sjdUtils::colorize($headColor, $head);
         }
         print "$head\n";
     }
@@ -1399,7 +1355,7 @@ BEGIN {
         if ($color) {
             if (($i<32) ||
                 ($i>127 && $i<160)) {
-                $toPrint = sjdUtils::colorize("red", $toPrint);
+                $toPrint = sjdUtils::colorize($headColor, $toPrint);
             }
         }
 
@@ -1410,7 +1366,7 @@ BEGIN {
         if (!$rank) {
             my $newBlock = getCharBlockName($i);
             if ($newBlock ne $lastBlock) {
-                print sjdUtils::colorize("magenta",
+                print sjdUtils::colorize($headColor,
                     "\n*** New Unicode Block: '$newBlock'") . "\n";
                 reportHeading();
                 $lastBlock = $newBlock;
@@ -1420,7 +1376,7 @@ BEGIN {
             $toPrint =~ s/\s+$//;
             my $alts = sprintf(" (CP1252: %s; MacRoman: %s)",
                 getCP1252name($i), getCPMacName($i));
-            $toPrint = $cred . $toPrint . $alts . $coff;
+            $toPrint = sjdUtils::colorize($headColor, $toPrint . $alts);
         }
         print "$toPrint\n";
         $last = $i;

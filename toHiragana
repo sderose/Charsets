@@ -1,17 +1,12 @@
 #!/usr/bin/env python3
 #
 # toHiragana: Simple transliteration to help practice.
+# 2013-03-21: Written by Steven J. DeRose.
 #
-from __future__ import print_function
 import sys
 import os
 import re
-import argparse
-
-PY2 = sys.version_info[0] == 2
-PY3 = sys.version_info[0] == 3
-if PY3:
-    def unichr(n): return chr(n)
+import codecs
 
 __metadata__ = {
     'title'        : "toHiragana.py",
@@ -20,7 +15,7 @@ __metadata__ = {
     'type'         : "http://purl.org/dc/dcmitype/Software",
     'language'     : "Python 3.7",
     'created'      : "2013-03-21",
-    'modified'     : "2020-03-04",
+    'modified'     : "2024-02-21",
     'publisher'    : "http://github.com/sderose",
     'license'      : "https://creativecommons.org/licenses/by-sa/3.0/"
 }
@@ -31,7 +26,7 @@ descr = """
 
 toHiragana [options]
 
-Transliterate ASCII to (Unicode) hiragana.
+Transliterate ASCII to (Unicode) hiragana, for practice.
 
 This is rudimentary, and works purely from spelling, not pronunciation.
 By default, it leaves [cfjlqvx] and ph along; but see I<--loose>.
@@ -62,6 +57,7 @@ such as 'sh', 'ng', etc.
 =History=
 
 * 2013-03-21: Written by Steven J. DeRose.
+* 2024-02-21: Drop PY2.
 
 =Rights=
 
@@ -73,139 +69,111 @@ For the most recent version, see [http://www.derose.net/steve/utilities] or
 [http://github.com/sderose].
 """
 
-###############################################################################
-# Process options
-#
-parser = argparse.ArgumentParser(
-    description=descr)
-
-parser.add_argument(
-    "-loose",            action='store_true',
-    help='Do some extra mappings for other Latin characters.')
-parser.add_argument(
-    "-q",                action='store_true',  dest='quiet',
-    help='Suppress most messages.')
-parser.add_argument(
-    "-verbose",          action='count',       default=0,
-    help='Add more messages (repeatable).')
-parser.add_argument(
-    '-version',          action='version',     version='Version of '+__version__,
-    help='Display version information, then exit.')
-parser.add_argument(
-    'files',             type=str,
-    nargs=argparse.REMAINDER,
-    help='Path(s) to input file(s)')
-
-args = parser.parse_args()
-
-if (os.environ["PYTHONIOENCODING"] != "utf_8"):
-    print("Warning: PYTHONIOENCODING is not utf_8.")
-
 hiraganaLetters = {
-    "A":               unichr(0X03042),
-    "I":               unichr(0X03044),
-    "U":               unichr(0X03046),
-    "E":               unichr(0X03048),
-    "O":               unichr(0X0304A),
-    "KA":              unichr(0X0304B),
-    "GA":              unichr(0X0304C),
-    "KI":              unichr(0X0304D),
-    "GI":              unichr(0X0304E),
-    "KU":              unichr(0X0304F),
-    "GU":              unichr(0X03050),
-    "KE":              unichr(0X03051),
-    "GE":              unichr(0X03052),
-    "KO":              unichr(0X03053),
-    "GO":              unichr(0X03054),
-    "SA":              unichr(0X03055),
-    "ZA":              unichr(0X03056),
-    "SI":              unichr(0X03057),
-    "ZI":              unichr(0X03058),
-    "SU":              unichr(0X03059),
-    "ZU":              unichr(0X0305A),
-    "SE":              unichr(0X0305B),
-    "ZE":              unichr(0X0305C),
-    "SO":              unichr(0X0305D),
-    "ZO":              unichr(0X0305E),
-    "TA":              unichr(0X0305F),
-    "DA":              unichr(0X03060),
-    "TI":              unichr(0X03061),
-    "DI":              unichr(0X03062),
-    "TU":              unichr(0X03064),
-    "DU":              unichr(0X03065),
-    "TE":              unichr(0X03066),
-    "DE":              unichr(0X03067),
-    "TO":              unichr(0X03068),
-    "DO":              unichr(0X03069),
-    "NA":              unichr(0X0306A),
-    "NI":              unichr(0X0306B),
-    "NU":              unichr(0X0306C),
-    "NE":              unichr(0X0306D),
-    "NO":              unichr(0X0306E),
-    "HA":              unichr(0X0306F),
-    "BA":              unichr(0X03070),
-    "PA":              unichr(0X03071),
-    "HI":              unichr(0X03072),
-    "BI":              unichr(0X03073),
-    "PI":              unichr(0X03074),
-    "HU":              unichr(0X03075),
-    "BU":              unichr(0X03076),
-    "PU":              unichr(0X03077),
-    "HE":              unichr(0X03078),
-    "BE":              unichr(0X03079),
-    "PE":              unichr(0X0307A),
-    "HO":              unichr(0X0307B),
-    "BO":              unichr(0X0307C),
-    "PO":              unichr(0X0307D),
-    "MA":              unichr(0X0307E),
-    "MI":              unichr(0X0307F),
-    "MU":              unichr(0X03080),
-    "ME":              unichr(0X03081),
-    "MO":              unichr(0X03082),
-    "YA":              unichr(0X03084),
-    "YU":              unichr(0X03086),
-    "YO":              unichr(0X03088),
-    "RA":              unichr(0X03089),
-    "RI":              unichr(0X0308A),
-    "RU":              unichr(0X0308B),
-    "RE":              unichr(0X0308C),
-    "RO":              unichr(0X0308D),
-    "WA":              unichr(0X0308F),
-    "WI":              unichr(0X03090),
-    "WE":              unichr(0X03091),
-    "WO":              unichr(0X03092),
-    "N":               unichr(0X03093),
-    "VU":              unichr(0X03094),
+    "A":  chr(0X03042),
+    "I":  chr(0X03044),
+    "U":  chr(0X03046),
+    "E":  chr(0X03048),
+    "O":  chr(0X0304A),
+    "KA": chr(0X0304B),
+    "GA": chr(0X0304C),
+    "KI": chr(0X0304D),
+    "GI": chr(0X0304E),
+    "KU": chr(0X0304F),
+    "GU": chr(0X03050),
+    "KE": chr(0X03051),
+    "GE": chr(0X03052),
+    "KO": chr(0X03053),
+    "GO": chr(0X03054),
+    "SA": chr(0X03055),
+    "ZA": chr(0X03056),
+    "SI": chr(0X03057),
+    "ZI": chr(0X03058),
+    "SU": chr(0X03059),
+    "ZU": chr(0X0305A),
+    "SE": chr(0X0305B),
+    "ZE": chr(0X0305C),
+    "SO": chr(0X0305D),
+    "ZO": chr(0X0305E),
+    "TA": chr(0X0305F),
+    "DA": chr(0X03060),
+    "TI": chr(0X03061),
+    "DI": chr(0X03062),
+    "TU": chr(0X03064),
+    "DU": chr(0X03065),
+    "TE": chr(0X03066),
+    "DE": chr(0X03067),
+    "TO": chr(0X03068),
+    "DO": chr(0X03069),
+    "NA": chr(0X0306A),
+    "NI": chr(0X0306B),
+    "NU": chr(0X0306C),
+    "NE": chr(0X0306D),
+    "NO": chr(0X0306E),
+    "HA": chr(0X0306F),
+    "BA": chr(0X03070),
+    "PA": chr(0X03071),
+    "HI": chr(0X03072),
+    "BI": chr(0X03073),
+    "PI": chr(0X03074),
+    "HU": chr(0X03075),
+    "BU": chr(0X03076),
+    "PU": chr(0X03077),
+    "HE": chr(0X03078),
+    "BE": chr(0X03079),
+    "PE": chr(0X0307A),
+    "HO": chr(0X0307B),
+    "BO": chr(0X0307C),
+    "PO": chr(0X0307D),
+    "MA": chr(0X0307E),
+    "MI": chr(0X0307F),
+    "MU": chr(0X03080),
+    "ME": chr(0X03081),
+    "MO": chr(0X03082),
+    "YA": chr(0X03084),
+    "YU": chr(0X03086),
+    "YO": chr(0X03088),
+    "RA": chr(0X03089),
+    "RI": chr(0X0308A),
+    "RU": chr(0X0308B),
+    "RE": chr(0X0308C),
+    "RO": chr(0X0308D),
+    "WA": chr(0X0308F),
+    "WI": chr(0X03090),
+    "WE": chr(0X03091),
+    "WO": chr(0X03092),
+    "N":  chr(0X03093),
+    "VU": chr(0X03094),
 }
 
 hiraganaSmallLetters = {
-    "A":  unichr(0X03041),
-    "I":  unichr(0X03043),
-    "U":  unichr(0X03045),
-    "E":  unichr(0X03047),
-    "O":  unichr(0X03049),
-    "TU": unichr(0X03063),
-    "YA": unichr(0X03083),
-    "YU": unichr(0X03085),
-    "YO": unichr(0X03087),
-    "WA": unichr(0X0308E),
-    "KA": unichr(0X03095),
-    "KE": unichr(0X03096),
+    "A":  chr(0X03041),
+    "I":  chr(0X03043),
+    "U":  chr(0X03045),
+    "E":  chr(0X03047),
+    "O":  chr(0X03049),
+    "TU": chr(0X03063),
+    "YA": chr(0X03083),
+    "YU": chr(0X03085),
+    "YO": chr(0X03087),
+    "WA": chr(0X0308E),
+    "KA": chr(0X03095),
+    "KE": chr(0X03096),
 }
 
 hiraganaOthers = {
-    "COMBINING KATAKANA-VOICED SOUND MARK":             unichr(0X03099),
-    "COMBINING KATAKANA-SEMI-VOICED SOUND MARK":        unichr(0X0309A),
-    "KATAKANA-VOICED SOUND MARK":                       unichr(0X0309B),
-    "KATAKANA-SEMI-VOICED SOUND MARK":                  unichr(0X0309C),
-    "ITERATION MARK":                                   unichr(0X0309D),
-    "VOICED ITERATION MARK":                            unichr(0X0309E),
-    "DIGRAPH YORI":                                     unichr(0X0309F),
-    "KATAKANA-HIRAGANA DOUBLE HYPHEN":                  unichr(0X030A0),
-    "KATAKANA-HIRAGANA PROLONGED SOUND MARK":           unichr(0X030FC),
-    "HALFWIDTH KATAKANA-HIRAGANA PROLONGED SOUND MARK": unichr(0X0FF70),
-    "LETTER ARCHAIC YE":                                unichr(0x01B001),
-    "SQUARE HIRAGANA HOKA":                             unichr(0x01F200),
+    "COMBINING KATAKANA-VOICED SOUND MARK": chr(0X03099),
+    "COMBINING KATAKANA-SEMI-VOICED SOUND MARK": chr(0X0309A),
+    "KATAKANA-VOICED SOUND MARK":           chr(0X0309B),
+    "KATAKANA-SEMI-VOICED SOUND MARK":      chr(0X0309C),
+    "ITERATION MARK":                       chr(0X0309D),
+    "VOICED ITERATION MARK":                chr(0X0309E),
+    "DIGRAPH YORI":                         chr(0X0309F),
+    "KATAKANA-HIRAGANA DOUBLE HYPHEN":      chr(0X030A0),
+    "KATAKANA-HIRAGANA PROLONGED SOUND MARK": chr(0X030FC),
+    "HALFWIDTH KATAKANA-HIRAGANA PROLONGED SOUND MARK": chr(0X0FF70),
+    "LETTER ARCHAIC YE":                    chr(0x01B001),
+    "SQUARE HIRAGANA HOKA":                 chr(0x01F200),
 }
 
 def hiragana(s):
@@ -252,9 +220,47 @@ def doOneFile(fh):
 
 
 ###############################################################################
-###############################################################################
 # Main
 #
+if __name__ == "__main__":
+    import argparse
+
+    def processOptions() -> argparse.Namespace:
+        try:
+            from BlockFormatter import BlockFormatter
+            parser = argparse.ArgumentParser(
+                description=descr, formatter_class=BlockFormatter)
+        except ImportError:
+            parser = argparse.ArgumentParser(description=descr)
+
+        parser = argparse.ArgumentParser(
+            description=descr)
+
+        parser.add_argument(
+            "--iencoding", type=str, metavar="E", default="utf-8",
+            help="Assume this character coding for input. Default: utf-8.")
+        parser.add_argument(
+            "-loose", action='store_true',
+            help='Do some extra mappings for other Latin characters.')
+        parser.add_argument(
+            "-q", action='store_true', dest='quiet',
+            help='Suppress most messages.')
+        parser.add_argument(
+            "-verbose", action='count', default=0,
+            help='Add more messages (repeatable).')
+        parser.add_argument(
+            '-version', action='version', version='Version of '+__version__,
+            help='Display version information, then exit.')
+        parser.add_argument(
+            'files', type=str, nargs=argparse.REMAINDER,
+            help='Path(s) to input file(s)')
+
+        args0 = parser.parse_args()
+
+        return(args0)
+
+args = processOptions()
+
 totalRecords = 0
 totalFiles = 0
 
@@ -266,7 +272,7 @@ for fnum in (range(len(args.files))):
     totalFiles += 1
     f = args.files[fnum]
     if (os.path.isfile(f)):
-        fh0 = open(f, "r")
+        fh0 = codecs.open(f, "rw", encoding=args.iencoding)
         totalRecords += doOneFile(fh0)
         fh0.close()
     else:
@@ -276,4 +282,3 @@ if (not args.quiet):
     print("Done, %d files, %d records." % (totalFiles, totalRecords))
 
 sys.exit(0)
-

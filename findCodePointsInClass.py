@@ -10,7 +10,7 @@ import logging
 lg = logging.getLogger("findUnassignedCodePoints.py")
 
 __metadata__ = {
-    "title"        : "findUnassignedCodePoints.py",
+    "title"        : "findUnassignedCodePoints",
     "description"  : "Display all Unicode chars in (any or no) category.",
     "rightsHolder" : "Steven J. DeRose",
     "creator"      : "http://viaf.org/viaf/50334488",

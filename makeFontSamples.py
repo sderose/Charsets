@@ -12,7 +12,7 @@ from typing import List
 from subprocess import check_output
 
 __metadata__ = {
-    'title'        : "makeFontSamples.py",
+    'title'        : "makeFontSamples",
     'description'  : "Create HTML with sample of various fonts.",
     'rightsHolder' : "Steven J. DeRose",
     'creator'      : "http://viaf.org/viaf/50334488",

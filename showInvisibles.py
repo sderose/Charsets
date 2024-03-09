@@ -12,7 +12,7 @@ from sjdUtils import sjdUtils
 import strfchr
 
 __metadata__ = {
-    'title'        : "showInvisibles.py",
+    'title'        : "showInvisibles",
     'rightsHolder' : "Steven J. DeRose",
     'creator'      : "http://viaf.org/viaf/50334488",
     'type'         : "http://purl.org/dc/dcmitype/Software",

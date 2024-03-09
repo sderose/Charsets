@@ -3,7 +3,6 @@
 # isASCII.py: Check character set/encoding of a file(s).
 # 2020-11-18: Written by Steven J. DeRose.
 #
-from __future__ import print_function
 import sys
 import codecs
 import re
@@ -11,13 +10,9 @@ from collections import defaultdict
 from unicodedata import normalize
 from PowerWalk import PowerWalk, PWType
 
-PY2 = sys.version_info[0] == 2
 PY3 = sys.version_info[0] == 3
-if (PY2):
-    pass
 if (PY3):
     #from io import StringIO
-    def unichr(n): return chr(n)
     def unicode(s, encoding='utf-8', errors='strict'): str(s, encoding, errors)
     if (sys.version_info[1] < 7):
         def isascii(s):
@@ -36,7 +31,7 @@ except ValueError:
     wideBuild = False
 
 __metadata__ = {
-    'title'        : "isASCII.py",
+    'title'        : "isASCII",
     "description"  : "Check character set/encoding of a file(s).",
     'rightsHolder' : "Steven J. DeRose",
     'creator'      : "http://viaf.org/viaf/50334488",

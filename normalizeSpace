@@ -31,7 +31,9 @@ our $VERSION_DATE = $metadata{'modified'};
 normalizeSpace [options] file
 
 Reduce runs of whitespace to a single space, and drop leading and trailing
-whitespace. Optionally, also normalize quotes, dashes, controls, etc.
+whitespace. By default, this never includes line-end characters (CR and LF),
+however, see I<--evenNewlines>.
+Optionally, also normalize quotes, dashes, controls, etc.
 
 With I<--iencoding utf8>, all Unicode "Separator" characters
 count as spaces except for CR and LF. These include regular space, TAB,
@@ -46,6 +48,10 @@ As of 2020-10, there is a bug where it always deletes CR and LF.
 (prefix 'no' to negate where applicable)
 
 =over
+
+=item * B<--backspace>
+
+Add BSP (U+0008) to the list of characters counting as spaces.
 
 =item * B<--control>
 
@@ -68,16 +74,24 @@ em (clause) dashes (U+2014) which remain;
 and 2 hyphens in a row, which are changed to em dash.
 
 =item * B<--evenNewlines>
-Make I<--space> affect even CR and LF characters. By default it doesn't.
+Add CR (u+000D) and LF (U+000A) to the list of characters counting as spaces.
 See also I<--control>, since CR and LF are also control characters.
 
 =item * B<--iencoding> I<e>
 
 Specify character encoding for input. Default: C<utf8>
 
+=item * B<--hardspace>
+
+Add NO-BREAK SPACE (U+00A0) to the list of characters counting as spaces.
+
 =item * B<--ilineends> I<t>
 
 Assume Unix, Dos, or Mac line-breaks for input.
+
+=item * B<--leadStrip>
+
+Strip leading spaces (default; use "--no-leadStrip" to turn off such stripping).
 
 =item * B<--listEncodings>
 
@@ -97,10 +111,23 @@ Fewer messages.
 Turn each Unicode initial (open) or final (close) quotation mark to '"'.
 Apostrophe and backquote are not changed.
 
-=item * B<--space>
+=item * B<--space> I<choice>
 
-Turn each run of one or more Unicode Separator characters to a single space,
-except for the following, which are deleted because they are
+Turn some or all runs of Unicode Separator characters to a single space,
+and also (by default) removes space from start (I<--leadStrip>) and end (I<--trailStrip>)
+of lines.
+
+Note that none of the choices affect CR or LF. To do so, you must also set
+I<--evenLineends>.
+
+The choices available are:
+    STAB   -- This is the default, and affects space and tab.
+    NONE   -- don't touch spaces
+    SPACE  -- just the nominal SPACE character (U+20)
+    LATIN1 --
+    ALL    -- all the Unicode Separator characters
+
+Note: You may want to delete these instead, because they are
 too narrow to make a visual space:
     U+2009     THIN SPACE
     U+200A     HAIR SPACE
@@ -109,14 +136,15 @@ too narrow to make a visual space:
 
 In addition, delete a leading and/or trailing space that remains after that.
 
-By default, this option does not affect CR or LF characters. To nuke them
-as well, set I<--evenNewlines>.
-
-I<--space> is the default behavior; use I<--nospace> to turn it off.
+See also I<--evenNewlines>, I<--controls>.
 
 =item * B<--test>
 
 Run a small self-test.
+
+=item * B<--trailStrip>
+
+Strip trailing spaces (default; use "--no-trailStrip" to turn off such stripping).
 
 =item * B<--unicode>
 
@@ -145,8 +173,8 @@ for normal \\s spaces.
 
 =head1 To do
 
-* Options to just strip leading or trailing
-* Way to turn zero-width to space vs. delete.
+* Implement --quote for full range of Unicode quote characters.
+* Perhaps recognize escaped characters like C<countChars> can.
 
 
 =head1 Related commands
@@ -169,6 +197,9 @@ Add --control, --dash, --privateUse, --quote, --space.
 
 =item * 2020-10-15: Add --evenNewlines so we don't nuke CR and LF by default.
 Refactor. Add --test.
+
+=item * 2024-03-09: Improve list of space chars. Enumerate choices for
+--space option. Add --leadStrip, --trailStrip, --backspace, --hardspace.
 
 =back
 
@@ -193,15 +224,18 @@ L<https://github.com/sderose>.
 my $controlToKillString = "\x00-\x1F\x80-\x9F";
 my $controlToKillExpr = qr/([$controlToKillString])/;
 
+my $privateToKillString =
+    "\x{E000}-\x{F8FF}\x{F0000}-\x{FFFFD}\x{100000}-\x{10FFFD}";
+my $privateToKillExpr = qr/([$privateToKillString])/;
+
+###############################################################################
+# Dashes
+#
 my $dashToKillString = "" .
     "\x{00AD}" .    # "SOFT HYPHEN"
     "\x{2027}" .    # "HYPHENATION POINT"
     "";
 my $dashToKillExpr = qr/([$dashToKillString])/;
-
-my $privateToKillString =
-    "\x{E000}-\x{F8FF}\x{F0000}-\x{FFFFD}\x{100000}-\x{10FFFD}";
-my $privateToKillExpr = qr/([$privateToKillString])/;
 
 my $dashString = "" .
     "\x{002D}" .    # "HYPHEN-MINUS"        ### MUST BE FIRST FOR REGEX
@@ -240,60 +274,113 @@ my $dashString = "" .
     "";
 my $dashExpr = qr/([$dashString])/;
 
-my $spaceToKillString = "" .
-    "\x{2009}" .    # THIN SPACE
-    "\x{200A}" .    # HAIR SPACE
-    "\x{200B}" .    # ZERO WIDTH SPACE
-    "\x{202F}" .    # NARROW NO-BREAK SPACE
-    "";
-my $spaceToKillExpr = qr/([$spaceToKillString])/;
 
-my $spaceString = "" .
-    "\x{0020}" .    # SPACE
-    "\x{0009}" .    # CHARACTER TABULATION
-    "\x{00A0}" .    # NO-BREAK SPACE
-    "\x{1680}" .    # OGHAM SPACE MARK
-    "\x{2000}" .    # EN QUAD
-    "\x{2001}" .    # EM QUAD
-    "\x{2002}" .    # EN SPACE
-    "\x{2003}" .    # EM SPACE
-    "\x{2004}" .    # THREE-PER-EM SPACE
-    "\x{2005}" .    # FOUR-PER-EM SPACE
-    "\x{2006}" .    # SIX-PER-EM SPACE
-    "\x{2007}" .    # FIGURE SPACE
-    "\x{2008}" .    # PUNCTUATION SPACE
-    "\x{205F}" .    # MEDIUM MATHEMATICAL SPACE
-    #"\x{2420}" .    # SYMBOL FOR SPACE
-    "\x{3000}" .    # IDEOGRAPHIC SPACE
-    "\x{303F}" .    # IDEOGRAPHIC HALF FILL SPACE
-    "";
-my $spaceExpr = qr/([$spaceString])/;
+###############################################################################
+# Spaces
+#
+my $spaceBackSpace =
+    chr(0x00008);  # BACKSPACE
 
+my $spaceLineends =
+    chr(0x0000A) .  # LINE FEED
+    chr(0x0000D) .  # CARRIAGE RETURN
+    "";
+
+my $spaceSPACE =
+    chr(0x00020) .  # SPACE
+    "";
+
+my $spaceHard =
+    chr(0x000A0) .  # NON-BREAKING SPACE
+    "";
+
+my $spaceSTAB =
+    chr(0x00009) .  # CHARACTER TABULATION
+    #chr(0x0000A) .  # LINE FEED
+    #chr(0x0000D) .  # CARRIAGE RETURN
+    chr(0x00020) .  # SPACE
+    "";
+
+my $spaceLATIN1 =
+    chr(0x00009) .  # CHARACTER TABULATION
+    #chr(0x0000A) .  # LINE FEED
+    chr(0x0000B) .  # LINE TABULATION
+    chr(0x0000C) .  # FORM FEED
+    #chr(0x0000D) .  # CARRIAGE RETURN
+    chr(0x00020) .  # SPACE
+    chr(0x000A0) .  # NON-BREAKING SPACE
+    chr(0x00089) .  # CHARACTER TABULATION WITH JUSTIFICATION (WARNING: CP1252 per mille)
+    "";
+
+my $spaceALL =
+    chr(0x00009) .  # CHARACTER TABULATION
+    #chr(0x0000A) .  # LINE FEED
+    chr(0x0000B) .  # LINE TABULATION
+    chr(0x0000C) .  # FORM FEED
+    #chr(0x0000D) .  # CARRIAGE RETURN
+    chr(0x00020) .  # SPACE
+    chr(0x00089) .  # CHARACTER TABULATION WITH JUSTIFICATION (WARNING: CP1252 per mille)
+    #chr(0x000A0) .  # NON-BREAKING SPACE
+    chr(0x01680) .  # OGHAM SPACE MARK
+    chr(0x0180E) .  # MONGOLIAN VOWEL SEPARATOR
+    chr(0x02000) .  # EN QUAD
+    chr(0x02001) .  # EM QUAD
+    chr(0x02002) .  # EN SPACE
+    chr(0x02003) .  # EM SPACE
+    chr(0x02004) .  # THREE-PER-EM SPACE
+    chr(0x02005) .  # FOUR-PER-EM SPACE
+    chr(0x02006) .  # SIX-PER-EM SPACE
+    chr(0x02007) .  # FIGURE SPACE
+    chr(0x02008) .  # PUNCTUATION SPACE
+    chr(0x02009) .  # THIN SPACE
+    chr(0x0200A) .  # HAIR SPACE
+    chr(0x02028) .  # LINE SEPARATOR
+    chr(0x02029) .  # PARAGRAPH SEPARATOR
+    chr(0x0200B) .  # ZERO WIDTH SPACE
+    chr(0x0202F) .  # NARROW NO-BREAK SPACE
+    chr(0x0205F) .  # MEDIUM MATHEMATICAL SPACE
+    chr(0x02060) .  # WORD JOINER
+    chr(0x03000) .  # IDEOGRAPHIC SPACE
+    chr(0x0303F) .  # IDEOGRAPHIC HALF FILL SPACE
+    chr(0x0FeFF) .  # ZERO WIDTH NO-BREAK SPACE (aka BOM)
+    "";
+
+
+###############################################################################
+# Quotes
+#
 my $quoteString = "'\"";   ### FIX
 
 
 ###############################################################################
 # Options
 #
+my $backspace     = 0;
 my $control       = 0;
 my $dash          = 0;
 my $evenNewlines  = 0;
+my $hardspace     = 0;
 my $iencoding     = "utf8";
 my $ilineends     = "U";
+my $leadStrip     = 1;
+my $trailStrip    = 1;
 my $privateUse    = 0;
 my $quiet         = 0;
 my $quote         = 0;
-my $space         = 1;
+my $space         = "XML";
 my $test          = 0;
 my $verbose       = 0;
 
 my %getoptHash = (
+    "backspace!"              => \$backspace,
     "control!"                => \$control,
     "dash!"                   => \$dash,
     "evenNewlines!"           => \$evenNewlines,
+    "hardspace!"              => \$hardspace,
     "h|help"                  => sub { system "perldoc $0"; exit; },
     "iencoding=s"             => \$iencoding,
     "ilineends=s"             => \$ilineends,
+    "leadStrip!"              => \$leadStrip,
     "listEncodings"    => sub {
         warn "\nEncodings available:\n";
         for my $k (Encode->encodings(":all")) {
@@ -304,8 +391,9 @@ my %getoptHash = (
     "privateUse!"             => \$privateUse,
     "quiet|q!"                => \$quiet,
     "quote!"                  => \$quote,
-    "space!"                  => \$space,
-    "test!",                  => \$test,
+    "space=s"                 => \$space,
+    "test!"                   => \$test,
+    "trailStrip!"             => \$trailStrip,
     "unicode!"                => sub { $iencoding = "utf8"; },
     "v+"                      => \$verbose,
     "version"                 => sub {
@@ -329,6 +417,31 @@ if ($iencoding) {
     binmode(STDERR, ":encoding($iencoding)");
 }
 
+my $spaceString = "";
+if ($evenNewlines) { $spaceString .= $spaceLineends; }
+if ($backspace) { $spaceString .= $spaceBackSpace; }
+if ($hardspace) { $spaceString .= $spaceHard; }
+
+$space = uc($space);
+if ($space eq "NONE") { $spaceString .= ""; }
+elsif ($space eq "SPACE") { $spaceString = $; }
+elsif ($space eq "STAB") { $spaceString = $; }
+elsif ($space eq "LATIN1") { $spaceString = $; }
+elsif ($space eq "ALL") { $spaceString = $; }
+else { die "Bad --space value '$space'.\n"; }
+
+my $spaceExpr = qr/([$spaceString])/;
+
+if ($verbose) {
+    warn("Chars for control: " . $controlToKillString . "\n");
+    warn("Chars for private: " . $privateToKillString . "\n");
+    warn("Chars for dash:    " . $dashString . "\n");
+    warn("Chars for space:   " . $spaceString . "\n");
+    warn("Chars for quote:   " . $quoteString . "\n");
+}
+($space !~ m/^(NONE|SPACE|STAB|XML|LATIN1|ALL)$/) || die
+    "Unknown value '$space' for --space. See --help.\n";
+
 
 ###############################################################################
 #
@@ -349,18 +462,18 @@ sub normalize {
         $rec =~ s/\p{Initial_Punctuation}/"/g;
         $rec =~ s/\p{Final_Punctuation}/"/g;
     }
-    if ($space) {
-        $rec =~ s/$spaceToKillExpr//g;       # Not incl. \n \r
+
         $rec =~ s/$spaceExpr+/ /g;           # Not incl. \n \r
         if ($evenNewlines) {
             $rec =~ s/\s+/ /g;
         }
-        $rec =~ s/^ //;
-        $rec =~ s/ $//;
     }
+
+    if ($spaceString) { $rec =! s/$spaceExpr+/ /g; }
+    if ($leadStrip) { $rec =~ s/^$spaceExpr+//; }
+    if ($trailStrip) { $rec =~ s/$spaceExpr+$//; }
     return $rec;
 }
-
 
 sub doTest {
     print("Testing...\n");
@@ -380,14 +493,6 @@ sub doTest {
 ###############################################################################
 # Main
 #
-if ($verbose) {
-    warn("Chars for control: " . $controlToKillString . "\n");
-    warn("Chars for private: " . $privateToKillString . "\n");
-    warn("Chars for dash:    " . $dashString . "\n");
-    warn("Chars for space:   " . $spaceString . "\n");
-    warn("Chars for quote:   " . $quoteString . "\n");
-}
-
 if ($test) {
     doTest();
     exit;

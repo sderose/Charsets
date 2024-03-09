@@ -16,8 +16,6 @@ use POSIX;
 
 #use Char::Unicode::Bidi;  # ???
 
-#use sjdUtils;  # getUTF8(), isUnicodeCodePoint() are copied locally.
-
 our %metadata = (
     'title'        => "ord",
     'description'  => "Display information about Unicode characters.",
@@ -26,7 +24,7 @@ our %metadata = (
     'type'         => "http://purl.org/dc/dcmitype/Software",
     'language'     => "Perl 5.18",
     'created'      => "2007-10",
-    'modified'     => "2023-03-15",
+    'modified'     => "2024-02-26",
     'publisher'    => "http://github.com/sderose",
     'license'      => "https://creativecommons.org/licenses/by-sa/3.0/"
 );
@@ -178,6 +176,7 @@ Charts are not affected by I<--minU> or I<maxU>.
 =item * B<--cp1252>
 
 Assume the input character set is Windows\xAE code page I<cp1252>.
+See also I<--macRoman>.
 
 =item * B<--c0>
 
@@ -357,6 +356,15 @@ can't handle UTF-8 (you may also wish to get a new output device).
 =item * B<--long>
 
 Show long names for characters (default).
+
+=item * B<--macRoman>
+
+Assume the input character set is Apple macRoman.
+This is also known as  IANA character "macintosh"
+(with aliases "mac" and "csMacintosh"), and Microsoft code page 10000.
+Acc. [http://fileformats.archiveteam.org/wiki/MacRoman],
+C<iconv> recognizes "CP10000", "MAC", "MACINTOSH", "MACROMAN", and "CSMACINTOSH".
+See also I<--cp1252>.
 
 =item * B<--math>
 
@@ -607,6 +615,8 @@ coalesce contiguous ranges.
 
 =item * 2023-07-25: Report private-use chars specially rather than as unassigned.
 
+=item * 2024-02-26: Add reporting for C1 as MacRoman possibility.
+
 =back
 
 
@@ -716,6 +726,7 @@ my $jargon      = 1;
 my $listFormat  = "LITERAL";
 my $literal     = 1;
 my $long        = 1;
+my $macRoman    = 0;
 my $math        = 0;
 my $maxU        = 0x1FFFF;
 my $minU        = 1;
@@ -752,6 +763,7 @@ my $result = GetOptions(
     "listFormat|oFormat|outputFormat|output-format=s" => \$listFormat,
     "literal!"            => \$literal,
     "long!"               => \$long,
+    "macRoman!"           => \$macRoman,
     "math!"               => \$math,
     "maxU=o"              => \$maxU,
     "minU=o"              => \$minU,
@@ -1066,6 +1078,155 @@ my %cp1252Info = (
     0x00009F => [ 0x0178, "LATIN CAPITAL LETTER Y WITH DIAERESIS" ],
 );
 
+# Perl form for info on old MacRoman character set.
+# See also other forms such as Python and XSV data.
+# From 'chr' by Steven J. DeRose, as of 2015-09-15.
+#
+# Fields are:
+#     MacRoman code point as literal
+#     MacRoman hex code point
+#     Corresponding Unicode hex code point
+#     HTML entity name
+#     Unicode character name (in mixed case)
+#
+my $uc = 'Latin capital letter ';
+my $lc = 'Latin small letter ';
+my $qm = ' quotation mark';
+
+my %macRomanData2 = (
+    #       [ Lit        Hex   UEquiv  EntName   Descr
+    ####### C1 #######
+    0x80 => [ chr(0x80), 0x80, 0x00C4, "Auml",   $uc.'A with diaeresis', ],
+    0x81 => [ chr(0x81), 0x81, 0x00C5, "Aring",  $uc.'A with ring above', ],
+    0x82 => [ chr(0x82), 0x82, 0x00C7, "Ccedil", $uc.'C with cedilla', ],
+    0x83 => [ chr(0x83), 0x83, 0x00C9, "Eacute", $uc.'E with acute', ],
+    0x84 => [ chr(0x84), 0x84, 0x00D1, "Ntilde", $uc.'N with tilde', ],
+    0x85 => [ chr(0x85), 0x85, 0x00D6, "Ouml",   $uc.'O with diaeresis', ],
+    0x86 => [ chr(0x86), 0x86, 0x00DC, "Uuml",   $uc.'U with diaeresis', ],
+    0x87 => [ chr(0x87), 0x87, 0x00E1, "aacute", $lc.'a with acute', ],
+    0x88 => [ chr(0x88), 0x88, 0x00E0, "agrave", $lc.'a with grave', ],
+    0x89 => [ chr(0x89), 0x89, 0x00E2, "acirc",  $lc.'a with circumflex', ],
+    0x8A => [ chr(0x8A), 0x8A, 0x00E4, "auml",   $lc.'a with diaeresis', ],
+    0x8B => [ chr(0x8B), 0x8B, 0x00E3, "atilde", $lc.'a with tilde', ],
+    0x8C => [ chr(0x8C), 0x8C, 0x00E5, "aring",  $lc.'a with ring above', ],
+    0x8D => [ chr(0x8D), 0x8D, 0x00E7, "ccedil", $lc.'c with cedilla', ],
+    0x8E => [ chr(0x8E), 0x8E, 0x00E9, "eacute", $lc.'e with acute', ],
+    0x8F => [ chr(0x8F), 0x8F, 0x00E8, "egrave", $lc.'e with grave', ],
+    0x90 => [ chr(0x90), 0x90, 0x00EA, "ecirc",  $lc.'e with circumflex', ],
+    0x91 => [ chr(0x91), 0x91, 0x00EB, "euml",   $lc.'e with diaeresis', ],
+    0x92 => [ chr(0x92), 0x92, 0x00ED, "iacute", $lc.'i with acute', ],
+    0x93 => [ chr(0x93), 0x93, 0x00EC, "igrave", $lc.'i with grave', ],
+    0x94 => [ chr(0x94), 0x94, 0x00EE, "icirc",  $lc.'i with circumflex', ],
+    0x95 => [ chr(0x95), 0x95, 0x00EF, "iuml",   $lc.'i with diaeresis', ],
+    0x96 => [ chr(0x96), 0x96, 0x00F1, "ntilde", $lc.'n with tilde', ],
+    0x97 => [ chr(0x97), 0x97, 0x00F3, "oacute", $lc.'o with acute', ],
+    0x98 => [ chr(0x98), 0x98, 0x00F2, "ograve", $lc.'o with grave', ],
+    0x99 => [ chr(0x99), 0x99, 0x00F4, "ocirc",  $lc.'o with circumflex', ],
+    0x9A => [ chr(0x9A), 0x9A, 0x00F6, "ouml",   $lc.'o with diaeresis', ],
+    0x9B => [ chr(0x9B), 0x9B, 0x00F5, "otilde", $lc.'o with tilde', ],
+    0x9C => [ chr(0x9C), 0x9C, 0x00FA, "uacute", $lc.'u with acute', ],
+    0x9D => [ chr(0x9D), 0x9D, 0x00F9, "ugrave", $lc.'u with grave', ],
+    0x9E => [ chr(0x9E), 0x9E, 0x00FB, "ucirc",  $lc.'u with circumflex', ],
+    0x9F => [ chr(0x9F), 0x9F, 0x00FC, "uuml",   $lc.'u with diaeresis', ],
+    ####### G1 #######
+    0xA0 => [ chr(0xA0), 0xA0, 0x2020, "dagger", 'Dagger', ],
+    0xA1 => [ chr(0xA1), 0xA1, 0x00B0, "deg",    'Degree sign', ],
+    0xA2 => [ chr(0xA2), 0xA2, 0x00A2, "cent",   'Cent sign', ],
+    0xA3 => [ chr(0xA3), 0xA3, 0x00A3, "pound",  'Pound sign', ],
+    0xA4 => [ chr(0xA4), 0xA4, 0x00A7, "sect",   'Section sign', ],
+    0xA5 => [ chr(0xA5), 0xA5, 0x2022, "bull",   'Bullet', ],
+    0xA6 => [ chr(0xA6), 0xA6, 0x00B6, "para",   'Pilcrow sign', ],
+    0xA7 => [ chr(0xA7), 0xA7, 0x00DF, "szlig",  $lc.'sharp s', ],
+    0xA8 => [ chr(0xA8), 0xA8, 0x00AE, "reg",    'Registered sign', ],
+    0xA9 => [ chr(0xA9), 0xA9, 0x00A9, "copy",   'Copyright sign', ],
+    0xAA => [ chr(0xAA), 0xAA, 0x2122, "trade",  'Trade mark sign', ],
+    0xAB => [ chr(0xAB), 0xAB, 0x00B4, "acute",  'Acute accent', ],
+    0xAC => [ chr(0xAC), 0xAC, 0x00A8, "uml",    'Diaeresis', ],
+    0xAD => [ chr(0xAD), 0xAD, 0x2260, "ne",     'Not equal to', ],
+    0xAE => [ chr(0xAE), 0xAE, 0x00C6, "AElig",  $uc.'AE', ],
+    0xAF => [ chr(0xAF), 0xAF, 0x00D8, "Oslash", $uc.'O with stroke', ],
+    0xB0 => [ chr(0xB0), 0xB0, 0x221E, "infin",  'Infinity', ],
+    0xB1 => [ chr(0xB1), 0xB1, 0x00B1, "plusmn", 'Plus-minus sign', ],
+    0xB2 => [ chr(0xB2), 0xB2, 0x2264, "le",     'Less-than or equal to', ],
+    0xB3 => [ chr(0xB3), 0xB3, 0x2265, "ge",     'Greater-than or equal to', ],
+    0xB4 => [ chr(0xB4), 0xB4, 0x00A5, "yen",    'Yen sign', ],
+    0xB5 => [ chr(0xB5), 0xB5, 0x00B5, "micro",  'Micro sign', ],
+    0xB6 => [ chr(0xB6), 0xB6, 0x2202, "part",   'Partial differential', ],
+    0xB7 => [ chr(0xB7), 0xB7, 0x2211, "sum",    'N-ary summation', ],
+    0xB8 => [ chr(0xB8), 0xB8, 0x220F, "prod",   'N-ary product', ],
+    0xB9 => [ chr(0xB9), 0xB9, 0x03C0, "pi",     'Greek small letter pi', ],
+    0xBA => [ chr(0xBA), 0xBA, 0x222B, "int",    'Integral', ],
+    0xBB => [ chr(0xBB), 0xBB, 0x00AA, "ordf",   'Feminine ordinal indicator', ],
+    0xBC => [ chr(0xBC), 0xBC, 0x00BA, "ordm",   'Masculine ordinal indicator', ],
+    0xBD => [ chr(0xBD), 0xBD, 0x03A9, "Omega",  'Greek capital letter Omega', ],
+    0xBE => [ chr(0xBE), 0xBE, 0x00E6, "aelig",  $lc.'ae', ],
+    0xBF => [ chr(0xBF), 0xBF, 0x00F8, "oslash", $lc.'o with stroke', ],
+    0xC0 => [ chr(0xC0), 0xC0, 0x00BF, "iquest", 'Inverted question mark', ],
+    0xC1 => [ chr(0xC1), 0xC1, 0x00A1, "iexcl",  'Inverted exclamation mark', ],
+    0xC2 => [ chr(0xC2), 0xC2, 0x00AC, "not",    'Not sign', ],
+    0xC3 => [ chr(0xC3), 0xC3, 0x221A, "radic",  'Square root', ],
+    0xC4 => [ chr(0xC4), 0xC4, 0x0192, "fnof",   $lc.'f with hook', ],
+    0xC5 => [ chr(0xC5), 0xC5, 0x2248, "asymp",  'Almost equal to', ],
+    0xC6 => [ chr(0xC6), 0xC6, 0x2206, "",       'Increment', ],
+    0xC7 => [ chr(0xC7), 0xC7, 0x00AB, "laquo",  'Left-pointing double angle'.$qm, ],
+    0xC8 => [ chr(0xC8), 0xC8, 0x00BB, "raquo",  'Right-pointing double angle'.$qm, ],
+    0xC9 => [ chr(0xC9), 0xC9, 0x2026, "hellip", 'Horizontal ellipsis', ],
+    0xCA => [ chr(0xCA), 0xCA, 0x00A0, "nbsp",   'No-break space', ],
+    0xCB => [ chr(0xCB), 0xCB, 0x00C0, "Agrave", $uc.'A with grave', ],
+    0xCC => [ chr(0xCC), 0xCC, 0x00C3, "Atilde", $uc.'A with tilde', ],
+    0xCD => [ chr(0xCD), 0xCD, 0x00D5, "Otilde", $uc.'O with tilde', ],
+    0xCE => [ chr(0xCE), 0xCE, 0x0152, "OElig",  'Latin capital ligature OE', ],
+    0xCF => [ chr(0xCF), 0xCF, 0x0153, "oelig",  'Latin small ligature oe', ],
+    0xD0 => [ chr(0xD0), 0xD0, 0x2013, "ndash",  'En dash', ],
+    0xD1 => [ chr(0xD1), 0xD1, 0x2014, "mdash",  'Em dash', ],
+    0xD2 => [ chr(0xD2), 0xD2, 0x201C, "ldquo",  'Left double'.$qm, ],
+    0xD3 => [ chr(0xD3), 0xD3, 0x201D, "rdquo",  'Right double'.$qm, ],
+    0xD4 => [ chr(0xD4), 0xD4, 0x2018, "lsquo",  'Left single'.$qm, ],
+    0xD5 => [ chr(0xD5), 0xD5, 0x2019, "rsquo",  'Right single'.$qm, ],
+    0xD6 => [ chr(0xD6), 0xD6, 0x00F7, "divide", 'Division sign', ],
+    0xD7 => [ chr(0xD7), 0xD7, 0x25CA, "loz",    'Lozenge', ],
+    0xD8 => [ chr(0xD8), 0xD8, 0x00FF, "yuml",   $lc.'y with diaeresis', ],
+    0xD9 => [ chr(0xD9), 0xD9, 0x0178, "Yuml",   $uc.'Y with diaeresis', ],
+    0xDA => [ chr(0xDA), 0xDA, 0x2044, "frasl",  'Fraction slash', ],
+    0xDB => [ chr(0xDB), 0xDB, 0x20AC, "euro",   'Euro sign', ],
+    0xDC => [ chr(0xDC), 0xDC, 0x2039, "lsaquo", 'Single left-pointing angle'.$qm, ],
+    0xDD => [ chr(0xDD), 0xDD, 0x203A, "rsaquo", 'Single right-pointing angle'.$qm, ],
+    0xDE => [ chr(0xDE), 0xDE, 0xFB01, "",       'Latin small ligature fi', ],
+    0xDF => [ chr(0xDF), 0xDF, 0xFB02, "",       'Latin small ligature fl', ],
+    0xE0 => [ chr(0xE0), 0xE0, 0x2021, "Dagger", 'Double dagger', ],
+    0xE1 => [ chr(0xE1), 0xE1, 0x00B7, "middot", 'Middle dot', ],
+    0xE2 => [ chr(0xE2), 0xE2, 0x201A, "sbquo",  'Single low-9'.$qm, ],
+    0xE3 => [ chr(0xE3), 0xE3, 0x201E, "bdquo",  'Double low-9'.$qm, ],
+    0xE4 => [ chr(0xE4), 0xE4, 0x2030, "permil", 'Per mille sign', ],
+    0xE5 => [ chr(0xE5), 0xE5, 0x00C2, "Acirc",  $uc.'A with circumflex', ],
+    0xE6 => [ chr(0xE6), 0xE6, 0x00CA, "Ecirc",  $uc.'E with circumflex', ],
+    0xE7 => [ chr(0xE7), 0xE7, 0x00C1, "Aacute", $uc.'A with acute', ],
+    0xE8 => [ chr(0xE8), 0xE8, 0x00CB, "Euml",   $uc.'E with diaeresis', ],
+    0xE9 => [ chr(0xE9), 0xE9, 0x00C8, "Egrave", $uc.'E with grave', ],
+    0xEA => [ chr(0xEA), 0xEA, 0x00CD, "Iacute", $uc.'I with acute', ],
+    0xEB => [ chr(0xEB), 0xEB, 0x00CE, "Icirc",  $uc.'I with circumflex', ],
+    0xEC => [ chr(0xEC), 0xEC, 0x00CF, "Iuml",   $uc.'I with diaeresis', ],
+    0xED => [ chr(0xED), 0xED, 0x00CC, "Igrave", $uc.'I with grave', ],
+    0xEE => [ chr(0xEE), 0xEE, 0x00D3, "Oacute", $uc.'O with acute', ],
+    0xEF => [ chr(0xEF), 0xEF, 0x00D4, "Ocirc",  $uc.'O with circumflex', ],
+    0xF0 => [ chr(0xF0), 0xF0, 0xF8FF, "",       'Apple logo', ],
+    0xF1 => [ chr(0xF1), 0xF1, 0x00D2, "Ograve", $uc.'O with grave', ],
+    0xF2 => [ chr(0xF2), 0xF2, 0x00DA, "Uacute", $uc.'U with acute', ],
+    0xF3 => [ chr(0xF3), 0xF3, 0x00DB, "Ucirc",  $uc.'U with circumflex', ],
+    0xF4 => [ chr(0xF4), 0xF4, 0x00D9, "Ugrave", $uc.'U with grave', ],
+    0xF5 => [ chr(0xF5), 0xF5, 0x0131, "",       $lc.'dotless i', ],
+    0xF6 => [ chr(0xF6), 0xF6, 0x02C6, "circ",   'Modifier letter circumflex accent', ],
+    0xF7 => [ chr(0xF7), 0xF7, 0x02DC, "tilde",  'Small tilde', ],
+    0xF8 => [ chr(0xF8), 0xF8, 0x00AF, "macr",   'Macron', ],
+    0xF9 => [ chr(0xF9), 0xF9, 0x02D8, "",       'Breve', ],
+    0xFA => [ chr(0xFA), 0xFA, 0x02D9, "",       'Dot above', ],
+    0xFB => [ chr(0xFB), 0xFB, 0x02DA, "",       'Ring above', ],
+    0xFC => [ chr(0xFC), 0xFC, 0x00B8, "cedil",  'Cedilla', ],
+    0xFD => [ chr(0xFD), 0xFD, 0x02DD, "",       'Double acute accent', ],
+    0xFE => [ chr(0xFE), 0xFE, 0x02DB, "",       'Ogonek', ],
+    0xFF => [ chr(0xFF), 0xFF, 0x02C7, "",       'Caron', ],
+);
+
 # Return the UTF-8 byte sequences for a given character code,
 # punctuated as needed to put in a URI.
 #
@@ -1344,11 +1505,19 @@ sub showOne {
     my $n2 = 0;
     my $c = chr($n);
 
-    if ($cp1252 && $n>=128 && $n<160) {
-        $n2 = $cp1252Info{$n}->[0];
-        printf("*** Assuming 0x%02x is CP1252, converted to 0x%02x\n",
-            $n, $n2, $cp1252Info{$n}->[1]);
+    if ($n>=128 && $n<160) {
+        if ($cp1252) {
+            $n2 = $cp1252Info{$n}->[0];
+            printf("*** Assuming 0x%02x is CP1252, converted to 0x%04x (%s)\n",
+                $n, $n2, $cp1252Info{$n}->[1]);
+        }
+        if ($macRoman) {
+            $n2 = $macRomanData2{$n}->[0];
+            printf("*** Assuming 0x%02x is MacRoman, converted to 0x%04x (%s)\n",
+                $n, $n2, $macRomanData2{$n}->[4]);
+        }
     }
+
     if ($short) {
         pline(sprintf(" %6s", "'" . getShortName($n2 ? $n2:$n) . "'"));
     }
@@ -1441,6 +1610,8 @@ sub showUnicodeInfo {
         pline("WARNING:", "Not a Unicode graphical code point (C1 control char)");
         printf("    *** In CP1252, 0x%02x is %s (-> U+%04x) ***\n",
             $n, $cp1252Info{$n}->[1], $cp1252Info{$n}->[0]);
+        printf("    *** In MacRoman, 0x%02x is %s (-> U+%04x) ***\n",
+            $n, $macRomanData2{$n}->[4], $macRomanData2{$n}->[2]);
     }
     if (!isUnicodeCodePoint($n)) {
         if (isPrivateUse($n)) {

@@ -12,15 +12,10 @@ from math import floor
 
 from alogging import ALogger
 
-#PY2 = sys.version_info[0] == 2
-PY3 = sys.version_info[0] == 3
-if PY3:
-    def unichr(nn): return chr(nn)
-
 lg = ALogger(1)
 
 __metadata__ = {
-    'title'        : "makeCharChart.py",
+    'title'        : "makeCharChart",
     'description'  : "Display info on range of Unicode code points.",
     'rightsHolder' : "Steven J. DeRose",
     'creator'      : "http://viaf.org/viaf/50334488",
@@ -100,12 +95,12 @@ Move sep line to right place. Fix HTML.
 def printable(i):
     if (i<=32):
         i = 0x2400 + i
-    elif (re.match(r'\s', unichr(i), re.U)):
+    elif (re.match(r'\s', chr(i), re.U)):
         i = 0x2420 # SP
     elif (i>=128 and i<160):
         i = int(args.badChar)
     try:
-        u = unichr(i)
+        u = chr(i)
     except UnicodeDecodeError as e:
         lg.error("Can't map %d to Unicode:\n    %s" % (i, e))
     return u
@@ -165,10 +160,10 @@ def doHTML():
 
         for col in range(0,args.perRow):
             codePoint = firstValue + col
-            theChar = unichr(codePoint)
+            theChar = chr(codePoint)
             buf1 += makeHTMLCell(printable(codePoint))
             buf2 += makeHTMLCell(("%d" % codePoint))
-            theBytes = unichr(codePoint).encode('utf-8')
+            theBytes = chr(codePoint).encode('utf-8')
             cell = ""
             esc = ""
             for b in theBytes:
@@ -232,10 +227,10 @@ def doText():
 
         for col in range(0,args.perRow):
             codePoint = firstValue + col
-            theChar = unichr(codePoint)
+            theChar = chr(codePoint)
             buf1 += makeTextCell(printable(codePoint))
             buf2 += makeTextCell(("%d" % codePoint))
-            theBytes = unichr(codePoint).encode('utf-8')
+            theBytes = chr(codePoint).encode('utf-8')
             cell = ""
             esc = ""
             for b in theBytes:

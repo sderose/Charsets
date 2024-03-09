@@ -13,7 +13,7 @@ import string
 from typing import List, Dict
 
 __metadata__ = {
-    "title"        : "mathAlphanumerics.py",
+    "title"        : "mathAlphanumerics",
     "description"  : "Map Latin, Greek, and digits to special math variants.",
     "rightsHolder" : "Steven J. DeRose",
     "creator"      : "http://viaf.org/viaf/50334488",
@@ -496,11 +496,18 @@ OVERLINE, DOVERLINE, STRIKE, SLASHED, DSLASHED.
 you only get the full set of { roman, bold, italic, bold-italic } for
 plain and sans-serif.
 
+* Add method to turn any of the Mathematical ones to plain
+
 * Perhaps add feature to turn markup into fonts -- such as
     <i> ITALIC
     <b> BOLD
     <tt> MONOSPACE
          SANS SERIF
+    <u>
+    <strike>
+    <em>
+    <strong>
+    <big>
     <sub> SUBSCRIPT
     <sup> SUPERSCRIPT
 

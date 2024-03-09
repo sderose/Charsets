@@ -28,7 +28,7 @@ def fatal(msg:str) -> None:
     lg.critical(msg); sys.exit()
 
 __metadata__ = {
-    "title"        : "charNameConvert.py",
+    "title"        : "charNameConvert",
     "description"  : "Interface Rahtz's huge table of tex/xml/afii/etc char names.",
     "rightsHolder" : "Steven J. DeRose",
     "creator"      : "http://viaf.org/viaf/50334488",

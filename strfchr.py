@@ -27,7 +27,7 @@ from alogging import ALogger
 lg = ALogger(1)
 
 __metadata__ = {
-    "title"        : "strfchr.py",
+    "title"        : "strfchr",
     "description"  : "Flexible conversion between character representations.",
     "rightsHolder" : "Steven J. DeRose",
     "creator"      : "http://viaf.org/viaf/50334488",

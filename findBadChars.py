@@ -10,17 +10,8 @@ import codecs
 import logging
 lg = logging.getLogger("findBadChars.py")
 
-def info0(msg:str) -> None:
-    if (args.verbose >= 0): lg.info(msg)
-def info1(msg:str) -> None:
-    if (args.verbose >= 1): lg.info(msg)
-def info2(msg:str) -> None:
-    if (args.verbose >= 2): lg.info(msg)
-def fatal(msg:str) -> None:
-    lg.critical(msg); sys.exit()
-
 __metadata__ = {
-    "title"        : "findBadChars.py",
+    "title"        : "findBadChars",
     "description"  : "Scan for non-Unicode or suspicious characters.",
     "rightsHolder" : "Steven J. DeRose",
     "creator"      : "http://viaf.org/viaf/50334488",
@@ -89,7 +80,7 @@ def doOneFile(path:str) -> int:
         try:
             fh = codecs.open(path, "rb", encoding=args.iencoding)
         except IOError as e:
-            info0("Cannot open '%s':\n    %s" % (path, e))
+            lg.info("Cannot open '%s':\n    %s" % (path, e))
             return 0
 
     recnum = 0
@@ -129,8 +120,6 @@ def isUnassigned(_n:int) -> bool:
 #
 if __name__ == "__main__":
     import argparse
-    def anyInt(x:str) -> int:
-        return int(x, 0)
 
     def processOptions() -> argparse.Namespace:
         try:
