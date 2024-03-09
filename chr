@@ -629,7 +629,7 @@ sub getC1Data2 {
     0x9D => [ chr(0x9D), 0x9D, 0x9D, "OSC",    "OS Command", ],
     0x9E => [ chr(0x9E), 0x9E, 0x9E, "*PVM",   "Privacy Message", ],      ### ??? FIX
     0x9F => [ chr(0x9F), 0x9F, 0x9F, "APC",    "Padding Character", ],
-    0xA0 => [ chr(0xA0), 0xA0, 0xA0, "NBS",    "Non-breaking Space", ],
+    0xA0 => [ chr(0xA0), 0xA0, 0xA0, "NBS",    "NO-BREAK SPACE", ],
     );
     for (my $i=0x80; $i<=0xA0; $i++) {  # Integrity check
         my @tuple = @{$c1d{$i}};

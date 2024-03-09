@@ -33,15 +33,17 @@ normalizeSpace [options] file
 Reduce runs of whitespace to a single space, and drop leading and trailing
 whitespace. By default, this never includes line-end characters (CR and LF),
 however, see I<--evenNewlines>.
-Optionally, also normalize quotes, dashes, controls, etc.
+Optionally, also normalize quotes, dashes, controls, privateUse characters,
+backspace, hardspace, etc.
 
-With I<--iencoding utf8>, all Unicode "Separator" characters
+With I<--space ALL>, all Unicode "Separator" characters
 count as spaces except for CR and LF. These include regular space, TAB,
-non-breaking space, en, em, thin, and other width spaces (U+20xx), etc.
+NO-BREAK SPACE, en, em, thin, and other width spaces (U+20xx), etc.
 To include CR and LF as well, set I<--evenNewlines>.
 
-As of 2020-10, there is a bug where it always deletes CR and LF.
-
+Runs of spaces are squeezed to single space (this cannot be turned off yet).
+leading and trailing spaces are also stripped, but those can be turned off
+with I<--no-leadStrip> and I<--no-trailStrip>.
 
 =head1 Options
 
@@ -118,13 +120,15 @@ and also (by default) removes space from start (I<--leadStrip>) and end (I<--tra
 of lines.
 
 Note that none of the choices affect CR or LF. To do so, you must also set
-I<--evenLineends>.
+I<--evenLineends>. If you want XML attribute-style normalization, use
+choice "XML", which is the same as
+    --space STAB --lead --trail
 
 The choices available are:
     STAB   -- This is the default, and affects space and tab.
     NONE   -- don't touch spaces
     SPACE  -- just the nominal SPACE character (U+20)
-    LATIN1 --
+    LATIN1 -- all the Unicode Separator characters below 0x100.
     ALL    -- all the Unicode Separator characters
 
 Note: You may want to delete these instead, because they are
@@ -142,7 +146,7 @@ See also I<--evenNewlines>, I<--controls>.
 
 Run a small self-test.
 
-=item * B<--trailStrip>
+=item * B<--trailStrip> OR B<--tailStrip>
 
 Strip trailing spaces (default; use "--no-trailStrip" to turn off such stripping).
 
@@ -175,6 +179,7 @@ for normal \\s spaces.
 
 * Implement --quote for full range of Unicode quote characters.
 * Perhaps recognize escaped characters like C<countChars> can.
+* Perhaps add option to turn off squeezing of space runs, and/or expand TABs.
 
 
 =head1 Related commands
@@ -291,7 +296,7 @@ my $spaceSPACE =
     "";
 
 my $spaceHard =
-    chr(0x000A0) .  # NON-BREAKING SPACE
+    chr(0x000A0) .  # NO-BREAK SPACE
     "";
 
 my $spaceSTAB =
@@ -308,7 +313,7 @@ my $spaceLATIN1 =
     chr(0x0000C) .  # FORM FEED
     #chr(0x0000D) .  # CARRIAGE RETURN
     chr(0x00020) .  # SPACE
-    chr(0x000A0) .  # NON-BREAKING SPACE
+    chr(0x000A0) .  # NO-BREAK SPACE
     chr(0x00089) .  # CHARACTER TABULATION WITH JUSTIFICATION (WARNING: CP1252 per mille)
     "";
 
@@ -320,7 +325,7 @@ my $spaceALL =
     #chr(0x0000D) .  # CARRIAGE RETURN
     chr(0x00020) .  # SPACE
     chr(0x00089) .  # CHARACTER TABULATION WITH JUSTIFICATION (WARNING: CP1252 per mille)
-    #chr(0x000A0) .  # NON-BREAKING SPACE
+    #chr(0x000A0) .  # NO-BREAK SPACE
     chr(0x01680) .  # OGHAM SPACE MARK
     chr(0x0180E) .  # MONGOLIAN VOWEL SEPARATOR
     chr(0x02000) .  # EN QUAD
@@ -393,7 +398,7 @@ my %getoptHash = (
     "quote!"                  => \$quote,
     "space=s"                 => \$space,
     "test!"                   => \$test,
-    "trailStrip!"             => \$trailStrip,
+    "trailStrip|tailStrip!"   => \$trailStrip,
     "unicode!"                => sub { $iencoding = "utf8"; },
     "v+"                      => \$verbose,
     "version"                 => sub {
@@ -424,10 +429,11 @@ if ($hardspace) { $spaceString .= $spaceHard; }
 
 $space = uc($space);
 if ($space eq "NONE") { $spaceString .= ""; }
-elsif ($space eq "SPACE") { $spaceString = $; }
-elsif ($space eq "STAB") { $spaceString = $; }
-elsif ($space eq "LATIN1") { $spaceString = $; }
-elsif ($space eq "ALL") { $spaceString = $; }
+elsif ($space eq "SPACE") { $spaceString .= $spaceSPACE; }
+elsif ($space eq "STAB") { $spaceString .= $spaceSTAB; }
+elsif ($space eq "LATIN1") { $spaceString .= $spaceLATIN1; }
+elsif ($space eq "ALL") { $spaceString .= $spaceALL; }
+elsif ($space eq "XML") { $spaceString .= $spaceSTAB . $spaceLineends; }
 else { die "Bad --space value '$space'.\n"; }
 
 my $spaceExpr = qr/([$spaceString])/;
@@ -439,7 +445,7 @@ if ($verbose) {
     warn("Chars for space:   " . $spaceString . "\n");
     warn("Chars for quote:   " . $quoteString . "\n");
 }
-($space !~ m/^(NONE|SPACE|STAB|XML|LATIN1|ALL)$/) || die
+($space =~ m/^(NONE|SPACE|STAB|LATIN1|ALL|XML)$/) || die
     "Unknown value '$space' for --space. See --help.\n";
 
 
@@ -463,13 +469,8 @@ sub normalize {
         $rec =~ s/\p{Final_Punctuation}/"/g;
     }
 
-        $rec =~ s/$spaceExpr+/ /g;           # Not incl. \n \r
-        if ($evenNewlines) {
-            $rec =~ s/\s+/ /g;
-        }
-    }
+    if ($spaceString) { $rec =~ s/$spaceExpr+/ /g; }
 
-    if ($spaceString) { $rec =! s/$spaceExpr+/ /g; }
     if ($leadStrip) { $rec =~ s/^$spaceExpr+//; }
     if ($trailStrip) { $rec =~ s/$spaceExpr+$//; }
     return $rec;
@@ -502,10 +503,6 @@ if (scalar(@ARGV)<=0) {
     push @ARGV, "-";
     if (-t STDIN && !$quiet) { warn "Waiting on STDIN...\n"; }
 }
-($spaceToKillExpr =~ m/[\n\r]/) && warn
-    "spaceToKillExpr has CR or LF!\n";
-($spaceExpr =~ m/[\n\r]/) && warn
-    "spaceToKillExpr has CR or LF!\n";
 
 my $recnum = my $filenum = 0;
 while (my $file = shift) {

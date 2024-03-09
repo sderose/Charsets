@@ -108,7 +108,7 @@ Display spaces (U+0020) in one of the following ways (default is "OK"):
   I<BL> ('b' with a slash through it, U+2422 -- the default)
   I<UN> (an underscore with the ends turned up, U+2423)
   I<SP> (a little "SP", U+2420)
-  I<NBSP> (a non-breaking space, U+00A0)
+  I<NBSP> (a NO-BREAK SPACE, U+00A0)
   I<COLOR> (experimental, different colors for different whitespace chars)
 
 =item * B<--tabAs> I<l>
@@ -270,7 +270,7 @@ my %spaceCodes = (
     "B"        => chr(0x2422), # B/
     "U"        => chr(0x2423), # _
     "OK"       => ' ',
-    "NBSP"     => chr(0x00A0), # Non-breaking space
+    "NBSP"     => chr(0x00A0), # NO-BREAK SPACE
 );
 
 my %lfCodes = (

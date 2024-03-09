@@ -258,7 +258,7 @@ to multiple ASCII characters.
 But Greek letters do not map at all, even when they are very closely related
 typographically, historically, and phonetically (for example,
 upper-case alpha (U+0391) vs. A (U+0041)).
-Likewise for non-breaking space (U+A0).
+Likewise for NO-BREAK SPACE (U+A0).
 
 In addition, not all implementations of C<iconv>
 work identically (though perhaps Perl versions always use the same one?
