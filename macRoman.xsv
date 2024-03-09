@@ -1,0 +1,262 @@
+<!-- XSV/XmlTuples form for info on old MacRoman character set.
+     See also other forms such as Python and Perl data.
+     From 'chr' by Steven J. DeRose, as of 2015-09-15.
+-->
+<Head Lit="" Hex="" Unicode="" EntName="" Descr="">
+<Rec Lit="Ä" Hex="80" Unicode="00C4" EntName="Auml"
+     Descr="Latin capital letter A with diaeresis"/>
+<Rec Lit="Å" Hex="81" Unicode="00C5" EntName="Aring"
+     Descr="Latin capital letter A with ring above"/>
+<Rec Lit="Ç" Hex="82" Unicode="00C7" EntName="Ccedil"
+     Descr="Latin capital letter C with cedilla"/>
+<Rec Lit="É" Hex="83" Unicode="00C9" EntName="Eacute"
+     Descr="Latin capital letter E with acute"/>
+<Rec Lit="Ñ" Hex="84" Unicode="00D1" EntName="Ntilde"
+     Descr="Latin capital letter N with tilde"/>
+<Rec Lit="Ö" Hex="85" Unicode="00D6" EntName="Ouml"
+     Descr="Latin capital letter O with diaeresis"/>
+<Rec Lit="Ü" Hex="86" Unicode="00DC" EntName="Uuml"
+     Descr="Latin capital letter U with diaeresis"/>
+<Rec Lit="á" Hex="87" Unicode="00E1" EntName="aacute"
+     Descr="Latin small letter a with acute"/>
+<Rec Lit="à" Hex="88" Unicode="00E0" EntName="agrave"
+     Descr="Latin small letter a with grave"/>
+<Rec Lit="â" Hex="89" Unicode="00E2" EntName="acirc"
+     Descr="Latin small letter a with circumflex"/>
+<Rec Lit="ä" Hex="8A" Unicode="00E4" EntName="auml"
+     Descr="Latin small letter a with diaeresis"/>
+<Rec Lit="ã" Hex="8B" Unicode="00E3" EntName="atilde"
+     Descr="Latin small letter a with tilde"/>
+<Rec Lit="å" Hex="8C" Unicode="00E5" EntName="aring"
+     Descr="Latin small letter a with ring above"/>
+<Rec Lit="ç" Hex="8D" Unicode="00E7" EntName="ccedil"
+     Descr="Latin small letter c with cedilla"/>
+<Rec Lit="é" Hex="8E" Unicode="00E9" EntName="eacute"
+     Descr="Latin small letter e with acute"/>
+<Rec Lit="è" Hex="8F" Unicode="00E8" EntName="egrave"
+     Descr="Latin small letter e with grave"/>
+<Rec Lit="ê" Hex="90" Unicode="00EA" EntName="ecirc"
+     Descr="Latin small letter e with circumflex"/>
+<Rec Lit="ë" Hex="91" Unicode="00EB" EntName="euml"
+     Descr="Latin small letter e with diaeresis"/>
+<Rec Lit="í" Hex="92" Unicode="00ED" EntName="iacute"
+     Descr="Latin small letter i with acute"/>
+<Rec Lit="ì" Hex="93" Unicode="00EC" EntName="igrave"
+     Descr="Latin small letter i with grave"/>
+<Rec Lit="î" Hex="94" Unicode="00EE" EntName="icirc"
+     Descr="Latin small letter i with circumflex"/>
+<Rec Lit="ï" Hex="95" Unicode="00EF" EntName="iuml"
+     Descr="Latin small letter i with diaeresis"/>
+<Rec Lit="ñ" Hex="96" Unicode="00F1" EntName="ntilde"
+     Descr="Latin small letter n with tilde"/>
+<Rec Lit="ó" Hex="97" Unicode="00F3" EntName="oacute"
+     Descr="Latin small letter o with acute"/>
+<Rec Lit="ò" Hex="98" Unicode="00F2" EntName="ograve"
+     Descr="Latin small letter o with grave"/>
+<Rec Lit="ô" Hex="99" Unicode="00F4" EntName="ocirc"
+     Descr="Latin small letter o with circumflex"/>
+<Rec Lit="ö" Hex="9A" Unicode="00F6" EntName="ouml"
+     Descr="Latin small letter o with diaeresis"/>
+<Rec Lit="õ" Hex="9B" Unicode="00F5" EntName="otilde"
+     Descr="Latin small letter o with tilde"/>
+<Rec Lit="ú" Hex="9C" Unicode="00FA" EntName="uacute"
+     Descr="Latin small letter u with acute"/>
+<Rec Lit="ù" Hex="9D" Unicode="00F9" EntName="ugrave"
+     Descr="Latin small letter u with grave"/>
+<Rec Lit="û" Hex="9E" Unicode="00FB" EntName="ucirc"
+     Descr="Latin small letter u with circumflex"/>
+<Rec Lit="ü" Hex="9F" Unicode="00FC" EntName="uuml"
+     Descr="Latin small letter u with diaeresis"/>
+<Rec Lit="†" Hex="A0" Unicode="2020" EntName="dagger"
+     Descr="dagger"/>
+<Rec Lit="°" Hex="A1" Unicode="00B0" EntName="deg"
+     Descr="degree sign"/>
+<Rec Lit="¢" Hex="A2" Unicode="00A2" EntName="cent"
+     Descr="cent sign"/>
+<Rec Lit="£" Hex="A3" Unicode="00A3" EntName="pound"
+     Descr="pound sign"/>
+<Rec Lit="§" Hex="A4" Unicode="00A7" EntName="sect"
+     Descr="section sign"/>
+<Rec Lit="•" Hex="A5" Unicode="2022" EntName="bull"
+     Descr="bullet"/>
+<Rec Lit="¶" Hex="A6" Unicode="00B6" EntName="para"
+     Descr="pilcrow sign"/>
+<Rec Lit="ß" Hex="A7" Unicode="00DF" EntName="szlig"
+     Descr="Latin small letter sharp s"/>
+<Rec Lit="®" Hex="A8" Unicode="00AE" EntName="reg"
+     Descr="registered sign"/>
+<Rec Lit="©" Hex="A9" Unicode="00A9" EntName="copy"
+     Descr="copyright sign"/>
+<Rec Lit="™" Hex="AA" Unicode="2122" EntName="trade"
+     Descr="trade mark sign"/>
+<Rec Lit="´" Hex="AB" Unicode="00B4" EntName="acute"
+     Descr="acute accent"/>
+<Rec Lit="¨" Hex="AC" Unicode="00A8" EntName="uml"
+     Descr="diaeresis"/>
+<Rec Lit="≠" Hex="AD" Unicode="2260" EntName="ne"
+     Descr="not equal to"/>
+<Rec Lit="Æ" Hex="AE" Unicode="00C6" EntName="AElig"
+     Descr="Latin capital letter AE"/>
+<Rec Lit="Ø" Hex="AF" Unicode="00D8" EntName="Oslash"
+     Descr="Latin capital letter O with stroke"/>
+<Rec Lit="∞" Hex="B0" Unicode="221E" EntName="infin"
+     Descr="infinity"/>
+<Rec Lit="±" Hex="B1" Unicode="00B1" EntName="plusmn"
+     Descr="plus-minus sign"/>
+<Rec Lit="≤" Hex="B2" Unicode="2264" EntName="le"
+     Descr="less-than or equal to"/>
+<Rec Lit="≥" Hex="B3" Unicode="2265" EntName="ge"
+     Descr="greater-than or equal to"/>
+<Rec Lit="¥" Hex="B4" Unicode="00A5" EntName="yen"
+     Descr="yen sign"/>
+<Rec Lit="µ" Hex="B5" Unicode="00B5" EntName="micro"
+     Descr="micro sign"/>
+<Rec Lit="∂" Hex="B6" Unicode="2202" EntName="part"
+     Descr="partial differential"/>
+<Rec Lit="∑" Hex="B7" Unicode="2211" EntName="sum"
+     Descr="n-ary summation"/>
+<Rec Lit="∏" Hex="B8" Unicode="220F" EntName="prod"
+     Descr="n-ary product"/>
+<Rec Lit="π" Hex="B9" Unicode="03C0" EntName="pi"
+     Descr="Greek small letter pi"/>
+<Rec Lit="∫" Hex="BA" Unicode="222B" EntName="int"
+     Descr="integral"/>
+<Rec Lit="ª" Hex="BB" Unicode="00AA" EntName="ordf"
+     Descr="feminine ordinal indicator"/>
+<Rec Lit="º" Hex="BC" Unicode="00BA" EntName="ordm"
+     Descr="masculine ordinal indicator"/>
+<Rec Lit="Ω" Hex="BD" Unicode="03A9" EntName="Omega"
+     Descr="Greek capital letter Omega"/>
+<Rec Lit="æ" Hex="BE" Unicode="00E6" EntName="aelig"
+     Descr="Latin small letter ae"/>
+<Rec Lit="ø" Hex="BF" Unicode="00F8" EntName="oslash"
+     Descr="Latin small letter o with stroke"/>
+<Rec Lit="¿" Hex="C0" Unicode="00BF" EntName="iquest"
+     Descr="inverted question mark"/>
+<Rec Lit="¡" Hex="C1" Unicode="00A1" EntName="iexcl"
+     Descr="inverted exclamation mark"/>
+<Rec Lit="¬" Hex="C2" Unicode="00AC" EntName="not"
+     Descr="not sign"/>
+<Rec Lit="√" Hex="C3" Unicode="221A" EntName="radic"
+     Descr="square root"/>
+<Rec Lit="ƒ" Hex="C4" Unicode="0192" EntName="fnof"
+     Descr="Latin small letter f with hook"/>
+<Rec Lit="≈" Hex="C5" Unicode="2248" EntName="asymp"
+     Descr="almost equal to"/>
+<Rec Lit="∆" Hex="C6" Unicode="2206" EntName=""
+     Descr="increment"/>
+<Rec Lit="«" Hex="C7" Unicode="00AB" EntName="laquo"
+     Descr="left-pointing double angle quotation mark"/>
+<Rec Lit="»" Hex="C8" Unicode="00BB" EntName="raquo"
+     Descr="right-pointing double angle quotation mark"/>
+<Rec Lit="…" Hex="C9" Unicode="2026" EntName="hellip"
+     Descr="horizontal ellipsis"/>
+<Rec Lit=" " Hex="CA" Unicode="00A0" EntName="nbsp"
+     Descr="no-break space"/>
+<Rec Lit="À" Hex="CB" Unicode="00C0" EntName="Agrave"
+     Descr="Latin capital letter A with grave"/>
+<Rec Lit="Ã" Hex="CC" Unicode="00C3" EntName="Atilde"
+     Descr="Latin capital letter A with tilde"/>
+<Rec Lit="Õ" Hex="CD" Unicode="00D5" EntName="Otilde"
+     Descr="Latin capital letter O with tilde"/>
+<Rec Lit="Œ" Hex="CE" Unicode="0152" EntName="OElig"
+     Descr="Latin capital ligature OE"/>
+<Rec Lit="œ" Hex="CF" Unicode="0153" EntName="oelig"
+     Descr="Latin small ligature oe"/>
+<Rec Lit="–" Hex="D0" Unicode="2013" EntName="ndash"
+     Descr="en dash"/>
+<Rec Lit="—" Hex="D1" Unicode="2014" EntName="mdash"
+     Descr="em dash"/>
+<Rec Lit="“" Hex="D2" Unicode="201C" EntName="ldquo"
+     Descr="left double quotation mark"/>
+<Rec Lit="”" Hex="D3" Unicode="201D" EntName="rdquo"
+     Descr="right double quotation mark"/>
+<Rec Lit="‘" Hex="D4" Unicode="2018" EntName="lsquo"
+     Descr="left single quotation mark"/>
+<Rec Lit="’" Hex="D5" Unicode="2019" EntName="rsquo"
+     Descr="right single quotation mark"/>
+<Rec Lit="÷" Hex="D6" Unicode="00F7" EntName="divide"
+     Descr="division sign"/>
+<Rec Lit="◊" Hex="D7" Unicode="25CA" EntName="loz"
+     Descr="lozenge"/>
+<Rec Lit="ÿ" Hex="D8" Unicode="00FF" EntName="yuml"
+     Descr="Latin small letter y with diaeresis"/>
+<Rec Lit="Ÿ" Hex="D9" Unicode="0178" EntName="Yuml"
+     Descr="Latin capital letter Y with diaeresis"/>
+<Rec Lit="⁄" Hex="DA" Unicode="2044" EntName="frasl"
+     Descr="fraction slash"/>
+<Rec Lit="€" Hex="DB" Unicode="20AC" EntName="euro"
+     Descr="euro sign"/>
+<Rec Lit="‹" Hex="DC" Unicode="2039" EntName="lsaquo"
+     Descr="single left-pointing angle quotation mark"/>
+<Rec Lit="›" Hex="DD" Unicode="203A" EntName="rsaquo"
+     Descr="single right-pointing angle quotation mark"/>
+<Rec Lit="ﬁ" Hex="DE" Unicode="FB01" EntName=""
+     Descr="Latin small ligature fi"/>
+<Rec Lit="ﬂ" Hex="DF" Unicode="FB02" EntName=""
+     Descr="Latin small ligature fl"/>
+<Rec Lit="‡" Hex="E0" Unicode="2021" EntName="Dagger"
+     Descr="double dagger"/>
+<Rec Lit="·" Hex="E1" Unicode="00B7" EntName="middot"
+     Descr="middle dot"/>
+<Rec Lit="‚" Hex="E2" Unicode="201A" EntName="sbquo"
+     Descr="single low-9 quotation mark"/>
+<Rec Lit="„" Hex="E3" Unicode="201E" EntName="bdquo"
+     Descr="double low-9 quotation mark"/>
+<Rec Lit="‰" Hex="E4" Unicode="2030" EntName="permil"
+     Descr="per mille sign"/>
+<Rec Lit="Â" Hex="E5" Unicode="00C2" EntName="Acirc"
+     Descr="Latin capital letter A with circumflex"/>
+<Rec Lit="Ê" Hex="E6" Unicode="00CA" EntName="Ecirc"
+     Descr="Latin capital letter E with circumflex"/>
+<Rec Lit="Á" Hex="E7" Unicode="00C1" EntName="Aacute"
+     Descr="Latin capital letter A with acute"/>
+<Rec Lit="Ë" Hex="E8" Unicode="00CB" EntName="Euml"
+     Descr="Latin capital letter E with diaeresis"/>
+<Rec Lit="È" Hex="E9" Unicode="00C8" EntName="Egrave"
+     Descr="Latin capital letter E with grave"/>
+<Rec Lit="Í" Hex="EA" Unicode="00CD" EntName="Iacute"
+     Descr="Latin capital letter I with acute"/>
+<Rec Lit="Î" Hex="EB" Unicode="00CE" EntName="Icirc"
+     Descr="Latin capital letter I with circumflex"/>
+<Rec Lit="Ï" Hex="EC" Unicode="00CF" EntName="Iuml"
+     Descr="Latin capital letter I with diaeresis"/>
+<Rec Lit="Ì" Hex="ED" Unicode="00CC" EntName="Igrave"
+     Descr="Latin capital letter I with grave"/>
+<Rec Lit="Ó" Hex="EE" Unicode="00D3" EntName="Oacute"
+     Descr="Latin capital letter O with acute"/>
+<Rec Lit="Ô" Hex="EF" Unicode="00D4" EntName="Ocirc"
+     Descr="Latin capital letter O with circumflex"/>
+<Rec Lit="" Hex="F0" Unicode="F8FF" EntName=""
+     Descr="Apple logo"/>
+<Rec Lit="Ò" Hex="F1" Unicode="00D2" EntName="Ograve"
+     Descr="Latin capital letter O with grave"/>
+<Rec Lit="Ú" Hex="F2" Unicode="00DA" EntName="Uacute"
+     Descr="Latin capital letter U with acute"/>
+<Rec Lit="Û" Hex="F3" Unicode="00DB" EntName="Ucirc"
+     Descr="Latin capital letter U with circumflex"/>
+<Rec Lit="Ù" Hex="F4" Unicode="00D9" EntName="Ugrave"
+     Descr="Latin capital letter U with grave"/>
+<Rec Lit="ı" Hex="F5" Unicode="0131" EntName=""
+     Descr="Latin small letter dotless i"/>
+<Rec Lit="ˆ" Hex="F6" Unicode="02C6" EntName="circ"
+     Descr="modifier letter circumflex accent"/>
+<Rec Lit="˜" Hex="F7" Unicode="02DC" EntName="tilde"
+     Descr="small tilde"/>
+<Rec Lit="¯" Hex="F8" Unicode="00AF" EntName="macr"
+     Descr="macron"/>
+<Rec Lit="˘" Hex="F9" Unicode="02D8" EntName=""
+     Descr="breve"/>
+<Rec Lit="˙" Hex="FA" Unicode="02D9" EntName=""
+     Descr="dot above"/>
+<Rec Lit="˚" Hex="FB" Unicode="02DA" EntName=""
+     Descr="ring above"/>
+<Rec Lit="¸" Hex="FC" Unicode="00B8" EntName="cedil"
+     Descr="cedilla"/>
+<Rec Lit="˝" Hex="FD" Unicode="02DD" EntName=""
+     Descr="double acute accent"/>
+<Rec Lit="˛" Hex="FE" Unicode="02DB" EntName=""
+     Descr="ogonek"/>
+<Rec Lit="ˇ" Hex="FF" Unicode="02C7" EntName=""
+     Descr="caron"/>
+</Head>

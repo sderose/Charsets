@@ -1,38 +1,7 @@
 #!/usr/bin/env perl -w
 #
 # chr: Show char for a given code point number.
-#
 # 2007-10-29: Written by Steven J. DeRose.
-# 2008-01-02 sjd: Add -n. Fix name access for C1 range.
-# 2008-09-03 sjd: Move to BSD.
-# 2010-01-06 sjd: Add charnames for Unicode.
-# 2010-05-03 sjd: perldoc. Start fixing base recognition.
-# 2011-06-22 sjd: Fix bug handling unknown Unicode char names.
-# 2011-06-29 sjd: Eliminate -multiple option. Fix decimal input.
-# 2011-08-04 sjd: Support -cp1252. Fix oct() usage. Check Unicode max.
-# 2012-01-27 sjd: Keep shifting data to use XmlTuples.
-# 2012-02-28 sjd: Last of XmlTuples integration. Recognize C0 abbrs.
-# 2012-07-27 sjd: Trap bad unicode char in isURIchar().
-# 2012-08-13f sjd: Better message if arg isn't numeric. Do URI form.
-#     Add HTML::Entities. Clean up display.
-# 2013-01-14 sjd: Add Unicode script and block.
-# 2013-06-19: Add Unicode equivalents for CP1252 chars.
-# 2013-08-19: Add utf-8 input:
-#     e28098 = u+2018 = lsquo
-#     e28099 = u+2019 = rsquo
-#     e2809c = u+201C = ldquo
-#     e2809d = u+201D = rdquo
-# 2015-07-07: Allow decimal "utf8" input: \226\128\153, etc.
-# 2015-09-15: Make -q useful. Make table of plane names.
-#
-# To do:
-#     Finish losing XmlTuples, c0longNames, etc.
-#     Accept HTML named character entities.
-#     Finish --iencoding, --mac.
-#     Support input of UTF-8 byte sequences?
-#     Option to display all Unicode properties?
-#     Integrate with 'ord'?
-#     Accept ^A...^Z, ^@.
 #
 use strict;
 use Getopt::Long;
@@ -43,11 +12,185 @@ use Unicode::UCD 'charblock';
 use HTML::Entities;
 #use Encode::Escape; #::Unicode;
 
-use sjdUtils;
 use alogging;
-#use XmlTuples;
 
-our $VERSION_DATE = "2015-09-15";
+our %metadata = (
+    'title'        => "chr",
+    'description'  => "Retrieve lots of data on Unicode characters.",
+    'rightsHolder' => "Steven J. DeRose",
+    'creator'      => "http://viaf.org/viaf/50334488",
+    'type'         => "http://purl.org/dc/dcmitype/Software",
+    'language'     => "Perl 5.18",
+    'created'      => "2007-10-29",
+    'modified'     => "2024-02-26",
+    'publisher'    => "http://github.com/sderose",
+    'license'      => "https://creativecommons.org/licenses/by-sa/3.0/"
+);
+our $VERSION_DATE = $metadata{'modified'};
+
+=pod
+
+=head1 Usage
+
+chr [options] [nums]
+
+Display information about the character(s)
+corresponding to the code point(s) number(s) in I<nums>.
+
+For example, "chr 0x2203" produces:
+
+  0x2203:
+    Bases:           o21003 d8707 x2203; U+2203, utf-8 \xe2\x88\x83
+    Unicode Name:    THERE EXISTS
+    Unicode Script:  Common
+    Unicode Block:   Mathematical Operators
+    Unicode Plane:   0: Basic Multilingual
+    URI form:        %e2%88%83
+    XML forms:       &#8707; &#x2203; &exist;
+
+I<nums> may be in hex (0x...), octal (0...), binary (0b...), or decimal.
+With the I<--utf8> option, you can give I<nums> as hex UTF8.
+
+Control characters and spaces will be displayed as mnemonics.
+Tries to get the full Unicode char name for chars >255.
+Display of other characters depends on your terminal program.
+
+
+=head1 Options
+
+(prefix 'no' to invert when applicable)
+
+=over
+
+=item * B<--cp1252>
+
+Show Windows Code Page 1252 meanings of characters d128-d159 (the rest
+of CP1252 matches Latin-1).
+
+=item * B<--iencoding> I<e>
+
+Assume the output is in character set I<e>.
+Not yet supported.
+See also I<--listEncodings>, I<--cp1252>.
+
+=item * B<--listEncodings>
+
+Show all the encodings supported by I<--iencoding>, and exit.
+
+=item * B<--long>
+
+Give long names for control characters, instead of mnemonics.
+
+=item * B<--quiet> OR B<-q>
+
+Suppress most messages.
+
+=item * B<--utf8>
+
+Interpret the command-line numbers as representations of UTF8 (the
+most common representation for Unicode).
+
+The input tokens can be in hexadecimal or decimal. For example,
+the C<Left Double Quotation Mark> character is Unicode code point
+U+201C (or o20034, d8220, x201c). In UTF8, all characters > 127 are encoded
+as multiple bytes, in this case the 3 byte sequence \xe2, \x80, \x9c. To
+use C<chr> to identify this sequence, do:
+
+    chr --utf8 0xe2809c
+    chr --utf8 226.128.153
+
+With decimal, there must be exactly 9 digits, optionally separated into
+3 groups of 3 using non-word-characters (to use space, quote the argument).
+This limits the range of Unicode supported for decimal.
+
+You can enter a UTF hex sequence that represents more than one character.
+C<chr> will find the boundaries, and describe each character in turn.
+However, C<chr> cannot do the same for decimal representations of more than
+1 character together.
+
+=item * B<--verbose> OR B<-v>
+
+Add more detailed messages.
+
+=item * B<--version>
+
+Display version info and exit.
+
+=back
+
+
+=head1 Known bugs and limitations
+
+Some terminal programs assume Latin-1, ASCII, or even CP1252,
+while Perl most readily writes out Unicode (as utf8).
+So output of literal characters outside the ASCII range,
+going to a non-Unicode-supporting terminal, may look funny.
+
+
+=head1 Related commands
+
+C<CharDisplay> Python utility to just print a ton of data about a given
+code point.
+
+C<ord> -- Do the reverse (that is, find the numeric code point(s)
+for given character(s).
+
+C<countChars> -- Find and/or count characters in particular ranges,
+including XML character references, URI escapes, etc.
+
+C<charnames> -- CPAN package to deal with Unicode properties and names.
+
+C<showNumberInBases> -- takes numbers in any of several forms, and shows them
+in multiple forms, much like this script also does with I<--nums>.
+
+C<XmlTuples.pm> -- Parse various internal data about characters (optional).
+
+
+=head1 History
+    2007-10-29: Written by Steven J. DeRose.
+    2008-01-02 sjd: Add -n. Fix name access for C1 range.
+    2008-09-03 sjd: Move to BSD.
+    2010-01-06 sjd: Add charnames for Unicode.
+    2010-05-03 sjd: perldoc. Start fixing base recognition.
+    2011-06-22 sjd: Fix bug handling unknown Unicode char names.
+    2011-06-29 sjd: Eliminate -multiple option. Fix decimal input.
+    2011-08-04 sjd: Support -cp1252. Fix oct() usage. Check Unicode max.
+    2012-01-27 sjd: Keep shifting data to use XmlTuples.
+    2012-02-28 sjd: Last of XmlTuples integration. Recognize C0 abbrs.
+    2012-07-27 sjd: Trap bad unicode char in isURIchar().
+    2012-08-13f sjd: Better message if arg isn't numeric. Do URI form.
+Add HTML::Entities. Clean up display.
+    2013-01-14 sjd: Add Unicode script and block.
+    2013-06-19: Add Unicode equivalents for CP1252 chars.
+    2013-08-19: Add utf-8 input:
+        e28098 = u+2018 = lsquo
+        e28099 = u+2019 = rsquo
+        e2809c = u+201C = ldquo
+        e2809d = u+201D = rdquo
+    2015-07-07: Allow decimal "utf8" input: \226\128\153, etc.
+    2015-09-15: Make -q useful. Make table of plane names.
+    2024-02-26: Drop XSV data on MacRoman etc. New layout.
+
+
+=head1 To do
+    Finish losing XmlTuples, c0longNames, etc.
+    Accept HTML named character entities.
+    Finish --iencoding, --mac.
+    Support input of UTF-8 byte sequences?
+    Option to display all Unicode properties?
+    Integrate with 'ord'?
+    Accept ^A...^Z, ^@.
+
+
+=head1 Ownership
+
+This work by Steven J. DeRose is licensed under a Creative Commons
+Attribution-Share Alike 3.0 Unported License. For further information on
+this license, see L<http://creativecommons.org/licenses/by-sa/3.0/>.
+
+For the most recent version, see L<http://www.derose.net/steve/utilities/>.
+
+=cut
 
 # Names of the Unicode Planes.
 my @uPlanes = ();
@@ -71,17 +214,34 @@ $uPlanes[16] = [ "Supplementary Private Use Area B",  "Arcadia" ];
 
 
 ###############################################################################
-# cf sjdUtils
+# These are from sjdUtils.pm.
 #
-sub XisUnicodeCodePoint {
+# Plane 0     0x000000 to 0x00FFFF  BMP
+# Plane 1     0x010000 to 0x01FFFF  Suppl MP
+# Plane 2     0x020000 to 0x02FFFF  Supple Ideographic
+# Plane 3-13  0x030000 to 0x0DFFFF  Unassigned
+# Plane 14    0x0E0000 to 0x0EFFFF  Suppl Special-purpose
+# Plane 15-16 0x0F0000 to 0x10FFFF  Suppl Private Use Area
+#
+sub isUnicodeCodePoint {
     my ($n) = @_;
-    ($n < 0 || $n  > 0x10FFFF ||
-     $n == 0x00FFFE || $n == 0x00FFFF ||
-     ($n >= 0x80 && $n < 0xa0)
-    ) && return(0);
+    if ($n  < 0x000000 || $n  > 0x10FFFF ||
+        $n == 0x00FFFE || $n == 0x00FFFF ||
+        ($n >= 0x000080 && $n < 0x0000a0)
+        ) { return(0); }
     return(1);
 }
-sub Xtry_module { # Also available in sjdUtils.pm
+
+my $xmlCharExpr =
+    "\t\n\r\x20-\x{D7FF}\x{E000}-\x{FFFD}";
+    #"\x{00010000}-\x{0010FFFF}";
+my $xce      = qr/^[$xmlCharExpr]$/;
+sub isXmlChar { # XML REC, production 2
+    my ($c) = @_;
+    return(($c =~ m/$xce/) ? 1:0);
+}
+
+sub Xtry_module {
     my ($mod, $quiet) = @_;
     eval("use $mod");
     if ($@) {
@@ -95,6 +255,20 @@ sub Xtry_module { # Also available in sjdUtils.pm
 sub pline {
     my ($label, $data) = @_;
     printf("    %-16s %s\n", $label, $data || "");
+}
+
+# Return the UTF-8 byte sequences for a given character code,
+# punctuated as needed to put in a URI.
+#
+sub getUTF8 {
+    my ($n, $sep) = @_;
+    if (!defined $sep) { $sep = "%"; }
+    my $utf8 = Encode::encode('utf8', chr($n));
+    my $ux = ();
+    for (my $i=0; $i<length($utf8); $i++) {
+        $ux .= sprintf("%s%02x", $sep, ord(substr($utf8, $i, 1)));
+    }
+    return($ux);
 }
 
 
@@ -146,17 +320,6 @@ GetOptions(%getoptHash) || die("Bad options.\n");
 ###############################################################################
 # Load up data about various character sets and encodings.
 #
-use XmlTuples;
-
-my $c0HashRef = my $c1HashRef = my $macHashRef = undef;
-my $xt = new XmlTuples(getC0Data());
-$c0HashRef = $xt->getAllAsHash("Hex");
-($verbose) && warn "c0hashRef: $c0HashRef.\n";
-$xt = new XmlTuples(getC1Data());
-$c1HashRef = $xt->getAllAsHash("Hex");
-$xt = new XmlTuples(getMacRomanData());
-$macHashRef = $xt->getAllAsHash("Hex");
-
 # These data hashes can be accessed via getCharInfo(hashRef, n, item).
 my $c0Ref = getC0Data2();
 my $c1Ref = getC1Data2();
@@ -237,11 +400,11 @@ sub doOneChar {
     }
 
     # URI escaping
-    pline("URI form:", sjdUtils::getUTF8($n));
+    pline("URI form:", getUTF8($n));
 
     my $entName = HTML::Entities::encode_entities($u);
     if ($entName =~ m/^&#/) { $entName = "-NO HTML NAMED ENTITY-"; }
-    my $xform = (sjdUtils::isXmlChar($u)) ?
+    my $xform = (isXmlChar($u)) ?
         sprintf("&#%d; &#x%x; %s\n", $n, $n, $entName) :
         "Not an XML character";
     if (!$quiet) { pline("XML forms:", $xform); }
@@ -342,7 +505,7 @@ sub isURIchar {
 sub getBases {
     my ($n) = @_;
     return(sprintf("o%04o d%04d x%04x; U+%04x, utf-8 %s",
-                   $n, $n, $n, $n, sjdUtils::getUTF8($n, "\\x")));
+                   $n, $n, $n, $n, getUTF8($n, "\\x")));
 }
 
 
@@ -366,436 +529,7 @@ sub getCharInfo {
 }
 
 
-# ---- When finished updating code, delete these.
-#
-
-# See http://en.wikipedia.org/wiki/Mac_OS_Roman
-#
-sub getMacRomanData {
-    return(qq{
-<Head Lit="" Hex="" Unicode="" EntName="" Descr="">
-<Rec Lit="Ä" Hex="80" Unicode="00C4" EntName="Auml"
-     Descr="Latin capital letter A with diaeresis"/>
-<Rec Lit="Å" Hex="81" Unicode="00C5" EntName="Aring"
-     Descr="Latin capital letter A with ring above"/>
-<Rec Lit="Ç" Hex="82" Unicode="00C7" EntName="Ccedil"
-     Descr="Latin capital letter C with cedilla"/>
-<Rec Lit="É" Hex="83" Unicode="00C9" EntName="Eacute"
-     Descr="Latin capital letter E with acute"/>
-<Rec Lit="Ñ" Hex="84" Unicode="00D1" EntName="Ntilde"
-     Descr="Latin capital letter N with tilde"/>
-<Rec Lit="Ö" Hex="85" Unicode="00D6" EntName="Ouml"
-     Descr="Latin capital letter O with diaeresis"/>
-<Rec Lit="Ü" Hex="86" Unicode="00DC" EntName="Uuml"
-     Descr="Latin capital letter U with diaeresis"/>
-<Rec Lit="á" Hex="87" Unicode="00E1" EntName="aacute"
-     Descr="Latin small letter a with acute"/>
-<Rec Lit="à" Hex="88" Unicode="00E0" EntName="agrave"
-     Descr="Latin small letter a with grave"/>
-<Rec Lit="â" Hex="89" Unicode="00E2" EntName="acirc"
-     Descr="Latin small letter a with circumflex"/>
-<Rec Lit="ä" Hex="8A" Unicode="00E4" EntName="auml"
-     Descr="Latin small letter a with diaeresis"/>
-<Rec Lit="ã" Hex="8B" Unicode="00E3" EntName="atilde"
-     Descr="Latin small letter a with tilde"/>
-<Rec Lit="å" Hex="8C" Unicode="00E5" EntName="aring"
-     Descr="Latin small letter a with ring above"/>
-<Rec Lit="ç" Hex="8D" Unicode="00E7" EntName="ccedil"
-     Descr="Latin small letter c with cedilla"/>
-<Rec Lit="é" Hex="8E" Unicode="00E9" EntName="eacute"
-     Descr="Latin small letter e with acute"/>
-<Rec Lit="è" Hex="8F" Unicode="00E8" EntName="egrave"
-     Descr="Latin small letter e with grave"/>
-<Rec Lit="ê" Hex="90" Unicode="00EA" EntName="ecirc"
-     Descr="Latin small letter e with circumflex"/>
-<Rec Lit="ë" Hex="91" Unicode="00EB" EntName="euml"
-     Descr="Latin small letter e with diaeresis"/>
-<Rec Lit="í" Hex="92" Unicode="00ED" EntName="iacute"
-     Descr="Latin small letter i with acute"/>
-<Rec Lit="ì" Hex="93" Unicode="00EC" EntName="igrave"
-     Descr="Latin small letter i with grave"/>
-<Rec Lit="î" Hex="94" Unicode="00EE" EntName="icirc"
-     Descr="Latin small letter i with circumflex"/>
-<Rec Lit="ï" Hex="95" Unicode="00EF" EntName="iuml"
-     Descr="Latin small letter i with diaeresis"/>
-<Rec Lit="ñ" Hex="96" Unicode="00F1" EntName="ntilde"
-     Descr="Latin small letter n with tilde"/>
-<Rec Lit="ó" Hex="97" Unicode="00F3" EntName="oacute"
-     Descr="Latin small letter o with acute"/>
-<Rec Lit="ò" Hex="98" Unicode="00F2" EntName="ograve"
-     Descr="Latin small letter o with grave"/>
-<Rec Lit="ô" Hex="99" Unicode="00F4" EntName="ocirc"
-     Descr="Latin small letter o with circumflex"/>
-<Rec Lit="ö" Hex="9A" Unicode="00F6" EntName="ouml"
-     Descr="Latin small letter o with diaeresis"/>
-<Rec Lit="õ" Hex="9B" Unicode="00F5" EntName="otilde"
-     Descr="Latin small letter o with tilde"/>
-<Rec Lit="ú" Hex="9C" Unicode="00FA" EntName="uacute"
-     Descr="Latin small letter u with acute"/>
-<Rec Lit="ù" Hex="9D" Unicode="00F9" EntName="ugrave"
-     Descr="Latin small letter u with grave"/>
-<Rec Lit="û" Hex="9E" Unicode="00FB" EntName="ucirc"
-     Descr="Latin small letter u with circumflex"/>
-<Rec Lit="ü" Hex="9F" Unicode="00FC" EntName="uuml"
-     Descr="Latin small letter u with diaeresis"/>
-<Rec Lit="†" Hex="A0" Unicode="2020" EntName="dagger"
-     Descr="dagger"/>
-<Rec Lit="°" Hex="A1" Unicode="00B0" EntName="deg"
-     Descr="degree sign"/>
-<Rec Lit="¢" Hex="A2" Unicode="00A2" EntName="cent"
-     Descr="cent sign"/>
-<Rec Lit="£" Hex="A3" Unicode="00A3" EntName="pound"
-     Descr="pound sign"/>
-<Rec Lit="§" Hex="A4" Unicode="00A7" EntName="sect"
-     Descr="section sign"/>
-<Rec Lit="•" Hex="A5" Unicode="2022" EntName="bull"
-     Descr="bullet"/>
-<Rec Lit="¶" Hex="A6" Unicode="00B6" EntName="para"
-     Descr="pilcrow sign"/>
-<Rec Lit="ß" Hex="A7" Unicode="00DF" EntName="szlig"
-     Descr="Latin small letter sharp s"/>
-<Rec Lit="®" Hex="A8" Unicode="00AE" EntName="reg"
-     Descr="registered sign"/>
-<Rec Lit="©" Hex="A9" Unicode="00A9" EntName="copy"
-     Descr="copyright sign"/>
-<Rec Lit="™" Hex="AA" Unicode="2122" EntName="trade"
-     Descr="trade mark sign"/>
-<Rec Lit="´" Hex="AB" Unicode="00B4" EntName="acute"
-     Descr="acute accent"/>
-<Rec Lit="¨" Hex="AC" Unicode="00A8" EntName="uml"
-     Descr="diaeresis"/>
-<Rec Lit="≠" Hex="AD" Unicode="2260" EntName="ne"
-     Descr="not equal to"/>
-<Rec Lit="Æ" Hex="AE" Unicode="00C6" EntName="AElig"
-     Descr="Latin capital letter AE"/>
-<Rec Lit="Ø" Hex="AF" Unicode="00D8" EntName="Oslash"
-     Descr="Latin capital letter O with stroke"/>
-<Rec Lit="∞" Hex="B0" Unicode="221E" EntName="infin"
-     Descr="infinity"/>
-<Rec Lit="±" Hex="B1" Unicode="00B1" EntName="plusmn"
-     Descr="plus-minus sign"/>
-<Rec Lit="≤" Hex="B2" Unicode="2264" EntName="le"
-     Descr="less-than or equal to"/>
-<Rec Lit="≥" Hex="B3" Unicode="2265" EntName="ge"
-     Descr="greater-than or equal to"/>
-<Rec Lit="¥" Hex="B4" Unicode="00A5" EntName="yen"
-     Descr="yen sign"/>
-<Rec Lit="µ" Hex="B5" Unicode="00B5" EntName="micro"
-     Descr="micro sign"/>
-<Rec Lit="∂" Hex="B6" Unicode="2202" EntName="part"
-     Descr="partial differential"/>
-<Rec Lit="∑" Hex="B7" Unicode="2211" EntName="sum"
-     Descr="n-ary summation"/>
-<Rec Lit="∏" Hex="B8" Unicode="220F" EntName="prod"
-     Descr="n-ary product"/>
-<Rec Lit="π" Hex="B9" Unicode="03C0" EntName="pi"
-     Descr="Greek small letter pi"/>
-<Rec Lit="∫" Hex="BA" Unicode="222B" EntName="int"
-     Descr="integral"/>
-<Rec Lit="ª" Hex="BB" Unicode="00AA" EntName="ordf"
-     Descr="feminine ordinal indicator"/>
-<Rec Lit="º" Hex="BC" Unicode="00BA" EntName="ordm"
-     Descr="masculine ordinal indicator"/>
-<Rec Lit="Ω" Hex="BD" Unicode="03A9" EntName="Omega"
-     Descr="Greek capital letter Omega"/>
-<Rec Lit="æ" Hex="BE" Unicode="00E6" EntName="aelig"
-     Descr="Latin small letter ae"/>
-<Rec Lit="ø" Hex="BF" Unicode="00F8" EntName="oslash"
-     Descr="Latin small letter o with stroke"/>
-<Rec Lit="¿" Hex="C0" Unicode="00BF" EntName="iquest"
-     Descr="inverted question mark"/>
-<Rec Lit="¡" Hex="C1" Unicode="00A1" EntName="iexcl"
-     Descr="inverted exclamation mark"/>
-<Rec Lit="¬" Hex="C2" Unicode="00AC" EntName="not"
-     Descr="not sign"/>
-<Rec Lit="√" Hex="C3" Unicode="221A" EntName="radic"
-     Descr="square root"/>
-<Rec Lit="ƒ" Hex="C4" Unicode="0192" EntName="fnof"
-     Descr="Latin small letter f with hook"/>
-<Rec Lit="≈" Hex="C5" Unicode="2248" EntName="asymp"
-     Descr="almost equal to"/>
-<Rec Lit="∆" Hex="C6" Unicode="2206" EntName=""
-     Descr="increment"/>
-<Rec Lit="«" Hex="C7" Unicode="00AB" EntName="laquo"
-     Descr="left-pointing double angle quotation mark"/>
-<Rec Lit="»" Hex="C8" Unicode="00BB" EntName="raquo"
-     Descr="right-pointing double angle quotation mark"/>
-<Rec Lit="…" Hex="C9" Unicode="2026" EntName="hellip"
-     Descr="horizontal ellipsis"/>
-<Rec Lit=" " Hex="CA" Unicode="00A0" EntName="nbsp"
-     Descr="no-break space"/>
-<Rec Lit="À" Hex="CB" Unicode="00C0" EntName="Agrave"
-     Descr="Latin capital letter A with grave"/>
-<Rec Lit="Ã" Hex="CC" Unicode="00C3" EntName="Atilde"
-     Descr="Latin capital letter A with tilde"/>
-<Rec Lit="Õ" Hex="CD" Unicode="00D5" EntName="Otilde"
-     Descr="Latin capital letter O with tilde"/>
-<Rec Lit="Œ" Hex="CE" Unicode="0152" EntName="OElig"
-     Descr="Latin capital ligature OE"/>
-<Rec Lit="œ" Hex="CF" Unicode="0153" EntName="oelig"
-     Descr="Latin small ligature oe"/>
-<Rec Lit="–" Hex="D0" Unicode="2013" EntName="ndash"
-     Descr="en dash"/>
-<Rec Lit="—" Hex="D1" Unicode="2014" EntName="mdash"
-     Descr="em dash"/>
-<Rec Lit="“" Hex="D2" Unicode="201C" EntName="ldquo"
-     Descr="left double quotation mark"/>
-<Rec Lit="”" Hex="D3" Unicode="201D" EntName="rdquo"
-     Descr="right double quotation mark"/>
-<Rec Lit="‘" Hex="D4" Unicode="2018" EntName="lsquo"
-     Descr="left single quotation mark"/>
-<Rec Lit="’" Hex="D5" Unicode="2019" EntName="rsquo"
-     Descr="right single quotation mark"/>
-<Rec Lit="÷" Hex="D6" Unicode="00F7" EntName="divide"
-     Descr="division sign"/>
-<Rec Lit="◊" Hex="D7" Unicode="25CA" EntName="loz"
-     Descr="lozenge"/>
-<Rec Lit="ÿ" Hex="D8" Unicode="00FF" EntName="yuml"
-     Descr="Latin small letter y with diaeresis"/>
-<Rec Lit="Ÿ" Hex="D9" Unicode="0178" EntName="Yuml"
-     Descr="Latin capital letter Y with diaeresis"/>
-<Rec Lit="⁄" Hex="DA" Unicode="2044" EntName="frasl"
-     Descr="fraction slash"/>
-<Rec Lit="€" Hex="DB" Unicode="20AC" EntName="euro"
-     Descr="euro sign"/>
-<Rec Lit="‹" Hex="DC" Unicode="2039" EntName="lsaquo"
-     Descr="single left-pointing angle quotation mark"/>
-<Rec Lit="›" Hex="DD" Unicode="203A" EntName="rsaquo"
-     Descr="single right-pointing angle quotation mark"/>
-<Rec Lit="ﬁ" Hex="DE" Unicode="FB01" EntName=""
-     Descr="Latin small ligature fi"/>
-<Rec Lit="ﬂ" Hex="DF" Unicode="FB02" EntName=""
-     Descr="Latin small ligature fl"/>
-<Rec Lit="‡" Hex="E0" Unicode="2021" EntName="Dagger"
-     Descr="double dagger"/>
-<Rec Lit="·" Hex="E1" Unicode="00B7" EntName="middot"
-     Descr="middle dot"/>
-<Rec Lit="‚" Hex="E2" Unicode="201A" EntName="sbquo"
-     Descr="single low-9 quotation mark"/>
-<Rec Lit="„" Hex="E3" Unicode="201E" EntName="bdquo"
-     Descr="double low-9 quotation mark"/>
-<Rec Lit="‰" Hex="E4" Unicode="2030" EntName="permil"
-     Descr="per mille sign"/>
-<Rec Lit="Â" Hex="E5" Unicode="00C2" EntName="Acirc"
-     Descr="Latin capital letter A with circumflex"/>
-<Rec Lit="Ê" Hex="E6" Unicode="00CA" EntName="Ecirc"
-     Descr="Latin capital letter E with circumflex"/>
-<Rec Lit="Á" Hex="E7" Unicode="00C1" EntName="Aacute"
-     Descr="Latin capital letter A with acute"/>
-<Rec Lit="Ë" Hex="E8" Unicode="00CB" EntName="Euml"
-     Descr="Latin capital letter E with diaeresis"/>
-<Rec Lit="È" Hex="E9" Unicode="00C8" EntName="Egrave"
-     Descr="Latin capital letter E with grave"/>
-<Rec Lit="Í" Hex="EA" Unicode="00CD" EntName="Iacute"
-     Descr="Latin capital letter I with acute"/>
-<Rec Lit="Î" Hex="EB" Unicode="00CE" EntName="Icirc"
-     Descr="Latin capital letter I with circumflex"/>
-<Rec Lit="Ï" Hex="EC" Unicode="00CF" EntName="Iuml"
-     Descr="Latin capital letter I with diaeresis"/>
-<Rec Lit="Ì" Hex="ED" Unicode="00CC" EntName="Igrave"
-     Descr="Latin capital letter I with grave"/>
-<Rec Lit="Ó" Hex="EE" Unicode="00D3" EntName="Oacute"
-     Descr="Latin capital letter O with acute"/>
-<Rec Lit="Ô" Hex="EF" Unicode="00D4" EntName="Ocirc"
-     Descr="Latin capital letter O with circumflex"/>
-<Rec Lit="" Hex="F0" Unicode="F8FF" EntName=""
-     Descr="Apple logo"/>
-<Rec Lit="Ò" Hex="F1" Unicode="00D2" EntName="Ograve"
-     Descr="Latin capital letter O with grave"/>
-<Rec Lit="Ú" Hex="F2" Unicode="00DA" EntName="Uacute"
-     Descr="Latin capital letter U with acute"/>
-<Rec Lit="Û" Hex="F3" Unicode="00DB" EntName="Ucirc"
-     Descr="Latin capital letter U with circumflex"/>
-<Rec Lit="Ù" Hex="F4" Unicode="00D9" EntName="Ugrave"
-     Descr="Latin capital letter U with grave"/>
-<Rec Lit="ı" Hex="F5" Unicode="0131" EntName=""
-     Descr="Latin small letter dotless i"/>
-<Rec Lit="ˆ" Hex="F6" Unicode="02C6" EntName="circ"
-     Descr="modifier letter circumflex accent"/>
-<Rec Lit="˜" Hex="F7" Unicode="02DC" EntName="tilde"
-     Descr="small tilde"/>
-<Rec Lit="¯" Hex="F8" Unicode="00AF" EntName="macr"
-     Descr="macron"/>
-<Rec Lit="˘" Hex="F9" Unicode="02D8" EntName=""
-     Descr="breve"/>
-<Rec Lit="˙" Hex="FA" Unicode="02D9" EntName=""
-     Descr="dot above"/>
-<Rec Lit="˚" Hex="FB" Unicode="02DA" EntName=""
-     Descr="ring above"/>
-<Rec Lit="¸" Hex="FC" Unicode="00B8" EntName="cedil"
-     Descr="cedilla"/>
-<Rec Lit="˝" Hex="FD" Unicode="02DD" EntName=""
-     Descr="double acute accent"/>
-<Rec Lit="˛" Hex="FE" Unicode="02DB" EntName=""
-     Descr="ogonek"/>
-<Rec Lit="ˇ" Hex="FF" Unicode="02C7" EntName=""
-     Descr="caron"/>
-</Head>
-});
-} # macRomanData
-
-
-sub getC0Data {
-    return(qq@
-<Head Lit="" Hex="" Unicode="" EntName="" Descr="" Short="" cp1252Short="">
-<Rec Hex="00" Short="NUL" Descr="Null"/>
-<Rec Hex="01" Short="SOH" Descr="Start Of Heading"/>
-<Rec Hex="02" Short="STX" Descr="Start Of Text"/>
-<Rec Hex="03" Short="ETX" Descr="End Of Text"/>
-<Rec Hex="04" Short="EOT" Descr="End Of Transmission"/>
-<Rec Hex="05" Short="ENQ" Descr="Enquiry"/>
-<Rec Hex="06" Short="ACK" Descr="Acknowledge"/>
-<Rec Hex="07" Short="BEL" Descr="Bell"/>
-
-<Rec Hex="08" Short="BS" Descr="Backspace"/>
-<Rec Hex="09" Short="HT" Descr="Horizontal Tab"/>
-<Rec Hex="0A" Short="LF" Descr="Newline"/>
-<Rec Hex="0B" Short="VT" Descr="Vertical Tab"/>
-<Rec Hex="0C" Short="FF" Descr="Form Feed"/>
-<Rec Hex="0D" Short="CR" Descr="Carriage Return"/>
-<Rec Hex="0E" Short="SO" Descr="Shift Out"/>
-<Rec Hex="0F" Short="SI" Descr="Shift In"/>
-
-<Rec Hex="10" Short="DLE" Descr="Data Link Escape"/>
-<Rec Hex="11" Short="DC1" Descr="Device Control 1"/>
-<Rec Hex="12" Short="DC2" Descr="Device Control 2"/>
-<Rec Hex="13" Short="DC3" Descr="Device Control 3"/>
-<Rec Hex="14" Short="DC4" Descr="Device Control 4"/>
-<Rec Hex="15" Short="NAK" Descr="Negative Acknowledge"/>
-<Rec Hex="16" Short="SYN" Descr="Synchronous Idle"/>
-<Rec Hex="17" Short="ETB" Descr="End Of Transmission Block"/>
-
-<Rec Hex="18" Short="CAN" Descr="Cancel"/>
-<Rec Hex="19" Short="EM" Descr="End Of Medium"/>
-<Rec Hex="1A" Short="SUB" Descr="Substitute"/>
-<Rec Hex="1B" Short="ESC" Descr="Escape"/>
-<Rec Hex="1C" Short="FS" Descr="Field Separator"/>
-<Rec Hex="1D" Short="GS" Descr="Group Separator"/>
-<Rec Hex="1E" Short="RS" Descr="Record Separator"/>
-<Rec Hex="1F" Short="US" Descr="Unit Separator"/>
-
-<Rec Hex="20" Short="SPACE" Descr="Space"/>
-</Head>
-@);
-} # getC0Data
-
-
 ###############################################################################
-# PAD, HOP, and SGCI are listed as "XXX" in Unicode (acc. Wikipedia).
-#
-sub getC1Data {
-    return(qq{
-<Xsv>
-<Head Lit="" Hex="" EntName="" Short="" Descr=""
-      cp1252Equiv="" cp1252Short="">
-
-<Rec Lit="Ä" Hex="80" Short="*PAD"    Descr="Padding Character"
-     cp1252Equiv="20AC" cp1252Short="Euro"/>
-
-<Rec Lit="Å" Hex="81" Short="*HOP"    Descr="High Octet Preset"
-     cp1252Equiv="" cp1252Short="N/A"/>
-
-<Rec Lit="Ç" Hex="82" Short="BPH"     Descr="Break Permitted Here"
-     cp1252Equiv="201A" cp1252Short="LowSQuo"/>
-
-<Rec Lit="É" Hex="83" Short="NBH"     Descr="No Break Here"
-     cp1252Equiv="0192" cp1252Short="Florin"/>
-
-<Rec Lit="Ñ" Hex="84" Short="IND"     Descr="Index"
-     cp1252Equiv="201E" cp1252Short="LowDQuo"/>
-
-<Rec Lit="Ö" Hex="85" Short="NEL"     Descr="Next Line"
-     cp1252Equiv="2026" cp1252Short="hellip"/>
-
-<Rec Lit="Ü" Hex="86" Short="SSA"     Descr="Start of Selected Area"
-     cp1252Equiv="2020" cp1252Short="dagger"/>
-
-<Rec Lit="á" Hex="87" Short="ESA"     Descr="End of Selected Area"
-     cp1252Equiv="2021" cp1252Short="Dagger"/>
-
-<Rec Lit="à" Hex="88" Short="HTS"     Descr="Horizontal Tab Set"
-     cp1252Equiv="02C6" cp1252Short="Cflex"/>
-
-<Rec Lit="â" Hex="89" Short="HTJ"     Descr="Horizontal Tab Justified"
-     cp1252Equiv="2030" cp1252Short="PerMil"/>
-
-<Rec Lit="ä" Hex="8A" Short="VTS"     Descr="Vertical Tab Set"
-     cp1252Equiv="0160" cp1252Short="SCaron"/>
-
-<Rec Lit="ã" Hex="8B" Short="PLD"     Descr="Partial Line Forward"
-     cp1252Equiv="2039" cp1252Short="LAQuo"/>
-
-<Rec Lit="å" Hex="8C" Short="PLU"     Descr="Partial Line Backward"
-     cp1252Equiv="0152" cp1252Short="OElig"/>
-
-<Rec Lit="ç" Hex="8D" Short= "RI"     Descr="Reverse Line Feed"
-     cp1252Equiv="" cp1252Short="N/A"/>
-
-<Rec Lit="é" Hex="8E" Short="SS2"     Descr="Single-Shift 2"
-     cp1252Equiv="017D" cp1252Short="ZCaron"/>
-
-<Rec Lit="è" Hex="8F" Short="SS3"     Descr="Single-Shift 3"
-     cp1252Equiv="" cp1252Short="N/A"/>
-
-<Rec Lit="ê" Hex="90" Short="DCS"     Descr="Device Control String"
-     cp1252Equiv="" cp1252Short="N/A"/>
-
-<Rec Lit="ë" Hex="91" Short="PU1"     Descr="Private Use 1"
-     cp1252Equiv="2018" cp1252Short="LSQuo"/>
-
-<Rec Lit="í" Hex="92" Short="PU2"     Descr="Private Use 2"
-     cp1252Equiv="2019" cp1252Short="RSQuo"/>
-
-<Rec Lit="ì" Hex="93" Short="STS"     Descr="Set Transmit State"
-     cp1252Equiv="201C" cp1252Short="LDQuo"/>
-
-<Rec Lit="î" Hex="94" Short="CCH"     Descr="Cancel character"
-     cp1252Equiv="201D" cp1252Short="RDQuo"/>
-
-<Rec Lit="ï" Hex="95" Short="MW"      Descr="Message Waiting"
-     cp1252Equiv="2022" cp1252Short="Bull"/>
-
-<Rec Lit="ñ" Hex="96" Short="SPA"     Descr="Start of Protected Area"
-     cp1252Equiv="2013" cp1252Short="enDash"/>
-
-<Rec Lit="ó" Hex="97" Short="EPA"     Descr="End of Protected Area"
-     cp1252Equiv="2014" cp1252Short="emDash"/>
-
-<Rec Lit="ò" Hex="98" Short="SOS"     Descr="Start of String"
-     cp1252Equiv="02DC" cp1252Short="Tilde"/>
-
-<Rec Lit="ô" Hex="99" Short="*SGCI"   Descr="Single Graphic Char Intro"
-     cp1252Equiv="2122" cp1252Short="Trade"/>
-
-<Rec Lit="ö" Hex="9A" Short="SCI"     Descr="Single Char Intro"
-     cp1252Equiv="0161" cp1252Short="sCaron"/>
-
-<Rec Lit="õ" Hex="9B" Short="CSI"     Descr="Control Sequence Introducer"
-     cp1252Equiv="203A" cp1252Short="RAQuo"/>
-
-<Rec Lit="ú" Hex="9C" Short="ST"      Descr="String Terminator"
-     cp1252Equiv="0153" cp1252Short="oelig"/>
-
-<Rec Lit="ù" Hex="9D" Short="OSC"     Descr="OS Command"
-     cp1252Equiv="" cp1252Short="N/A"/>
-
-<Rec Lit="û" Hex="9E" Short="PM"      Descr="Private Message"
-     cp1252Equiv="017E" cp1252Short="zCaron"/>
-
-<Rec Lit="ü" Hex="9F" Short="APC"     Descr="App Program Command"
-     cp1252Equiv="0178" cp1252Short="Yuml"/>
-
-<Rec Lit="&#xA0;" Hex="A0"Short="NBS" Descr="Non-breaking Space"
-     cp1252Equiv="00A0" cp1252Short="NBS" EntName="nbsp" />
-
-</Head>
-<Xsv>
-});
-} # getC1Data
-
-
-###############################################################################
-# Without XSV.
 # Make a hash by hexcode, with an array of data items (see comment below).
 # There are not HTML named character entities for these characters, so that
 # column provides the usual mnemonic for the character instead.
@@ -958,6 +692,18 @@ sub getcp1252Data2 {
 ###############################################################################
 # See http://en.wikipedia.org/wiki/Mac_OS_Roman
 #
+# Perl form for info on old MacRoman character set.
+# See also other forms such as Python and XSV data.
+# From 'chr' by Steven J. DeRose, as of 2015-09-15.
+#
+# Fields are:
+#     MacRoman code point as literal
+#     MacRoman hex code point
+#     Corresponding Unicode hex code point
+#     HTML entity name
+#     Unicode character name (in mixed case)
+#
+
 sub getMacRomanData2 {
     my $uc = 'Latin capital letter ';
     my $lc = 'Latin small letter ';
@@ -1096,141 +842,4 @@ sub getMacRomanData2 {
     0xFF => [ chr(0xFF), 0xFF, 0x02C7, "",       'Caron', ],
     );
     return(\%mac);
-} # macRomanData
-
-
-
-###############################################################################
-#
-
-=pod
-
-=head1 Usage
-
-chr [options] [nums]
-
-Display information about the character(s)
-corresponding to the code point(s) number(s) in I<nums>.
-
-For example, "chr 0x2203" produces:
-
-  0x2203:
-    Bases:           o21003 d8707 x2203; U+2203, utf-8 \xe2\x88\x83
-    Unicode Name:    THERE EXISTS
-    Unicode Script:  Common
-    Unicode Block:   Mathematical Operators
-    Unicode Plane:   0: Basic Multilingual
-    URI form:        %e2%88%83
-    XML forms:       &#8707; &#x2203; &exist;
-
-I<nums> may be in hex (0x...), octal (0...), binary (0b...), or decimal.
-With the I<--utf8> option, you can give I<nums> as hex UTF8.
-
-Control characters and spaces will be displayed as mnemonics.
-Tries to get the full Unicode char name for chars >255.
-Display of other characters depends on your terminal program.
-
-
-
-=head1 Options
-
-(prefix 'no' to invert when applicable)
-
-=over
-
-=item * B<--cp1252>
-
-Show Windows Code Page 1252 meanings of characters d128-d159 (the rest
-of CP1252 matches Latin-1).
-
-=item * B<--iencoding> I<e>
-
-Assume the output is in character set I<e>.
-Not yet supported.
-See also I<--listEncodings>, I<--cp1252>.
-
-=item * B<--listEncodings>
-
-Show all the encodings supported by I<--iencoding>, and exit.
-
-=item * B<--long>
-
-Give long names for control characters, instead of mnemonics.
-
-=item * B<--quiet> OR B<-q>
-
-Suppress most messages.
-
-=item * B<--utf8>
-
-Interpret the command-line numbers as representations of UTF8 (the
-most common representation for Unicode).
-
-The input tokens can be in hexadecimal or decimal. For example,
-the C<Left Double Quotation Mark> character is Unicode code point
-U+201C (or o20034, d8220, x201c). In UTF8, all characters > 127 are encoded
-as multiple bytes, in this case the 3 byte sequence \xe2, \x80, \x9c. To
-use C<chr> to identify this sequence, do:
-
-    chr --utf8 0xe2809c
-    chr --utf8 226.128.153
-
-With decimal, there must be exactly 9 digits, optionally separated into
-3 groups of 3 using non-word-characters (to use space, quote the argument).
-This limits the range of Unicode supported for decimal.
-
-You can enter a UTF hex sequence that represents more than one character.
-C<chr> will find the boundaries, and describe each character in turn.
-However, C<chr> cannot do the same for decimal representations of more than
-1 character together.
-
-=item * B<--verbose> OR B<-v>
-
-Add more detailed messages.
-
-=item * B<--version>
-
-Display version info and exit.
-
-=back
-
-
-
-=head1 Known bugs and limitations
-
-Some terminal programs assume Latin-1, ASCII, or even CP1252,
-while Perl most readily writes out Unicode (as utf8).
-So output of literal characters outside the ASCII range,
-going to a non-Unicode-supporting terminal, may look funny.
-
-
-
-=head1 Related commands
-
-C<CharDisplay> Python utility to just print a ton of data about a given
-code point.
-
-C<ord> -- Do the reverse (that is, find the numeric code point(s)
-for given character(s).
-
-C<countChars> -- Find and/or count characters in particular ranges,
-including XML character references, URI escapes, etc.
-
-C<charnames> -- CPAN package to deal with Unicode properties and names.
-
-C<showNumberInBases> -- takes numbers in any of several forms, and shows them
-in multiple forms, much like this script also does with I<--nums>.
-
-C<XmlTuples.pm> -- Parse various internal data about characters (optional).
-
-
-
-=head1 Ownership
-
-This work by Steven J. DeRose is licensed under a Creative Commons
-Attribution-Share Alike 3.0 Unported License. For further information on
-this license, see L<http://creativecommons.org/licenses/by-sa/3.0/>.
-
-For the most recent version, see L<http://www.derose.net/steve/utilities/>.
-
-=cut
+} # macRomanData2
