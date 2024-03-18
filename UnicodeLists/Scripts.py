@@ -30,6 +30,8 @@
 # History:
 # 2023-05-03: Assembled by Steven J. DeRose, sderose@acm.org.
 #
+from enum import Enum
+
 class ScriptType(Enum):
     SYLL   = "Syllabary"
     ALPH   = "Alphabetic"
@@ -54,7 +56,6 @@ class ScriptStatus(Enum):
 
 CUR = ScriptStatus("CUR")
 OBS = ScriptStatus("OBS")
-
 
 UnicodeScripts = {
     # Unicode Script name               ( Code,   LG, type, status )
@@ -199,3 +200,4 @@ UnicodeScripts = {
     "Warang_Citi":                      ( "Wara", "_??", ),  #
     "Yi":                               ( "Yiii", "", ),
     "Zanabazar_Square":                 ( "Zanb", "MON", OBS, ),  # Also Tibetan, Sanskrit, ),
+}

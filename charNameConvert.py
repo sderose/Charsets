@@ -18,12 +18,7 @@ from PowerWalk import PowerWalk, PWType
 
 import logging
 lg = logging.getLogger("charNameConvert.py")
-def info0(msg:str) -> None:
-    if (args.verbose >= 0): lg.info(msg)
-def info1(msg:str) -> None:
-    if (args.verbose >= 1): lg.info(msg)
-def info2(msg:str) -> None:
-    if (args.verbose >= 2): lg.info(msg)
+
 def fatal(msg:str) -> None:
     lg.critical(msg); sys.exit()
 
@@ -462,7 +457,7 @@ class CharStdInfo:
         try:
             if (whichStd in self.names):
                 if (not args.quiet):
-                    info0("Duplicate prop %s for U+%05x." % (whichStd, self.codePoint))
+                    lg.info("Duplicate prop %s for U+%05x." % (whichStd, self.codePoint))
                 return False
             self.names[whichStd] = value
         except IndexError as e:
@@ -587,7 +582,7 @@ class charNameConvert():
 
         charList = xdom.documentElement
         assert charList.nodeName == "charlist"
-        info1("charList child count: %d" % (len(charList.childNodes)))
+        lg.info("charList child count: %d" % (len(charList.childNodes)))
 
         nChars = 0
         self.charDict = {}
@@ -595,12 +590,12 @@ class charNameConvert():
             if (charEl.nodeName != "character"): continue
             idVal = charEl.getAttribute("id")
             dec = charEl.getAttribute("dec")
-            info1("loading char %5s (d%06s)" % (idVal, dec))
+            lg.info("loading char %5s (d%06s)" % (idVal, dec))
             if ("-" in idVal):
                 if not args.quiet:
                     descNode = self.getChild(charEl, "description")
                     desc = self.getText(descNode) if descNode else "???"
-                    info1("Combination character ignored, id '%s' (%s)." % (idVal, desc))
+                    lg.info("Combination character ignored, id '%s' (%s)." % (idVal, desc))
                 self.nCombinations += 1
                 continue
             try:
@@ -651,7 +646,7 @@ class charNameConvert():
                         lg.warning("Unexpected property spec '%s'.", prop)
                     continue
                 if (not rc):
-                    info1("******* Problem adding prop '%s', val '%s' in:\n%s" %
+                    lg.info("******* Problem adding prop '%s', val '%s' in:\n%s" %
                         (prop, val, self.maybeXml(charEl)))
             if (args.verbose > 1 and incl and len(incl) > 0):
                 lg.info(ci.tostring(include=incl))
@@ -792,7 +787,7 @@ def doOneFile(path:str) -> int:
         try:
             fh = codecs.open(path, "rb", encoding=args.iencoding)
         except IOError as e:
-            info0("Cannot open '%s':\n    %s" % (path, e))
+            lg.info("Cannot open '%s':\n    %s" % (path, e))
             return 0
 
     cnc = charNameConvert(os.environ["sjdUtilsDir"] + "/CharSets/unicode.xml")
@@ -916,7 +911,7 @@ if __name__ == "__main__":
         sys.exit()
 
     if (len(args.files) == 0):
-        info0("charNameConvert.py: No files specified....")
+        lg.info("charNameConvert.py: No files specified....")
         doOneFile(None)
     else:
         pw = PowerWalk(args.files, open=False, close=False,
@@ -926,4 +921,4 @@ if __name__ == "__main__":
             if (what0 != PWType.LEAF): continue
             doOneFile(path0)
         if (not args.quiet):
-            info0("charNameConvert.py: Done, %d files.\n" % (pw.getStat("regular")))
+            lg.info("charNameConvert.py: Done, %d files.\n" % (pw.getStat("regular")))

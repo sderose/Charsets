@@ -5,6 +5,8 @@
 #     ?  -- The nominal width is not really applicable (e.g., for vertical tab)
 #     ^  -- This is a vertical thing
 #
+#pylint: disable=C0301
+
 USpaces = {
     # Unicode  width flags  name
     0x00009:  ( 1.00, "?",  "CHARACTER TABULATION"),
@@ -37,8 +39,7 @@ USpaces = {
     0x02060:  ( 1.00, "",   "WORD JOINER"),
     0x03000:  ( 1.00, "",   "IDEOGRAPHIC SPACE"),
     0x0303F:  ( 1.00, "",   "IDEOGRAPHIC HALF FILL SPACE"),
-    0x0FeFF:  ( 0.00, "",   "ZERO WIDTH NO-BREAK SPACE"  # aka BOM
-
+    0x0FeFF:  ( 0.00, "",   "ZERO WIDTH NO-BREAK SPACE"),  # aka BOM
 
     ### Weird/edge cases
     #
@@ -133,4 +134,3 @@ possibles = {
     "\u303f": (NOBL, NOSP, NOWS, NOZ, NOSTRIP, INBREAK, NOPL, "IDEOGRAPHIC HALF FILL SPACE"),
     "\ufeff": (NOBL, NOSP, NOWS, NOZ, NOSTRIP, INBREAK, NOPL, "ZERO WIDTH NO-BREAK SPACE"),
 }
-

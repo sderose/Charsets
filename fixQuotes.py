@@ -11,15 +11,15 @@ import re
 from PowerWalk import PowerWalk, PWType
 
 __metadata__ = {
-    'title'        : "fixQuotes",
-    'rightsHolder' : "Steven J. DeRose",
-    'creator'      : "http://viaf.org/viaf/50334488",
-    'type'         : "http://purl.org/dc/dcmitype/Software",
-    'language'     : "Python 3.7",
-    'created'      : "2020-10-14",
-    'modified'     : "2020-11-19",
-    'publisher'    : "http://github.com/sderose",
-    'license'      : "https://creativecommons.org/licenses/by-sa/3.0/"
+    "title"        : "fixQuotes",
+    "rightsHolder" : "Steven J. DeRose",
+    "creator"      : "http://viaf.org/viaf/50334488",
+    "type"         : "http://purl.org/dc/dcmitype/Software",
+    "language"     : "Python 3.7",
+    "created"      : "2020-10-14",
+    "modified"     : "2020-11-19",
+    "publisher"    : "http://github.com/sderose",
+    "license"      : "https://creativecommons.org/licenses/by-sa/3.0/"
 }
 __version__ = __metadata__['modified']
 
@@ -48,7 +48,7 @@ Either way would accomplish the default change, which takes all
 open and close double quotes (angle, curly, 9, etc) to '"',
 and all singles to "'":
 
-    These ‘quotes’ are ”very” 'important', `aren't` `they'?
+    These Ã¢ÂÂquotesÃ¢ÂÂ are Ã¢ÂÂveryÃ¢ÂÂ 'important', `aren't` `they'?
 
 to
     These 'quotes' are "very" 'important', `aren't` `they'?
@@ -150,29 +150,29 @@ or [https://github.com/sderose].
 class FixQuotes:
     singlePairs = {
         # 'back':   [ 0x0060, 0x0060 ],  # GRAVE ACCENT
-        'splain':   [ 0x0027, 0x0027 ],  # Apostrophe / single quotation mark
-        'single':   [ 0x2018, 0x2019 ],  # "SINGLE QUOTATION MARK",
-        'sangle':   [ 0x2039, 0x203A ],  # "SINGLE LEFT-POINTING ANGLE QUOTATION MARK",
-        'slow9':    [ 0x201A, 0x201B ],  # "SINGLE LOW-9 QUOTATION MARK",
-        'sprime':   [ 0x2032, 0x2035 ],  # "PRIME", "REVERSED PRIME",
-        'scommaO':  [ 0x275B, 0x275C ],  # Heavy Single Turned Comma QM Ornament
+        "splain":   [ 0x0027, 0x0027 ],  # Apostrophe / single quotation mark
+        "single":   [ 0x2018, 0x2019 ],  # "SINGLE QUOTATION MARK",
+        "sangle":   [ 0x2039, 0x203A ],  # "SINGLE LEFT-POINTING ANGLE QUOTATION MARK",
+        "slow9":    [ 0x201A, 0x201B ],  # "SINGLE LOW-9 QUOTATION MARK",
+        "sprime":   [ 0x2032, 0x2035 ],  # "PRIME", "REVERSED PRIME",
+        "scommaO":  [ 0x275B, 0x275C ],  # Heavy Single Turned Comma QM Ornament
     }
 
     doublePairs = {
-        'dplain':   [ 0x0022, 0x0022 ],  # Double quotation mark
-        'double':   [ 0x201C, 0x201D ],  # "LEFT DOUBLE QUOTATION MARK",
-        'dangle':   [ 0x00AB, 0x00BB ],  # "LEFT-POINTING DOUBLE ANGLE QUOTATION MARK *",
-        'dlow9':    [ 0x201E, 0x201F ],  # "DOUBLE LOW-9 QUOTATION MARK",
-        'dprime':   [ 0x301E, 0x301E ],  # "DOUBLE PRIME QUOTATION MARK",
-        'tprime':   [ 0x2034, 0x2037 ],  # "TRIPLE PRIME", "REVERSED TRIPLE PRIME",
+        "dplain":   [ 0x0022, 0x0022 ],  # Double quotation mark
+        "double":   [ 0x201C, 0x201D ],  # "LEFT DOUBLE QUOTATION MARK",
+        "dangle":   [ 0x00AB, 0x00BB ],  # "LEFT-POINTING DOUBLE ANGLE QUOTATION MARK *",
+        "dlow9":    [ 0x201E, 0x201F ],  # "DOUBLE LOW-9 QUOTATION MARK",
+        "dprime":   [ 0x301E, 0x301E ],  # "DOUBLE PRIME QUOTATION MARK",
+        "tprime":   [ 0x2034, 0x2037 ],  # "TRIPLE PRIME", "REVERSED TRIPLE PRIME",
 
-        'rdprime':  [ 0x2057, 0x301D ],  # "REVERSED DOUBLE PRIME QUOTATION MARK",
+        "rdprime":  [ 0x2057, 0x301D ],  # "REVERSED DOUBLE PRIME QUOTATION MARK",
             # = "QUADRUPLE PRIME"
 
-        'fullwidth':[ 0xFF02, 0xFF02 ],  # Fullwidth Quotation Mark
-        'dcommaO':  [ 0x275D, 0x275E ],  # Heavy Double Turned Comma QM Ornament
-        'hangleO':  [ 0x276E, 0x276F ],  # Heavy Left-pointing Angle QM Ornament
-        'sshdcommonO':  [ 0x1F677, 0x1F678 ],  # Sans-serif Heavy Double Comma QM Ornament
+        "fullwidth":[ 0xFF02, 0xFF02 ],  # Fullwidth Quotation Mark
+        "dcommaO":  [ 0x275D, 0x275E ],  # Heavy Double Turned Comma QM Ornament
+        "hangleO":  [ 0x276E, 0x276F ],  # Heavy Left-pointing Angle QM Ornament
+        "sshdcommonO":  [ 0x1F677, 0x1F678 ],  # Sans-serif Heavy Double Comma QM Ornament
     }
 
     def __init__(self,
@@ -380,7 +380,7 @@ if __name__ == "__main__":
         return(args0)
 
     def runTest(fixer):
-        sample = ("""<q class="foo">The 'quick' "brown" ‘fox’ “jumped” """ +
+        sample = ("""<q class="foo">The 'quick' "brown" Ã¢ÂÂfoxÃ¢ÂÂ Ã¢ÂÂjumpedÃ¢ÂÂ """ +
             """`over` the dog's cat's.</q>""")
         print(sample)
         result = fixer.fix(sample)

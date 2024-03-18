@@ -1,3 +1,6 @@
+#
+from enum import Enum
+
 boxDrawing = {
     0x02500:  "BOX DRAWINGS LIGHT HORIZONTAL",
     0x02501:  "BOX DRAWINGS HEAVY HORIZONTAL",
@@ -131,13 +134,13 @@ boxDrawing = {
 
 """
     NW H     N      NE
-     /---------------\
+     /---------------\\
   V  | T | O | L | B |
   W  |---+---+---+---| E
      | W | S | J | H |
   W  |---+---+---+---| E
      | I | T | N | O |
-     \---------------/
+     \\---------------/
     SW       S       SE
 Ancd "C" for "cross" or "center"
 """

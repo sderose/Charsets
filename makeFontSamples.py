@@ -12,16 +12,16 @@ from typing import List
 from subprocess import check_output
 
 __metadata__ = {
-    'title'        : "makeFontSamples",
-    'description'  : "Create HTML with sample of various fonts.",
-    'rightsHolder' : "Steven J. DeRose",
-    'creator'      : "http://viaf.org/viaf/50334488",
-    'type'         : "http://purl.org/dc/dcmitype/Software",
-    'language'     : "Python 3.7",
-    'created'      : "2019-07-03",
-    'modified'     : "2023-05-17",
-    'publisher'    : "http://github.com/sderose",
-    'license'      : "https://creativecommons.org/licenses/by-sa/3.0/"
+    "title"        : "makeFontSamples",
+    "description"  : "Create HTML with sample of various fonts.",
+    "rightsHolder" : "Steven J. DeRose",
+    "creator"      : "http://viaf.org/viaf/50334488",
+    "type"         : "http://purl.org/dc/dcmitype/Software",
+    "language"     : "Python 3.7",
+    "created"      : "2019-07-03",
+    "modified"     : "2023-05-17",
+    "publisher"    : "http://github.com/sderose",
+    "license"      : "https://creativecommons.org/licenses/by-sa/3.0/"
 }
 __version__ = __metadata__['modified']
 

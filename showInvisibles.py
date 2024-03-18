@@ -12,15 +12,15 @@ from sjdUtils import sjdUtils
 import strfchr
 
 __metadata__ = {
-    'title'        : "showInvisibles",
-    'rightsHolder' : "Steven J. DeRose",
-    'creator'      : "http://viaf.org/viaf/50334488",
-    'type'         : "http://purl.org/dc/dcmitype/Software",
-    'language'     : "Python 2.7.6, 3.6",
-    'created'      : "2007-01-16",
-    'modified'     : "2022-10-07",
-    'publisher'    : "http://github.com/sderose",
-    'license'      : "https://creativecommons.org/licenses/by-sa/3.0/"
+    "title"        : "showInvisibles",
+    "rightsHolder" : "Steven J. DeRose",
+    "creator"      : "http://viaf.org/viaf/50334488",
+    "type"         : "http://purl.org/dc/dcmitype/Software",
+    "language"     : "Python 2.7.6, 3.6",
+    "created"      : "2007-01-16",
+    "modified"     : "2022-10-07",
+    "publisher"    : "http://github.com/sderose",
+    "license"      : "https://creativecommons.org/licenses/by-sa/3.0/"
 }
 __version__ = __metadata__['modified']
 

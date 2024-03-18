@@ -9,22 +9,21 @@ import re
 import codecs
 import unicodedata
 from math import floor
+import logging
 
-from alogging import ALogger
-
-lg = ALogger(1)
+lg = logging.getLogger("makeCharChart")
 
 __metadata__ = {
-    'title'        : "makeCharChart",
-    'description'  : "Display info on range of Unicode code points.",
-    'rightsHolder' : "Steven J. DeRose",
-    'creator'      : "http://viaf.org/viaf/50334488",
-    'type'         : "http://purl.org/dc/dcmitype/Software",
-    'language'     : "Python 2.7.6, 3.6",
-    'created'      : "2013-04-24",
-    'modified'     : "2020-02-14",
-    'publisher'    : "http://github.com/sderose",
-    'license'      : "https://creativecommons.org/licenses/by-sa/3.0/"
+    "title"        : "makeCharChart",
+    "description"  : "Display info on range of Unicode code points.",
+    "rightsHolder" : "Steven J. DeRose",
+    "creator"      : "http://viaf.org/viaf/50334488",
+    "type"         : "http://purl.org/dc/dcmitype/Software",
+    "language"     : "Python 2.7.6, 3.6",
+    "created"      : "2013-04-24",
+    "modified"     : "2020-02-14",
+    "publisher"    : "http://github.com/sderose",
+    "license"      : "https://creativecommons.org/licenses/by-sa/3.0/"
 }
 __version__ = __metadata__['modified']
 
@@ -43,13 +42,13 @@ following). The layout is like:
 
                0   1   2   3   4   5   6   7   8   9   a   b   c   d   e   f
     ------------------------------------------------------------------------
-    x0020:     ␠   !   "   #   $   %   &   '   (   )   *   +   ,   -   .   /
+    x0020:     ÃÂ¢ÃÂÃÂ    !   "   #   $   %   &   '   (   )   *   +   ,   -   .   /
     x0030:     0   1   2   3   4   5   6   7   8   9   :   ;   <   =   >   ?
     x0040:     @   A   B   C   D   E   F   G   H   I   J   K   L   M   N   O
     x0050:     P   Q   R   S   T   U   V   W   X   Y   Z   [   \\   ]   ^   _
     x0060:     `   a   b   c   d   e   f   g   h   i   j   k   l   m   n   o
     x0070:     p   q   r   s   t   u   v   w   x   y   z   {   |   }   ~   
-    x0080:     ?   ?   ?   ?   ?   ␠   ?   ?   ?   ?   ?   ?   ?   ?   ?   ?
+    x0080:     ?   ?   ?   ?   ?   ÃÂ¢ÃÂÃÂ    ?   ?   ?   ?   ?   ?   ?   ?   ?   ?
 
 Specify the desired code point range via ''--min'' and ''--max'', which can
 be given as decimal, 0x hex, or 0 octal. Each row of the chart will begin
@@ -102,7 +101,7 @@ def printable(i):
     try:
         u = chr(i)
     except UnicodeDecodeError as e:
-        lg.error("Can't map %d to Unicode:\n    %s" % (i, e))
+        lg.error("Can't map %d to Unicode:\n    %s", i, e)
     return u
 
 def uprint(s=""):
@@ -120,13 +119,13 @@ def getUClass(u):
 def doHTML():
     theStart = int(args.min / args.perRow)
     theEnd = args.max
-    if (args.max % args.perRow):
-        finalBlanks = args.perRow - (args.max % args.perRow)
-    else:
-        finalBlanks = 0
+    #if (args.max % args.perRow):
+    #    finalBlanks = args.perRow - (args.max % args.perRow)
+    #else:
+    #    finalBlanks = 0
 
     nRows = floor((theEnd-theStart) / args.perRow)
-    lg.info1("range: %d to %d, in %d rows." % (theStart, theEnd, nRows))
+    lg.log(logging.INFO-1, "range: %d to %d, in %d rows.", theStart, theEnd, nRows)
 
     uprint("""<?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
@@ -200,13 +199,13 @@ def makeHTMLCell(s):
 def doText():
     theStart = int(args.min / args.perRow)
     theEnd = args.max
-    if (args.max % args.perRow):
-        finalBlanks = args.perRow - (args.max % args.perRow)
-    else:
-        finalBlanks = 0
+    #if (args.max % args.perRow):
+    #    finalBlanks = args.perRow - (args.max % args.perRow)
+    #else:
+    #    finalBlanks = 0
 
     nRows = floor((theEnd-theStart) / args.perRow)
-    lg.info1("range: %d to %d, in %d rows." % (theStart, theEnd, nRows))
+    lg.log(logging.INFO-1, "range: %d to %d, in %d rows.", theStart, theEnd, nRows)
 
     head = makeTextHead()
     sepLine  = "-" * len(head)
@@ -219,7 +218,7 @@ def doText():
             uprint(head)
             uprint(sepLine)
 
-        buf1 = makeTextCell("x%04x:  " % (firstValue))
+        buf1 = makeTextCell("x%04x:  " + str(firstValue))
         buf2 = makeTextCell("  dec:  ")
         buf3 = makeTextCell("  utf:  ")
         buf4 = makeTextCell(" ucat:  ")
@@ -324,7 +323,8 @@ def processOptions():
         help='Display version information, then exit.')
 
     args0 = parser.parse_args()
-    lg.setVerbose(args0.verbose)
+    if (lg and args0.verbose):
+        logging.basicConfig(level=logging.INFO - args0.verbose)
 
     if (args0.min>=args0.max or args0.min<0 or args0.max>0x1FFFF):
         lg.fatal("--min and/or --max out of range.")
@@ -336,8 +336,8 @@ def processOptions():
         args0.max >= 0x0010000 and args0.perCell<8 or
         args0.max >= 0x0200000 and args0.perCell<10 or
         args0.max >= 0x4000000 and args0.perCell<12)):
-        lg.error("--perCell width of %d is too narrow for --utf8 of --max %d." %
-            (args0.perCell, args0.max))
+        lg.error("--perCell width of %d is too narrow for --utf8 of --max %d.",
+            args0.perCell, args0.max)
     return args0
 
 args = processOptions()
@@ -350,5 +350,5 @@ if (args.format == "html"):
 elif (args.format == "text"):
     doText()
 else:
-    lg.fatal("Unknown --format '%s'." % args.format)
+    lg.fatal("Unknown --format '%s'.", args.format)
     sys.exit()

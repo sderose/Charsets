@@ -45,33 +45,33 @@ URQuotes = {
 #
 qPairs = {
     # 'back':   [ 0x0060, 0x0060 ],  # "GRAVE ACCENT",
-    'splain':   [ 0x0027, 0x0027 ],  # "APOSTROPHE",
-    'dplain':   [ 0x0022, 0x0022 ],  # "QUOTATION MARK",
-    'dangle':   [ 0x00AB, 0x00BB ],  # "DOUBLE ANGLE QUOTATION MARK *", # PiPf
-    'single':   [ 0x2018, 0x2019 ],  # "SINGLE QUOTATION MARK",         # PiPf
-    'double':   [ 0x201C, 0x201D ],  # "DOUBLE QUOTATION MARK",         # PiPf
-    'sangle':   [ 0x2039, 0x203A ],  # "SINGLE ANGLE QUOTATION MARK",   # PiPf
-    'slow9':    [ 0x201A, 0x201B ],  # "SINGLE LOW-9 QUOTATION MARK",
-    'dlow9':    [ 0x201E, 0x201F ],  # "DOUBLE LOW-9 QUOTATION MARK",
-    'sprime':   [ 0x2032, 0x2035 ],  # "PRIME",
-    'dprime':   [ 0x301E, 0x301E ],  # "DOUBLE PRIME QUOTATION MARK",
-    'tprime':   [ 0x2034, 0x2037 ],  # "TRIPLE PRIME", "REVERSED TRIPLE PRIME",
+    "splain":   [ 0x0027, 0x0027 ],  # "APOSTROPHE",
+    "dplain":   [ 0x0022, 0x0022 ],  # "QUOTATION MARK",
+    "dangle":   [ 0x00AB, 0x00BB ],  # "DOUBLE ANGLE QUOTATION MARK *", # PiPf
+    "single":   [ 0x2018, 0x2019 ],  # "SINGLE QUOTATION MARK",         # PiPf
+    "double":   [ 0x201C, 0x201D ],  # "DOUBLE QUOTATION MARK",         # PiPf
+    "sangle":   [ 0x2039, 0x203A ],  # "SINGLE ANGLE QUOTATION MARK",   # PiPf
+    "slow9":    [ 0x201A, 0x201B ],  # "SINGLE LOW-9 QUOTATION MARK",
+    "dlow9":    [ 0x201E, 0x201F ],  # "DOUBLE LOW-9 QUOTATION MARK",
+    "sprime":   [ 0x2032, 0x2035 ],  # "PRIME",
+    "dprime":   [ 0x301E, 0x301E ],  # "DOUBLE PRIME QUOTATION MARK",
+    "tprime":   [ 0x2034, 0x2037 ],  # "TRIPLE PRIME", "REVERSED TRIPLE PRIME",
 
-    'subst':    [ 0x2E02, 0x2E03 ],  # "SUBSTITUTION BRACKET",          # PiPf
-    'dotsubst': [ 0x2E04, 0x2E05 ],  # "DOTTED SUBSTITUTION BRACKET",   # PiPf
-    'transp':   [ 0x2E09, 0x2E0A ],  # "TRANSPOSITION BRACKET",         # PiPf
-    'romission':[ 0x2E0C, 0x2E0D ],  # "RAISED OMISSION BRACKET",       # PiPf
-    'lpara':    [ 0x2E1C, 0x2E1D ],  # "LOW PARAPHRASE BRACKET",        # PiPf
-    'vbarq':    [ 0x2E20, 0x2E21 ],  # "VERTICAL BAR WITH QUILL",       # PiPf
+    "subst":    [ 0x2E02, 0x2E03 ],  # "SUBSTITUTION BRACKET",          # PiPf
+    "dotsubst": [ 0x2E04, 0x2E05 ],  # "DOTTED SUBSTITUTION BRACKET",   # PiPf
+    "transp":   [ 0x2E09, 0x2E0A ],  # "TRANSPOSITION BRACKET",         # PiPf
+    "romission":[ 0x2E0C, 0x2E0D ],  # "RAISED OMISSION BRACKET",       # PiPf
+    "lpara":    [ 0x2E1C, 0x2E1D ],  # "LOW PARAPHRASE BRACKET",        # PiPf
+    "vbarq":    [ 0x2E20, 0x2E21 ],  # "VERTICAL BAR WITH QUILL",       # PiPf
     #'rdprime':  [ 0x301D, 0x301F ], # "DOUBLE PRIME QUOTATION MARK",
-    'rdprime':  [ 0x2057, 0x301D ],  # "DOUBLE PRIME QUOTATION MARK",
+    "rdprime":  [ 0x2057, 0x301D ],  # "DOUBLE PRIME QUOTATION MARK",
         # = "QUADRUPLE PRIME"
 
-    'fullwidth':[ 0xFF02, 0xFF02 ],  # "FULLWIDTH QUOTATION MARK",
-    'scommaO':  [ 0x275B, 0x275C ],  # "HEAVY SINGLE TURNED COMMA QM ORNAMENT",
-    'dcommaO':  [ 0x275D, 0x275E ],  # "HEAVY DOUBLE TURNED COMMA QM ORNAMENT",
-    'hangleO':  [ 0x276E, 0x276F ],  # "HEAVY ANGLE QM ORNAMENT",
-    'sshdcommonO': [ 0x1F677, 0x1F678 ],  # "SANS-SERIF HEAVY DOUBLE COMMA QM ORNAMENT",
+    "fullwidth":[ 0xFF02, 0xFF02 ],  # "FULLWIDTH QUOTATION MARK",
+    "scommaO":  [ 0x275B, 0x275C ],  # "HEAVY SINGLE TURNED COMMA QM ORNAMENT",
+    "dcommaO":  [ 0x275D, 0x275E ],  # "HEAVY DOUBLE TURNED COMMA QM ORNAMENT",
+    "hangleO":  [ 0x276E, 0x276F ],  # "HEAVY ANGLE QM ORNAMENT",
+    "sshdcommonO": [ 0x1F677, 0x1F678 ],  # "SANS-SERIF HEAVY DOUBLE COMMA QM ORNAMENT",
 }
 
 
@@ -107,37 +107,3 @@ UOtherQuotes = {
     0x007f5:  "NKO LOW TONE APOSTROPHE",
     0x0ff07:  "FULLWIDTH APOSTROPHE",
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

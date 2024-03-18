@@ -13,7 +13,7 @@ from PowerWalk import PowerWalk, PWType
 PY3 = sys.version_info[0] == 3
 if (PY3):
     #from io import StringIO
-    def unicode(s, encoding='utf-8', errors='strict'): str(s, encoding, errors)
+    def unicode(s, encoding="utf-8", errors="strict"): str(s, encoding, errors)
     if (sys.version_info[1] < 7):
         def isascii(s):
             if (re.match(r"^[\x01-\x7F]+$", s)): return True
@@ -31,18 +31,18 @@ except ValueError:
     wideBuild = False
 
 __metadata__ = {
-    'title'        : "isASCII",
+    "title"        : "isASCII",
     "description"  : "Check character set/encoding of a file(s).",
-    'rightsHolder' : "Steven J. DeRose",
-    'creator'      : "http://viaf.org/viaf/50334488",
-    'type'         : "http://purl.org/dc/dcmitype/Software",
-    'language'     : "Python 3.7",
-    'created'      : "2020-11-18",
-    'modified'     : "2021-04-09",
-    'publisher'    : "http://github.com/sderose",
-    'license'      : "https://creativecommons.org/licenses/by-sa/3.0/"
+    "rightsHolder" : "Steven J. DeRose",
+    "creator"      : "http://viaf.org/viaf/50334488",
+    "type"         : "http://purl.org/dc/dcmitype/Software",
+    "language"     : "Python 3.7",
+    "created"      : "2020-11-18",
+    "modified"     : "2021-04-09",
+    "publisher"    : "http://github.com/sderose",
+    "license"      : "https://creativecommons.org/licenses/by-sa/3.0/"
 }
-__version__ = __metadata__['modified']
+__version__ = __metadata__["modified"]
 
 
 descr = """
@@ -129,8 +129,8 @@ def warn(lvl, msg):
 #
 def UEscape(codePoint):
     if (codePoint > 0xFFFF):
-        return '\\U' + ("%08x" % (codePoint))
-    return '\\u' + ("%04x" % (codePoint))
+        return "\\U" + ("%08x" % (codePoint))
+    return "\\u" + ("%04x" % (codePoint))
 
 def UEscapeFunction(mat):
     return UEscape(ord(mat.group(1)))
@@ -146,11 +146,11 @@ xmlCharRanges = [
 ]
 if (wideBuild):
     xmlCharRanges.append( (0x10000, 0x10FFFF) )
-xmlChars = ''
+xmlChars = ""
 for st, en in xmlCharRanges:
     if (st==en): xmlChars += UEscape(st)
-    else: xmlChars += UEscape(st) + '-' + UEscape(en)
-xmlChars += r'^[%s]+$' % (xmlChars)
+    else: xmlChars += UEscape(st) + "-" + UEscape(en)
+xmlChars += r"^[%s]+$" % (xmlChars)
 xmlCharsExpr = re.compile(xmlChars, re.UNICODE)
 
 
@@ -181,24 +181,24 @@ def doOneFile(path):
             c = rec[i]
             if (args.allow and c in args.allow):    # Exception per --allow
                 continue
-            if (c == u'\uFEFF'):                    # Ignore BOM
+            if (c == "\uFEFF"):                    # Ignore BOM
                 warn(0, "Unicode BOM found at record %d, column %d." % (recnum, i))
                 continue
 
             # Check against whatever set of ok characters user chose
-            if (args.charset == 'ascii'):
+            if (args.charset == "ascii"):
                 if (isascii(c)): continue  # Srsly, not in Python until 3.7?
-            elif (args.charset == 'lower'):
+            elif (args.charset == "lower"):
                 if (c.islower()): continue
-            elif (args.charset == 'upper'):
+            elif (args.charset == "upper"):
                 if (c.isupper()): continue
-            elif (args.charset == 'alpha'):
+            elif (args.charset == "alpha"):
                 if (c.isalpha()): continue
-            elif (args.charset == 'alnum'):
+            elif (args.charset == "alnum"):
                 if (c.isalnum()): continue
-            elif (args.charset == 'latin1' or args.charset == 'latin-1'):
+            elif (args.charset == "latin1" or args.charset == "latin-1"):
                 if (islatin1(c)): continue
-            elif (args.charset == 'xmlchars'):
+            elif (args.charset == "xmlchars"):
                 if (isxmlchars(c)): continue
             else:
                 warn(0, "Unknown --charset '%s'." % (args.charset))
@@ -252,47 +252,47 @@ if __name__ == "__main__":
 
         parser.add_argument(
             "--allow", type=str,
-            help='Extra characters to allow, beyond --charset.')
+            help="Extra characters to allow, beyond --charset.")
         parser.add_argument(
             "--charset", type=str,
-            choices=[ 'ascii', 'lower', 'upper', 'alpha', 'alnum',
-              'latin1', 'latin-1', 'xmlchars' ], default='ascii',
-            help='What set of characters to look for exceptions to.')
+            choices=[ "ascii", "lower", "upper", "alpha", "alnum",
+              "latin1", "latin-1", "xmlchars" ], default="ascii",
+            help="What set of characters to look for exceptions to.")
         parser.add_argument(
-            "--counts", action='store_true',
-            help='Show counts of bad characters (per file).')
+            "--counts", action="store_true",
+            help="Show counts of bad characters (per file).")
         parser.add_argument(
             "--normalize", type=str, default="NONE",
-            choices=[ 'NFC', 'NFD', 'NFKC', 'NFKD' ],
-            help='Do Unicode normalization of the specified kind first.')
+            choices=[ "NFC", "NFD", "NFKC", "NFKD" ],
+            help="Do Unicode normalization of the specified kind first.")
         parser.add_argument(
-            "--iencoding", type=str, metavar='E', default="utf-8",
-            help='Assume this character coding for input. Default: utf-8.')
+            "--iencoding", type=str, metavar="E", default="utf-8",
+            help="Assume this character coding for input. Default: utf-8.")
         parser.add_argument(
             "--max", type=int, default=0,
-            help='Stop each file after this many errors.')
+            help="Stop each file after this many errors.")
         parser.add_argument(
-            "--noflag", "--no-flag", action='store_true',
-            help='Suppress the ASCII/non-ASCII line for each file.')
+            "--noflag", "--no-flag", action="store_true",
+            help="Suppress the ASCII/non-ASCII line for each file.")
         parser.add_argument(
-            "--quiet", "-q", action='store_true',
-            help='Suppress most messages.')
+            "--quiet", "-q", action="store_true",
+            help="Suppress most messages.")
         parser.add_argument(
-            "--unicode", action='store_const', dest='iencoding',
-            const='utf8', help='Assume utf-8 for input files.')
+            "--unicode", action="store_const", dest="iencoding",
+            const="utf8", help="Assume utf-8 for input files.")
         parser.add_argument(
-            "--verbose", "-v", action='count', default=0,
-            help='Add more messages (repeatable).')
+            "--verbose", "-v", action="count", default=0,
+            help="Add more messages (repeatable).")
         parser.add_argument(
-            "--version", action='version', version=__version__,
-            help='Display version information, then exit.')
+            "--version", action="version", version=__version__,
+            help="Display version information, then exit.")
 
         PowerWalk.addOptionsToArgparse(parser)
 
         parser.add_argument(
-            'files', type=str,
+            "files", type=str,
             nargs=argparse.REMAINDER,
-            help='Path(s) to input file(s)')
+            help="Path(s) to input file(s)")
 
         args0 = parser.parse_args()
         return(args0)
@@ -320,4 +320,4 @@ if __name__ == "__main__":
 
     if (not args.quiet):
         warn(0, "%d files checked, %d chars in %d files not in '%s'.\n" %
-            (pw.getStat('regular'), nBadChars, nBadFiles, args.charset))
+            (pw.getStat("regular"), nBadChars, nBadFiles, args.charset))

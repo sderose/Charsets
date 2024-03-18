@@ -1,3 +1,6 @@
+#
+#pylint: disable=C0301
+#
 # A list of the Unicode blocks, with their ranges of codepoints and
 # a language code for what language writes with them, as best I can figure.
 #
@@ -20,11 +23,10 @@
 # the language in ISO 639-3, or even be certain the block is associated with a
 # language(s) at all. In such cases I've made my best guess and marked them "_??".
 #
-# TODO:
-#     A comparable mapping should b
 # History:
 #     2023-05-03: Assembled by Steven J. DeRose, sderose@acm.org.
 #
+
 UnicodeBlocks = {
     # Block name                         start   end     LG     name
     "Basic Latin":                      (0x0000, 0x007F, "LAT", "Basic Latin"),
@@ -325,3 +327,4 @@ UnicodeBlocks = {
     "Variation Selectors Supplement":           (0xE0100, 0xE01EF, "",    "Variation Selectors Supplement"),
     "Supplementary Private Use Area-A":         (0xF0000, 0xFFFFF, "",    "Supplementary Private Use Area-A"),
     "Supplementary Private Use Area-B":         (0x100000, 0x10FFFF, "",  "Supplementary Private Use Area-B"),
+}

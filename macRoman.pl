@@ -1,3 +1,5 @@
+#!/usr/bin/env perl -w
+#
 # Perl form for info on old MacRoman character set.
 # See also other forms such as Python and XSV data.
 # From 'chr' by Steven J. DeRose, as of 2015-09-15.

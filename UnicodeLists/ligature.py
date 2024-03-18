@@ -1,3 +1,6 @@
+#
+#pylint: disable=C0301
+
 ligatures = {
     # Others much like ligatures:
     # = latin capital ligature ae (1.0)
