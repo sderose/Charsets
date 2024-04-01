@@ -164,7 +164,6 @@ characters rather than control characters.
 
 Look only in field I<f> (counting from 1, not 0!) of each line.
 Repeatable. Default: all fields.
-See also L<Options for TabularFormats> below).
 
 =item * B<--files-only>
 
@@ -348,9 +347,6 @@ examples of all the characters in a given range and their properties.
 =item * C<iconv> Convert text from one encoding to another.
 Also use C<iconv -f utf8 [file]> to check for invalid utf8.
 
-=item * L<http://people.w3.org/rishida/scripts/uniview/conversion> has a nice
-gadget to convert between many possible representations of unicode.
-
 =back
 
 
@@ -374,8 +370,6 @@ full names, like "LATIN CAPITAL LETTER A".
 Color hyph/space/dash/quote green; non-word-chars outside ascii?
 
 `--first` appears to be broken.
-
-`--noascii` appears to be broken.
 
 
 =head1 To do
@@ -501,9 +495,7 @@ this license, see L<http://creativecommons.org/licenses/by-sa/3.0/>.
 For the most recent version, see L<http://www.derose.net/steve/utilities/> or
 L<https://github.com/sderose/Charsets>.
 
-
 =cut
-
 
 my $badUTFsubstitute = "?";       # See --fixBadUTF8 option  # TODO
 
@@ -737,7 +729,7 @@ if ($oencoding eq "utf-8") {
 
 
 ###############################################################################
-# Create an array of short names for the C0 and C1 control characters
+# Create an array of short names for the C0 and C1 control characters.
 # PAD, HOP, and SGCI are listed as "XXX" in Unicode (acc. Wikipedia).
 #
 my $UNK = "-?";
@@ -886,8 +878,8 @@ sub doOneFile {
     my ($path, $fh) = @_;
     $fileCount++;
     if ($useBinmode && $iencoding) {
-        alogging::vMsg(1, "*** Set encoding '$iencoding'.");
-        binmode($fh, $iencoding) ||
+        alogging::vMsg(1, "*** Set binmode encoding '$iencoding'.");
+        binmode($fh, ":encoding($iencoding)") ||
             vMsg(0, "binmode failed for encoding '$iencoding'.");
     }
     while ($rec = <$fh>) {
@@ -900,7 +892,7 @@ sub doOneFile {
         if ($iencoding && !$useBinmode) {
             my $rec2 = eval('Encode::decode($iencoding, $rec)');
             if ($@) {
-                vMsg(0, sprintf("%s:%6d: bad '%s' detected\n    (%s)",
+                vMsg(0, sprintf("%s:%6d: Encode::decode: bad '%s' detected\n    (%s)",
                     $path, $linenum, $iencoding, $@));
                 $badUTFcount++;
                 next;
@@ -1032,7 +1024,7 @@ sub tryOtherForms {
             checkAndScream(chr(hex($1)), "\\u",$theCol,$path);
             $theCol += length($1)+1;
         }
-        else {                                                    # Specials
+        else {                                                     # Specials
             my $c2 = (length($remainder)>1) ? substr($remainder,1,1):undef;
             if ($c2) {
                 my $n = convertBackslashCode($c2);
@@ -1203,6 +1195,7 @@ sub report {
     } # count && charcount
 
     print "Invalid encoding sequences (iencoding '$iencoding'): $badUTFcount\n";
+    print "Input encoding: $iencoding. Output encoding: $oencoding.\n";
     printf("    Decoding method: %s\n",
         ($useBinmode ? "binmode" : "Encode::decode"));
 
@@ -1426,7 +1419,7 @@ sub hexdisplay {
 # We don't currently distinguish the set of backslash codes supported by
 # C vs. Perl vs. whatever.
 #
-# ### Use sjdUtils instead.
+# ### TODO: Use sjdUtils instead.
 #
 sub setupBackslashingTable {
     %bsTable = (
@@ -1543,7 +1536,6 @@ BEGIN {  # TODO: Expand to full names, do something for G1 range
     $cpMacNames[0x9D] = "ugrave";
     $cpMacNames[0x9E] = "ucarat";
     $cpMacNames[0x9F] = "uuml";
-
 
     sub getCPMacName {
         my ($n) = @_;

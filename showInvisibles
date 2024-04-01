@@ -12,7 +12,7 @@ use alogging;
 
 our %metadata = (
     'title'        => "showInvisibles",
-    'description'  => "Make control and whitespace chars visible.",
+    'description'  => "Make control, whitespace, nonASCII chars visible.",
     'rightsHolder' => "Steven J. DeRose",
     'creator'      => "http://viaf.org/viaf/50334488",
     'type'         => "http://purl.org/dc/dcmitype/Software",
@@ -31,12 +31,20 @@ our $VERSION_DATE = $metadata{'modified'};
 
 showinvisible [options]
 
-Make control and non-ASCII characters visible.
+Make various characters visible,  such as control characters, whitespace,
+non-ASCII, etc. Replace them by backslash codes, Unicode control pictures, etc.
+By default:
 
-By default, control characters are converted to the Unicode "control pictures"
-(miniature mnemonics). Non-ASCII characters are converted according to
-I<--oformat>, which default to "PY2" (2-hex-digit Python escapes), showing them as their
-codepoint values (\\xFF form for ones that fit, or \u or \U for larger values).
+=over
+
+=item * control characters are converted to the Unicode "control pictures"
+(miniature mnemonics). Suppress this with --no-controls.
+
+=item * Non-ASCII characters are converted according to
+I<--oformat>, which default to "PY2" (2-hex-digit Python escapes like \\xFF,
+or larger \\uFFFF or \\U000FFFFF when needed).
+
+=back
 
 By default, characters are converted to UTF-8, then the UTF-8 bytes
 are coded as \xNN.
@@ -55,6 +63,11 @@ to do just those in a variety of ways).
 Colorize non-ASCII characters in the output.
 Not the default, even if environment variable C<CLI_COLOR> is set.
 See also I<--whichColor>.
+
+=item * B<--controls>
+
+Map C0 control characters (U+0000 to U+001F) to Unicode control Pictures.
+Default; use --no-controls to turn off.  See also I<--lfAs> and <--spaceAs>.
 
 =item * B<---iencoding> I<e>
 
@@ -177,6 +190,7 @@ Optimize color-escaping instead of doing on/off for every char.
   2021-04-07: Add --oformat and its various choices.
   2022-07-25: Fix buffering that made it a no-op. Add --tabAs and --lfAs.
 Fix --oformat choices. Support -s/--allSpaces.
+  2024-03-24: Add --controls. Fix binmode args.
 
 
 =head1 To do
@@ -210,7 +224,8 @@ my %formats = (
 # Process options
 #
 my $color         = 0;
-my $iencoding     = "";
+my $controls      = 1;
+my $iencoding     = "utf-8";
 my $lfAs          = "NL";
 my $oencoding     = "utf8";
 my $oFormat       = "PY2";
@@ -225,6 +240,7 @@ my $whichColor    = "/yellow";
 Getopt::Long::Configure ("ignore_case");
 my $result = GetOptions(
     "color!"            => \$color,
+    "controls!"         => \$controls,
     "h|help|?"          => sub { system "perldoc $0"; exit; },
     "iencoding=s"       => \$iencoding,
     "lfAs=s"            => \$lfAs,
@@ -322,6 +338,9 @@ sub makeDisplayable {
     # Convert just one character.
     my ($c, $fmt) = @_;
     my $n = ord($c);
+    if ($n < 0x20 && !$controls) {
+        return $c;
+    }
     if ($n == 0x20) {
         if ($spaceAs eq "COLOR") { return $c; }
         return $spaceCodes{$spaceAs};
@@ -409,7 +428,7 @@ if ($verbose > 1) {
 
 while (my $file = shift) {
     open(my $fh, "<$file") || die "File '$file' could not be opened.\n";
-    ($iencoding) && binmode($fh, $iencoding);
+    ($iencoding) && binmode($fh, ":encoding($iencoding)");
 
     while (my $rec = <$fh>) {
         my $buf = "";
@@ -436,7 +455,7 @@ while (my $file = shift) {
         if ($color) {
             $buf =~ s/(\\x[0-9a-f][0-9a-f]|[^[:ascii:]]+)/$con$1$coff/gi;
         }
-        print "$buf\n";
+        print $buf . ($controls ? "\n":"");
     } # EOF
     close($fh);
 }

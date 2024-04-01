@@ -28,7 +28,7 @@ __metadata__ = {
 __version__ = __metadata__['modified']
 
 
-descr="""
+descr = """
 =Usage=
 
 Display a chart of the characters in any given range of (Unicode) code points.
@@ -42,14 +42,13 @@ following). The layout is like:
 
                0   1   2   3   4   5   6   7   8   9   a   b   c   d   e   f
     ------------------------------------------------------------------------
-    x0020:     ÃÂ¢ÃÂÃÂ    !   "   #   $   %   &   '   (   )   *   +   ,   -   .   /
+    x0020:         !   "   #   $   %   &   '   (   )   *   +   ,   -   .   /
     x0030:     0   1   2   3   4   5   6   7   8   9   :   ;   <   =   >   ?
     x0040:     @   A   B   C   D   E   F   G   H   I   J   K   L   M   N   O
     x0050:     P   Q   R   S   T   U   V   W   X   Y   Z   [   \\   ]   ^   _
     x0060:     `   a   b   c   d   e   f   g   h   i   j   k   l   m   n   o
-    x0070:     p   q   r   s   t   u   v   w   x   y   z   {   |   }   ~   
-    x0080:     ?   ?   ?   ?   ?   ÃÂ¢ÃÂÃÂ    ?   ?   ?   ?   ?   ?   ?   ?   ?   ?
-
+    x0070:     p   q   r   s   t   u   v   w   x   y   z   {   |   }   ~
+=
 Specify the desired code point range via ''--min'' and ''--max'', which can
 be given as decimal, 0x hex, or 0 octal. Each row of the chart will begin
 at a character whose code point is a multiple of the number of columns shown
