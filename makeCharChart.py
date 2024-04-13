@@ -5,10 +5,9 @@
 #
 import sys
 import argparse
-import re
 import codecs
 import unicodedata
-from math import floor
+from math import floor, ceil
 import logging
 
 lg = logging.getLogger("makeCharChart")
@@ -21,11 +20,11 @@ __metadata__ = {
     "type"         : "http://purl.org/dc/dcmitype/Software",
     "language"     : "Python 2.7.6, 3.6",
     "created"      : "2013-04-24",
-    "modified"     : "2020-02-14",
+    "modified"     : "2024-04-13",
     "publisher"    : "http://github.com/sderose",
     "license"      : "https://creativecommons.org/licenses/by-sa/3.0/"
 }
-__version__ = __metadata__['modified']
+__version__ = __metadata__["modified"]
 
 
 descr = """
@@ -37,8 +36,12 @@ should match the device/program you want to display with.
 
 The chart can be written in your choice of ''text'' or ''html''.
 
-C0 control characters are shown as their associated 'pictures' (U+2400 and
-following). The layout is like:
+Control characters and character over 127 are shown as "?" (but use
+--badChar to set something else). C0 control characters can also be
+displayed as their associated 'pictures' (U+2400 and following), for
+which set --controlPictures.
+
+The default layout is like:
 
                0   1   2   3   4   5   6   7   8   9   a   b   c   d   e   f
     ------------------------------------------------------------------------
@@ -48,7 +51,7 @@ following). The layout is like:
     x0050:     P   Q   R   S   T   U   V   W   X   Y   Z   [   \\   ]   ^   _
     x0060:     `   a   b   c   d   e   f   g   h   i   j   k   l   m   n   o
     x0070:     p   q   r   s   t   u   v   w   x   y   z   {   |   }   ~
-=
+
 Specify the desired code point range via ''--min'' and ''--max'', which can
 be given as decimal, 0x hex, or 0 octal. Each row of the chart will begin
 at a character whose code point is a multiple of the number of columns shown
@@ -61,11 +64,14 @@ per row (''--perRow'', default 16).
 
 `chr`, `ord`, `CharDisplay.py` -- get information about characters.
 
+
 =Known bugs and Limitations=
 
 Doesn't do anything special for fullwidth characters in text mode.
 
-Probably should offer octal, too. Maybe full `CharDisplay.py` layout?
+There's no way to generate the chart for code points in a non-Unicode encoding,
+but then show the literal chars via cross-coding to
+Unicode (and then to --oencoding, if set).
 
 
 =Rights=
@@ -84,29 +90,32 @@ For the most recent version, see [http://www.derose.net/steve/utilities] or
 * 2014-10-28: Renamed from showASCIIChart. Support Unicode, HTML, options.
 * 2020-02-14: New layout, lint, allow hex and octal option values.
 Move sep line to right place. Fix HTML.
+* 2024-04-13: Add --controlPicture. Type-hints. Alignment.
+Add octal output. Fix handling of --min and --max, --oencoding.
 
 
 =Options=
 """
 
-
-def printable(i):
+def printable(i:int) -> str:
     if (i<=32):
-        i = 0x2400 + i
-    elif (re.match(r'\s', chr(i), re.U)):
-        i = 0x2420 # SP
+        if (args.controlPictures): u = chr(0x2400 + i)
+        else: u = args.badChar
     elif (i>=128 and i<160):
-        i = int(args.badChar)
-    try:
-        u = chr(i)
-    except UnicodeDecodeError as e:
-        lg.error("Can't map %d to Unicode:\n    %s", i, e)
+        u = args.badChar
+    else:
+        try:
+            u = chr(i)
+        except UnicodeDecodeError as e:
+            lg.error("Can't map x%04x (d%04d) to Unicode:\n    %s", i, i, e)
     return u
 
-def uprint(s=""):
+def uprint(s:str) -> None:
+    """All printing should go through here.
+    """
     print(s)
 
-def getUClass(u):
+def getUClass(u:str) -> str:
     """Returns the Unicode class of a character, as a 2-letter mnemonic.
     """
     ucat  = unicodedata.category(u)
@@ -115,16 +124,11 @@ def getUClass(u):
 
 ###############################################################################
 #
-def doHTML():
-    theStart = int(args.min / args.perRow)
-    theEnd = args.max
+def doHTML(theStart:int, _theEnd:int, nRows:int):
     #if (args.max % args.perRow):
     #    finalBlanks = args.perRow - (args.max % args.perRow)
     #else:
     #    finalBlanks = 0
-
-    nRows = floor((theEnd-theStart) / args.perRow)
-    lg.log(logging.INFO-1, "range: %d to %d, in %d rows.", theStart, theEnd, nRows)
 
     uprint("""<?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
@@ -150,34 +154,36 @@ def doHTML():
             uprint(head)
 
         uprint("<tr>")
-        buf1 = makeHTMLCell("x%04x:  " % firstValue)
-        buf2 = makeHTMLCell("  dec:  ")
-        buf3 = makeHTMLCell("  utf:  ")
-        buf4 = makeHTMLCell(" ucat:  ")
-        buf5 = makeHTMLCell(" ents:  ")
+        bufHex = makeHTMLCell("x%04x:  " % (firstValue))
+        bufDec = makeHTMLCell("  dec:  ")
+        bufOct = makeHTMLCell("  oct:  ")
+        bufUTF = makeHTMLCell("  utf:  ")
+        bufUCat = makeHTMLCell(" ucat:  ")
+        bufEnt = makeHTMLCell(" ents:  ")
 
         for col in range(0,args.perRow):
             codePoint = firstValue + col
             theChar = chr(codePoint)
-            buf1 += makeHTMLCell(printable(codePoint))
-            buf2 += makeHTMLCell(("%d" % codePoint))
+            bufHex += makeHTMLCell(printable(codePoint))
+            bufDec += makeHTMLCell(("%d" % codePoint))
             theBytes = chr(codePoint).encode('utf-8')
             cell = ""
             esc = ""
             for b in theBytes:
                 cell += "%02x" % (b)
                 esc += "%%%02x" % (b)
-            buf3 += makeHTMLCell(cell)
-            buf4 += makeHTMLCell(getUClass(theChar))
-            if (args.entity == "dec"): buf5 += makeHTMLCell("&#%d;" % codePoint)
-            else: buf5 += makeHTMLCell("&#x%x;" % codePoint)
-            #buf6 = makeHTMLCell(esc)
+            bufUTF += makeHTMLCell(cell)
+            bufUCat += makeHTMLCell(getUClass(theChar))
+            if (args.entity == "dec"): bufEnt += makeHTMLCell("&#%d;" % codePoint)
+            else: bufEnt += makeHTMLCell("&#x%x;" % codePoint)
+            bufOct += makeHTMLCell("%03o" % (codePoint))
 
-        uprint(buf1)
-        if (args.decimal):   uprint(buf2)
-        if (args.utf8):      uprint(buf3)
-        if (args.ucategory): uprint(buf4)
-        if (args.entity):    uprint(buf5)
+        uprint(bufHex)
+        if (args.decimal):   uprint(bufDec)
+        if (args.octal):     uprint(bufOct)
+        if (args.utf8):      uprint(bufUTF)
+        if (args.ucategory): uprint(bufUCat)
+        if (args.entity):    uprint(bufEnt)
         uprint("</tr>")
 
     uprint("</table>\n</body>\n</html>\n")
@@ -189,71 +195,75 @@ def makeHTMLHead():
     head += "</tr>\n"
     return head
 
-def makeHTMLCell(s):
+def makeHTMLCell(s:str) -> str:
     c = "<td>%s</td>" % (s)
     return c
 
 
 ###############################################################################
-def doText():
-    theStart = int(args.min / args.perRow)
-    theEnd = args.max
+def doText(theStart:int, _theEnd:int, nRows:int):
     #if (args.max % args.perRow):
     #    finalBlanks = args.perRow - (args.max % args.perRow)
     #else:
     #    finalBlanks = 0
 
-    nRows = floor((theEnd-theStart) / args.perRow)
-    lg.log(logging.INFO-1, "range: %d to %d, in %d rows.", theStart, theEnd, nRows)
-
-    head = makeTextHead()
+    col1Width = 12
+    head = makeTextHead(col1Width)
     sepLine  = "-" * len(head)
 
-    for row in range(0, nRows):
+    for row in range(0, nRows+1):
         firstValue = theStart + row*args.perRow
         # OR: if (
+        emptyString = ""
         if ((row % args.blankRows) == 0):
-            uprint("")
+            sys.stderr.write("type of empty string is: %s" % (type(emptyString)))
+            uprint(emptyString)
             uprint(head)
             uprint(sepLine)
 
-        buf1 = makeTextCell("x%04x:  " + str(firstValue))
-        buf2 = makeTextCell("  dec:  ")
-        buf3 = makeTextCell("  utf:  ")
-        buf4 = makeTextCell(" ucat:  ")
-        buf5 = makeTextCell(" ents:  ")
+        # Make row-leaders for the possible rows we may show
+        bufHex = makeTextCell("x%04x:  " % (firstValue), col1Width)
+        bufDec = makeTextCell("  dec:  ", col1Width)
+        bufOct = makeTextCell("  oct:  ", col1Width)
+        bufUTF = makeTextCell("  utf:  ", col1Width)
+        bufUCat = makeTextCell(" ucat:  ", col1Width)
+        bufEnt = makeTextCell(" ents:  ", col1Width)
 
         for col in range(0,args.perRow):
             codePoint = firstValue + col
             theChar = chr(codePoint)
-            buf1 += makeTextCell(printable(codePoint))
-            buf2 += makeTextCell(("%d" % codePoint))
+            bufHex += makeTextCell(printable(codePoint))
+            bufDec += makeTextCell(("%3d" % codePoint))
+            bufOct += makeTextCell(("%03o" % codePoint))
             theBytes = chr(codePoint).encode('utf-8')
             cell = ""
             esc = ""
             for b in theBytes:
                 cell += "%02x" % (b)
                 esc += "%%%02x" % (b)
-            buf3 += makeTextCell(cell)
-            buf4 += makeTextCell(getUClass(theChar))
-            if (args.entity == "dec"): buf5 += makeTextCell("&#%d;" % codePoint)
-            else: buf5 += makeTextCell("&#x%x;" % codePoint)
-            #buf6 = makeTextCell(esc)
+            bufUTF += makeTextCell(cell)
+            bufUCat += makeTextCell(getUClass(theChar))
+            if (args.entity == "dec"): bufEnt += makeTextCell("&#%d;" % codePoint)
+            else: bufEnt += makeTextCell("&#x%x;" % codePoint)
 
-        uprint(buf1)
-        if (args.decimal):   uprint(buf2)
-        if (args.utf8):      uprint(buf3)
-        if (args.ucategory): uprint(buf4)
-        if (args.entity):    uprint(buf5)
+        uprint(bufHex)
+        if (args.decimal):   uprint(bufDec)
+        if (args.octal):     uprint(bufOct)
+        if (args.utf8):      uprint(bufUTF)
+        if (args.ucategory): uprint(bufUCat)
+        if (args.entity):    uprint(bufEnt)
 
-def makeTextHead():
-    head = "        "
+def makeTextHead(indent:int=8) -> str:
+    """Construct the hex column-header line. Indent correctly.
+    """
+    head = " " * indent
     for n in range(0, args.perRow):
         head += ("%4x" % n).center(args.perCell)
     return head
 
-def makeTextCell(s):
-    c = s.rjust(args.perCell)
+def makeTextCell(s:str, width:int=0) -> str:
+    if (width < 1): width = args.perCell
+    c = s.rjust(width)
     return c
 
 
@@ -262,6 +272,11 @@ def makeTextCell(s):
 #
 def anyInt(x):
     return int(x, 0)
+def anyIntOrChar(x):
+    try:
+        return int(x, 0)
+    except ValueError:
+        return str(x)
 
 def processOptions():
     try:
@@ -272,54 +287,60 @@ def processOptions():
         parser = argparse.ArgumentParser(description=descr)
 
     parser.add_argument(
-        "--badChar", type=anyInt, metavar='M', default=ord('?'),
-        help='Code point of char to print for unprintables.')
+        "--badChar", type=anyIntOrChar, metavar="C", default="?",
+        help="Code point or char to print for unprintables.")
     parser.add_argument(
-        "--blankRows", type=anyInt, metavar='N', default=8,
-        help='Insert a blank line after every N rows.')
+        "--blankRows", type=anyInt, metavar="N", default=8,
+        help="Insert a blank line after every N rows.")
     parser.add_argument(
-        "--decimal", action='store_true',
-        help='Show decimal code point under each character.')
+        "--controlPictures", action="store_true",
+        help="Show C0 control characters as Unicode control pictures.")
     parser.add_argument(
-        "--entity", type=str, metavar='X', default="",
+        "--decimal", action="store_true",
+        help="Show decimal code point under each character.")
+    parser.add_argument(
+        "--entity", type=str, metavar="X", default="",
         choices = [ "dec", "hex" ],
-        help='Include a row with HTML/XML numeric character references, ' +
+        help="Include a row with HTML/XML numeric character references, " +
         'in "dec" or "hex".')
     parser.add_argument(
-        "--format", type=str, metavar='F', default="text",
+        "--format", type=str, metavar="F", default="text",
         choices = [ "text", "html" ],
         help='What format to write the data in ("text" or "html").')
     parser.add_argument(
-        "--min", type=anyInt, metavar='M', default=0,
-        help='First code point to include in display.')
+        "--min", type=anyInt, metavar="M", default=0,
+        help="First code point to include in display.")
     parser.add_argument(
-        "--max", type=anyInt, metavar='M', default=255,
-        help='Last code point to include in display.')
+        "--max", type=anyInt, metavar="M", default=255,
+        help="Last code point to include in display.")
     parser.add_argument(
-        "--oencoding", type=str, metavar='E',
-        help='Use this character set for output files.')
+        "--octal", action="store_true",
+        help="Show octal code point under each character.")
     parser.add_argument(
-        "--perCell", type=anyInt, metavar='C', default=4,
-        help='Number of spaces to allow for each column of the chart.')
+        "--oencoding", type=str, metavar="E",
+        help="Use this character set for output files.")
     parser.add_argument(
-        "--perRow", type=anyInt, metavar='R', default=16,
-        help='Number of code points to show in each row of the chart.')
+        "--perCell", type=anyInt, metavar="C", default=4,
+        help="Number of spaces to allow for each column of the chart.")
     parser.add_argument(
-        "--quiet", "-q", action='store_true',
-        help='Suppress most messages.')
+        "--perRow", type=anyInt, metavar="R", default=16,
+        help="Number of code points to show in each row of the chart.")
     parser.add_argument(
-        "--ucategory", action='store_true',
-        help='Show Unicode character-category mnemonics under characters.')
+        "--quiet", "-q", action="store_true",
+        help="Suppress most messages.")
     parser.add_argument(
-        "--utf8", action='store_true',
-        help='Show UTF-8 hexadecimal under each character.')
+        "--ucategory", action="store_true",
+        help="Show Unicode character-category mnemonics under characters.")
     parser.add_argument(
-        "--verbose", "-v", action='count', default=0,
-        help='Add more messages (repeatable).')
+        "--utf8", action="store_true",
+        help="Show UTF-8 hexadecimal under each character.")
     parser.add_argument(
-        "--version", action='version',
-        version='Version of '+__version__,
-        help='Display version information, then exit.')
+        "--verbose", "-v", action="count", default=0,
+        help="Add more messages (repeatable).")
+    parser.add_argument(
+        "--version", action="version",
+        version="Version of "+__version__,
+        help="Display version information, then exit.")
 
     args0 = parser.parse_args()
     if (lg and args0.verbose):
@@ -342,12 +363,17 @@ def processOptions():
 args = processOptions()
 
 if (args.oencoding):
-    sys.stdout = codecs.getwriter(args.oencoding)(sys.stdout)
+    sys.stdout = codecs.getwriter(args.oencoding)(sys.stdout.buffer)
+
+theStart0 = args.perRow * int(args.min / args.perRow)
+theEnd0 = args.max
+nRows0 = ceil(floor((theEnd0-theStart0) / args.perRow))
+lg.log(logging.INFO-1, "range: %d to %d, in %d rows.", theStart0, theEnd0, nRows0)
 
 if (args.format == "html"):
-    doHTML()
+    doHTML(theStart0, theEnd0, nRows0)
 elif (args.format == "text"):
-    doText()
+    doText(theStart0, theEnd0, nRows0)
 else:
     lg.fatal("Unknown --format '%s'.", args.format)
     sys.exit()
