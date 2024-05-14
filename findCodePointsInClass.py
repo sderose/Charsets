@@ -6,8 +6,8 @@
 import sys
 import unicodedata
 
-import logging
-lg = logging.getLogger("findUnassignedCodePoints.py")
+#import logging
+#lg = logging.getLogger("findUnassignedCodePoints.py")
 
 __metadata__ = {
     "title"        : "findUnassignedCodePoints",
@@ -100,8 +100,6 @@ or [https://github.com/sderose].
 ###############################################################################
 # Main
 #
-global ender
-
 if __name__ == "__main__":
     import argparse
     def anyInt(x:str) -> int:
@@ -147,8 +145,8 @@ if __name__ == "__main__":
             help="Display version information, then exit.")
 
         args0 = parser.parse_args()
-        if (lg and args0.verbose):
-            logging.basicConfig(level=logging.INFO - args0.verbose)
+        #if (lg and args0.verbose):
+            #logging.basicConfig(level=logging.INFO - args0.verbose)
 
         return(args0)
 
@@ -174,7 +172,6 @@ if __name__ == "__main__":
         sys.stderr.write("--category must be one or two letters.")
         sys.exit()
 
-    #global ender
     ender = "\n"
     if args.join: ender = ""
 

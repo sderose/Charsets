@@ -119,9 +119,8 @@ or [https://github.com/sderose].
 
 ###############################################################################
 #
-def warn(lvl, msg):
-    if (args.verbose >= lvl): sys.stderr.write(msg + "\n")
-    if (lvl < 0): sys.exit()
+def warning(msg):
+    sys.stderr.write(msg + "\n")
 
 
 ###############################################################################
@@ -168,7 +167,7 @@ def doOneFile(path):
         except IOError as e:
             sys.stderr.write("Cannot open '%s':\n    %s" % (e))
             return 0
-        if (not args.quiet): warn(0, "Starting file '%s'." % (path))
+        if (not args.quiet): warning("Starting file '%s'." % (path))
 
     recnum = 0
     nBad = 0
@@ -182,7 +181,7 @@ def doOneFile(path):
             if (args.allow and c in args.allow):    # Exception per --allow
                 continue
             if (c == "\uFEFF"):                    # Ignore BOM
-                warn(0, "Unicode BOM found at record %d, column %d." % (recnum, i))
+                warning("Unicode BOM found at record %d, column %d." % (recnum, i))
                 continue
 
             # Check against whatever set of ok characters user chose
@@ -201,7 +200,7 @@ def doOneFile(path):
             elif (args.charset == "xmlchars"):
                 if (isxmlchars(c)): continue
             else:
-                warn(0, "Unknown --charset '%s'." % (args.charset))
+                warning("Unknown --charset '%s'." % (args.charset))
                 sys.exit()
 
             nBad += 1
@@ -309,15 +308,15 @@ if __name__ == "__main__":
 
     pw = PowerWalk(args.files, open=False, close=False,
         encoding=args.iencoding, recursive=args.recursive)
-    pw.setOptionsFromArgparse(args)
+    pw.applyOptionsFromArgparse(args)
     for path0, fh0, what0 in pw.traverse():
         if (what0 != PWType.LEAF): continue
         nBad0, charCounts0 = doOneFile(path0)
         if (nBad0):
-            warn(1, "Found %d bad chars in file '%s'." % (nBad0, path0))
+            warning("Found %d bad chars in file '%s'." % (nBad0, path0))
             nBadFiles += 1
             nBadChars += nBad0
 
     if (not args.quiet):
-        warn(0, "%d files checked, %d chars in %d files not in '%s'.\n" %
+        warning("%d files checked, %d chars in %d files not in '%s'.\n" %
             (pw.getStat("regular"), nBadChars, nBadFiles, args.charset))

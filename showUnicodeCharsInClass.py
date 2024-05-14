@@ -285,7 +285,7 @@ def inAnyRequestedCategory(uchar:str):
     requested by the user.
     """
     thisCat = unicodedata.category(uchar)
-    warn(1, "U+%04x '%s' is category '%s'." % (ord(uchar), uchar, thisCat))
+    warning("U+%04x '%s' is category '%s'." % (ord(uchar), uchar, thisCat))
     for cc in args.charCategories:
         if thisCat.startswith(cc): return True
     return False
@@ -305,8 +305,8 @@ def isPrivateUse(n:int) -> bool:
 ###############################################################################
 # Main
 #
-def warn(level:int, msg:str):
-    if (args.verbose >= level): sys.stderr.write(msg + "\n")
+def warning(msg:str):
+    sys.stderr.write(msg + "\n")
 
 args = processOptions()
 
@@ -330,15 +330,15 @@ if (args.unassigned):
     sys.exit()
 
 if (not args.charCategories):
-    warn(0, "No category mnemonic(s) requested. Use --showCategories for a list.\n")
+    warning("No category mnemonic(s) requested. Use --showCategories for a list.\n")
     sys.exit()
 
 for ccat in args.charCategories:
     if (ccat == "LC"):
-        warn(0, "Category 'LC' is for Ll | Lu | Lt; no character is 'LC' per se.")
+        warning("Category 'LC' is for Ll | Lu | Lt; no character is 'LC' per se.")
         sys.exit()
     if (ccat in unicodeCategories): continue
-    warn(0, "Unknown cateogory mnemonic '%s'." % (ccat))
+    warning("Unknown cateogory mnemonic '%s'." % (ccat))
     sys.exit()
 
 #ex = r"\d"                      # yes
@@ -356,7 +356,7 @@ nFound = 0
 lastOne = -99
 inARange = False
 
-warn(1, "Scanning code points from U+%04x to U+%04x..." % (args.first, args.last))
+warning("Scanning code points from U+%04x to U+%04x..." % (args.first, args.last))
 nTried = 0
 nUnnamed = 0
 nNotInCat = 0
@@ -372,8 +372,8 @@ for codePoint in range(args.first, args.last+1):
     except ValueError:
         nUnnamed += 1
         if (codePoint <= 0x1F or 0x80 <= codePoint <= 0x9F):  # Control
-            warn(2, "Control char")
-            warn(2, "Code point U+%04x has no unicodedata.name." % (codePoint))
+            warning("Control char")
+            warning("Code point U+%04x has no unicodedata.name." % (codePoint))
         nm = "[???]"
 
     if (not inAnyRequestedCategory(c)):
@@ -421,7 +421,7 @@ for codePoint in range(args.first, args.last+1):
     lastOne = codePoint
 
 if (not args.quiet):
-    warn(0, "Done. %d of %d characters [U+%04x:U+%04x] in categories:\n" %
+    warning("Done. %d of %d characters [U+%04x:U+%04x] in categories:\n" %
         (nFound, args.last-args.first+1, args.first, args.last+1))
     qual = ""
     for ccat in args.charCategories:

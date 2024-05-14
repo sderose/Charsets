@@ -222,7 +222,7 @@ class FixQuotes:
         for l, r in dp.values():
             src += chr(l) + chr(r)
             tgt += leftDouble + rightDouble
-        warn(2, "Making xtab:\n    |%2d| #%s#\n    |%2d| #%s#" %
+        warning("Making xtab:\n    |%2d| #%s#\n    |%2d| #%s#" %
             (len(src), src, len(tgt), tgt))
         return str.maketrans(src, tgt)
 
@@ -237,7 +237,7 @@ class FixQuotes:
         for l, r in FixQuotes.doublePairs.values():
             expr += chr(l) + r'.*?' + chr(r) + '|'
         expr = expr[0:-1]
-        warn(2, "Making regex:\n    #%s#" % (expr))
+        warning("Making regex:\n    #%s#" % (expr))
         return re.compile(expr)
 
     def fix(self, s:str):
@@ -267,9 +267,8 @@ class FixQuotes:
 dirCount = 0
 fileCount = 0
 
-def warn(lvl, msg):
-    if (args.verbose >= lvl): sys.stderr.write(msg + "\n")
-    if (lvl < 0): sys.exit()
+def warning(msg):
+    sys.stderr.write(msg + "\n")
 
 def doOneFile(path, fixer):
     """Read and deal with one individual file.
@@ -281,7 +280,7 @@ def doOneFile(path, fixer):
         try:
             fh = codecs.open(path, "rb", encoding=args.iencoding)
         except IOError as e:
-            warn(0, "Cannot open '%s':\n    %s" % (e))
+            warning("Cannot open '%s':\n    %s" % (e))
             return 0
 
     recnum = 0
@@ -409,12 +408,12 @@ if __name__ == "__main__":
 
     pw = PowerWalk(args.files, open=True, close=True,
         encoding=args.iencoding, recursive=args.recursive)
-    pw.setOptionsFromArgparse(args)
+    pw.applyOptionsFromArgparse(args)
 
     if (args.test):
         runTest(fixerObj)
     elif (len(args.files) == 0):
-        #if (sys.stdin.isatty): warn(0, "fixQuotes: No files specified....")
+        #if (sys.stdin.isatty): warning("fixQuotes: No files specified....")
         doOneFile(None, fixerObj)
     else:
         for path0, fh0, what0 in pw.traverse():

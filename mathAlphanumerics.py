@@ -690,9 +690,8 @@ or [https://github.com/sderose].
 
 ###############################################################################
 #
-def warn(lvl, msg):
-    if (args.verbose >= lvl): sys.stderr.write(msg + "\n")
-    if (lvl < 0): sys.exit()
+def warning(msg):
+    sys.stderr.write(msg + "\n")
 
 
 ###############################################################################
@@ -1142,7 +1141,7 @@ class mathAlphanumerics:
         """
         if (decompose):
             ss = unicodedata.normalize("NFD", ss)
-            warn(1, "Decomposed: %s" % (ss))
+            warning("Decomposed: %s" % (ss))
         xtab = mathAlphanumerics.getTranslateTable(script, font)
         return ss.translate(xtab)
 
@@ -1189,14 +1188,14 @@ class mathAlphanumerics:
                 srcPart,  tgtPart = mathAlphanumerics.makePartialXtab(
                     uSrcStart, uSrcEnd, uTgtStart)
                 src += srcPart; tgt += tgtPart
-            warn(1, "uppercase table for %s:\n    %s\n    %s" %
+            warning("uppercase table for %s:\n    %s\n    %s" %
                 (font, src, tgt))
 
             if (lTgtStart):
                 srcPart,  tgtPart = mathAlphanumerics.makePartialXtab(
                     lSrcStart, lSrcEnd, lTgtStart)
                 src += srcPart; tgt += tgtPart
-            warn(1, "both-case table for %s:\n    %s\n    %s" %
+            warning("both-case table for %s:\n    %s\n    %s" %
                 (font, src, tgt))
 
             if (dTgtStart):
@@ -1204,7 +1203,7 @@ class mathAlphanumerics:
                     dSrcStart, dSrcEnd, dTgtStart)
                 src += srcPart; tgt += tgtPart
 
-        warn(1, "full table for %s:\n    %s\n    %s" % (font, src, tgt))
+        warning("full table for %s:\n    %s\n    %s" % (font, src, tgt))
         xtab = str.maketrans(src, tgt)
         return xtab
 
@@ -1234,7 +1233,7 @@ class mathAlphanumerics:
                 srcTab += srcChar
                 tgtTab += tgtChar
             except (ValueError, UnicodeDecodeError) as e:
-                warn(0, "Bad code point 0x%05x or 0x%05x:\n    %s" %
+                warning("Bad code point 0x%05x or 0x%05x:\n    %s" %
                     (srcCode, finalCode, e))
                 continue
         assert len(srcTab) == len(tgtTab)
@@ -1565,7 +1564,8 @@ provide Mathematical and similar variants for most of them.""")
     try:
         _ = chr(0x1d49c)
     except ValueError as e0:
-        warn(-1, "Character over U+FFFF failed. Upgrade Python?\n  %s\n" % (e0))
+        warning("Character over U+FFFF failed. Upgrade Python?\n  %s\n" % (e0))
+        sys.exit()
 
     if (args.makeHtmlComparison):
         makeHC(args.family)
@@ -1581,7 +1581,8 @@ provide Mathematical and similar variants for most of them.""")
         scr = "Latin"
         fonts = mathAlphanumerics.LatinFontDict
     else:
-        warn(-1, "Unknown 'script': '%s'." % (args.script))
+        warning("Unknown 'script': '%s'." % (args.script))
+        sys.exit()
 
     if (args.show):
         messageIssued = False

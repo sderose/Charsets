@@ -8,15 +8,15 @@ import os
 import codecs
 import re
 from enum import IntEnum
-from subprocess import check_output
+from subprocess import check_output, CalledProcessError
 import xml.dom.minidom
 from xml.dom.minidom import Node
 from collections import defaultdict
 from typing import Dict, List  # , Union, IO,
+import logging
 
 from PowerWalk import PowerWalk, PWType
 
-import logging
 lg = logging.getLogger("charNameConvert.py")
 
 def fatal(msg:str) -> None:
@@ -457,7 +457,7 @@ class CharStdInfo:
         try:
             if (whichStd in self.names):
                 if (not args.quiet):
-                    lg.info("Duplicate prop %s for U+%05x." % (whichStd, self.codePoint))
+                    lg.info("Duplicate prop %s for U+%05x.", whichStd, self.codePoint)
                 return False
             self.names[whichStd] = value
         except IndexError as e:
@@ -568,8 +568,11 @@ class charNameConvert():
                 if (v[0]): self.displayProps.append(k)
 
     def downloadData(self) -> None:
-        if (not os.path.exists(self.path)):
-            check_output([ "curl", self.sourceUrl, ">>", self.path ])
+        try:
+            if (not os.path.exists(self.path)):
+                check_output([ "curl", self.sourceUrl, ">>", self.path ])
+        except CalledProcessError:
+            pass
         if (not os.path.exists(self.path)):
             lg.fatal("Could not download data from '%s'.", self.sourceUrl)
 
@@ -582,7 +585,7 @@ class charNameConvert():
 
         charList = xdom.documentElement
         assert charList.nodeName == "charlist"
-        lg.info("charList child count: %d" % (len(charList.childNodes)))
+        lg.info("charList child count: %d", len(charList.childNodes))
 
         nChars = 0
         self.charDict = {}
@@ -590,12 +593,12 @@ class charNameConvert():
             if (charEl.nodeName != "character"): continue
             idVal = charEl.getAttribute("id")
             dec = charEl.getAttribute("dec")
-            lg.info("loading char %5s (d%06s)" % (idVal, dec))
+            lg.info("loading char %5s (d%06s)", idVal, dec)
             if ("-" in idVal):
                 if not args.quiet:
                     descNode = self.getChild(charEl, "description")
                     desc = self.getText(descNode) if descNode else "???"
-                    lg.info("Combination character ignored, id '%s' (%s)." % (idVal, desc))
+                    lg.info("Combination character ignored, id '%s' (%s).", idVal, desc)
                 self.nCombinations += 1
                 continue
             try:
@@ -646,8 +649,8 @@ class charNameConvert():
                         lg.warning("Unexpected property spec '%s'.", prop)
                     continue
                 if (not rc):
-                    lg.info("******* Problem adding prop '%s', val '%s' in:\n%s" %
-                        (prop, val, self.maybeXml(charEl)))
+                    lg.info("******* Problem adding prop '%s', val '%s' in:\n%s",
+                        prop, val, self.maybeXml(charEl))
             if (args.verbose > 1 and incl and len(incl) > 0):
                 lg.info(ci.tostring(include=incl))
         lg.info("Char defs loaded: %d (%d non-Unicode combinations ignored).",
@@ -787,7 +790,7 @@ def doOneFile(path:str) -> int:
         try:
             fh = codecs.open(path, "rb", encoding=args.iencoding)
         except IOError as e:
-            lg.info("Cannot open '%s':\n    %s" % (path, e))
+            lg.info("Cannot open '%s':\n    %s", path, e)
             return 0
 
     cnc = charNameConvert(os.environ["sjdUtilsDir"] + "/CharSets/unicode.xml")
@@ -814,7 +817,8 @@ def fixChar(m) -> str:
 if __name__ == "__main__":
     import argparse
 
-    esChoices = list(entitySetMap.keys()).extend(entitySetGroups)
+    esChoices = list(entitySetMap.keys())
+    esChoices.extend(entitySetGroups)
 
     def processOptions() -> argparse.Namespace:
         try:
@@ -916,9 +920,9 @@ if __name__ == "__main__":
     else:
         pw = PowerWalk(args.files, open=False, close=False,
             encoding=args.iencoding)
-        pw.setOptionsFromArgparse(args)
+        pw.applyOptionsFromArgparse(args)
         for path0, fh0, what0 in pw.traverse():
             if (what0 != PWType.LEAF): continue
             doOneFile(path0)
         if (not args.quiet):
-            lg.info("charNameConvert.py: Done, %d files.\n" % (pw.getStat("regular")))
+            lg.info("charNameConvert.py: Done, %d files.\n", pw.getStat("regular"))

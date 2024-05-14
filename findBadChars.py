@@ -80,7 +80,7 @@ def doOneFile(path:str) -> int:
         try:
             fh = codecs.open(path, "rb", encoding=args.iencoding)
         except IOError as e:
-            lg.info("Cannot open '%s':\n    %s" % (path, e))
+            lg.info("Cannot open '%s':\n    %s", path, e)
             return 0
 
     recnum = 0
