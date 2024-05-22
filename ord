@@ -617,6 +617,8 @@ coalesce contiguous ranges.
 
 =item * 2024-02-26: Add reporting for C1 as MacRoman possibility.
 
+=item * 2024-05-22: Support utf-8 as %ffffff, not just %ff%ff%ff.
+
 =back
 
 
@@ -2157,6 +2159,16 @@ while (my $origName = shift) {
                 $n = ord(substr($txt,0,1));
             }
         }
+        if (!$n) {                                  # %e2809c
+            if ($name =~ m/^%([0-9a-f]{2,2})+$/i) {
+                $name = substr($name, 1);
+                $name =~ s/([0-9a-f]{2,2})/%$1/gi;
+                warn "Expanded to '$name'.\n";
+                my $txt = Encode::decode('utf8', uri_unescape($name));
+                $n = ord(substr($txt,0,1));
+            }
+        }
+
 
         if (!$n || $findBlock || $findString || $findRegex || $findSet) {
             warn "Character mnemonic '$origName' (length "
