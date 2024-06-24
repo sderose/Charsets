@@ -1,0 +1,101 @@
+#!/usr/bin/perl -w
+#
+# listPerlEncodings
+# 2024-05-23: Extracted from 2007-ish code by Steven J. DeRose.
+#
+use strict;
+use Getopt::Long;
+use Encode;
+
+our %metadata = (
+    'title'        => "listPerlEncodings",
+    'description'  => "Show what character encodings Perl has available.",
+    'rightsHolder' => "Steven J. DeRose",
+    'creator'      => "http://viaf.org/viaf/50334488",
+    'type'         => "http://purl.org/dc/dcmitype/Software",
+    'language'     => "Perl 5.34",
+    'created'      => "2024-05-23",
+    'modified'     => "2024-05-23",
+    'publisher'    => "http://github.com/sderose",
+    'license'      => "https://creativecommons.org/licenses/by-sa/3.0/"
+);
+our $VERSION_DATE = $metadata{'modified'};
+
+=pod
+
+=head1 Usage
+
+listPerlEncodings
+
+Just list the encodings supported by the active Perl installation.
+
+By default, they are grouped by the first few characters, so ones
+starting "cp", "iso", "Mac", "UTF", etc. stay together. To instead get them
+each on a separate line, use I<-1> (like `ls`) or I<--break>.
+
+These names can be used in code in general, or passed to the I<--iencoding> and
+I<--oencoding> options on many of my scripts and utility programs (which also
+usually have a I<--listencodings> option that just runs this).
+
+
+=head2 Using encodings
+
+    binmode(STDIN, ":encoding($iencoding)") || warn
+        "Couldn't set STDIN to encoding '$iencoding'.\n";
+
+
+=head1 Related commands
+
+
+=head1 Known bugs and limitations
+
+
+=head1 To do
+
+
+=head1 History
+
+  <2007: Written into many utilities by Steven J. DeRose.
+  2024-05-23: Split to separate script.
+
+=head1 Rights
+
+Copyright 2007-08-28 by Steven J. DeRose. This work is licensed under a
+Creative Commons Attribution-Share Alike 3.0 Unported License.
+For further information on this license, see
+L<https://creativecommons.org/licenses/by-sa/3.0>.
+
+For the most recent version, see L<http://www.derose.net/steve/utilities> or
+L<https://github.com/sderose>.
+
+
+=cut
+
+
+###############################################################################
+# Options
+#
+my $break = 0;
+
+Getopt::Long::Configure ("ignore_case");
+my $result = GetOptions(
+    "break|1"   => \$break,
+    "h|help|?"  => sub { system "perldoc $0"; exit; },
+    "version"   => sub {
+        die "Version of $VERSION_DATE, by Steven J. DeRose.\n";
+    }
+);
+
+($result) || die "Bad options.\n";
+
+print "\nEncodings available in Perl:\n";
+my $last = ""; my $buf = "";
+for my $k (Encode->encodings(":all")) {
+    my $cur = substr($k,0,2);
+    if ($break || $cur ne $last) {
+        warn "$buf\n";
+        $last = $cur; $buf = "";
+    }
+    $buf .= "$k ";
+}
+print "$buf\n";
