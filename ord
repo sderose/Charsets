@@ -24,7 +24,7 @@ our %metadata = (
     'type'         => "http://purl.org/dc/dcmitype/Software",
     'language'     => "Perl 5.18",
     'created'      => "2007-10",
-    'modified'     => "2024-02-26",
+    'modified'     => "2024-06-25",
     'publisher'    => "http://github.com/sderose",
     'license'      => "https://creativecommons.org/licenses/by-sa/3.0/"
 );
@@ -163,8 +163,9 @@ Show code points in binary.
 Show info for all the characters in a named range chosen from:
 c0, g0, c1, g1, ASCII, Latin1, LatinxA (for Latin Extended A), LatinxB,
 IPA, Combining, Greek, Cyrillic, Armenian, Hebrew, Arabic, Syriac,
-ControlPic (symbols for control characters).
-Ask if you want others, or just add an entry to '%namedRanges'.
+ControlPics (symbols for control characters), or cp1252 (Windows Latin;
+implies --cp1252).
+Ask if you want others, or add an entry to '%namedRanges'.
 
 The range can also be given as two (decimal or hex) integers,
 separated by non-word characters (such as  '-', ':', '...', ', ', etc.).
@@ -619,6 +620,8 @@ coalesce contiguous ranges.
 
 =item * 2024-05-22: Support utf-8 as %ffffff, not just %ff%ff%ff.
 
+=item * 2024-06-25: Add --chart cp1252.
+
 =back
 
 
@@ -791,6 +794,8 @@ if (!$quiet && $findString && $ARGV[0] =~ m/[^A-Za-z 0-9]/) {
     warn "\nWARNING: --findString for '" . $ARGV[0] .
         "' has characters not used in Unicode names. Use --findRegex?\n";
 }
+
+if ($chart eq "cp1252") { $cp1252 = 1; }
 
 my $iconvConverter = undef;
 if ($iconv) {
@@ -1305,15 +1310,19 @@ my %namedRanges = (  # Do lookups in all lower case.
     "arabic"      => [ 0x0600, 0x06ff ],
     "syriac"      => [ 0x0700, 0x074f ],
     "controlpics" => [ 0x2400, 0x2426 ],
+    "cp1252"      => [ 0x0080, 0x00FF ],  # Special
 );
 
+# Show a range of code points as a chart.
+#
 sub showRange2 {
     my ($sec) = @_;
     my $min = 0x0000;
     my $max = 0x001F;
     $sec = lc($sec);
     if (defined $namedRanges{$sec}) {
-        #printf("entry: '%s'...'%s'\n", $namedRanges{$sec}->[0], $namedRanges{$sec}->[1]);
+        #printf("entry: '%s'...'%s'\n",
+        #    $namedRanges{$sec}->[0], $namedRanges{$sec}->[1]);
         $min = $namedRanges{$sec}->[0];
         $max = $namedRanges{$sec}->[1];
     }

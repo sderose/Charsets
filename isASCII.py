@@ -75,7 +75,7 @@ to only contain characters that are included in ASCII or Latin-1.
 
 =Related Commands=
 
-My `XmlRegexes.py` provides XML character-set checking code.
+My `XMLRegexes.py` provides XML character-set checking code.
 
 My `countChars` generates an atlas of what characters occur in a given file(s),
 with frequencies, organized by plane, block, script, ....
@@ -124,7 +124,7 @@ def warning(msg):
 
 
 ###############################################################################
-# See https://github.com/sderose/XML.git/PARSERS/blob/master/XmlRegexes.py
+# See https://github.com/sderose/XML.git/PARSERS/blob/master/XMLRegexes.py
 #
 def UEscape(codePoint):
     if (codePoint > 0xFFFF):

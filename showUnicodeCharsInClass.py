@@ -285,7 +285,8 @@ def inAnyRequestedCategory(uchar:str):
     requested by the user.
     """
     thisCat = unicodedata.category(uchar)
-    warning("U+%04x '%s' is category '%s'." % (ord(uchar), uchar, thisCat))
+    if (args.verbose):
+        warning("U+%04x '%s' is category '%s'." % (ord(uchar), uchar, thisCat))
     for cc in args.charCategories:
         if thisCat.startswith(cc): return True
     return False
@@ -348,6 +349,9 @@ ex = r"[\p{Letter}]"            # no
 
 cex = regex.compile(ex)  # (inherently UNICODE)
 
+if (args.verbose):
+    warning("Scanning code points from U+%04x to U+%04x..." % (args.first, args.last))
+
 if (args.format == "chart"):
     print("    codept lit cat  Unicode name")
 
@@ -356,7 +360,6 @@ nFound = 0
 lastOne = -99
 inARange = False
 
-warning("Scanning code points from U+%04x to U+%04x..." % (args.first, args.last))
 nTried = 0
 nUnnamed = 0
 nNotInCat = 0
@@ -372,8 +375,8 @@ for codePoint in range(args.first, args.last+1):
     except ValueError:
         nUnnamed += 1
         if (codePoint <= 0x1F or 0x80 <= codePoint <= 0x9F):  # Control
-            warning("Control char")
-            warning("Code point U+%04x has no unicodedata.name." % (codePoint))
+            if (args.verbose):
+                warning("Code point U+%04x has no unicodedata.name." % (codePoint))
         nm = "[???]"
 
     if (not inAnyRequestedCategory(c)):
@@ -421,7 +424,7 @@ for codePoint in range(args.first, args.last+1):
     lastOne = codePoint
 
 if (not args.quiet):
-    warning("Done. %d of %d characters [U+%04x:U+%04x] in categories:\n" %
+    warning("\nDone. %d of %d characters [U+%04x:U+%04x] in categories:\n" %
         (nFound, args.last-args.first+1, args.first, args.last+1))
     qual = ""
     for ccat in args.charCategories:

@@ -347,6 +347,8 @@ examples of all the characters in a given range and their properties.
 =item * C<iconv> Convert text from one encoding to another.
 Also use C<iconv -f utf8 [file]> to check for invalid utf8.
 
+=item * C<findBadChars.py>
+
 =back
 
 
@@ -376,6 +378,9 @@ Color hyph/space/dash/quote green; non-word-chars outside ascii?
 
 =over
 
+=item * Count chars by language, that are not in the "right" places.
+Or do in my `findBadChars.py`.
+
 =item * Report rank of character by frequency.
 
 =item * Report total freq and % per Unicode category (Ll, etc.).
@@ -388,7 +393,7 @@ Color hyph/space/dash/quote green; non-word-chars outside ascii?
 
 =item * Watch for common errors, like Mac/Win char sequences that arise
 from mis-identified charset (maybe just for common problems chars
-such as C1 controls, quotes, emdash, bullet, etc).
+such as C1 controls, quotes, emdash, bullet, etc). Cf my `badMappings.py`.
 
 =item * Lose local escaping and entities tables.
 
@@ -397,6 +402,8 @@ such as C1 controls, quotes, emdash, bullet, etc).
 =item * Trap SIGINT and report partial results.
 
 =item * Port to Python.
+
+=item * Progress messages should also mention filename or number.
 
 =back
 

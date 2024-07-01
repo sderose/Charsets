@@ -496,7 +496,10 @@ OVERLINE, DOVERLINE, STRIKE, SLASHED, DSLASHED.
 you only get the full set of { roman, bold, italic, bold-italic } for
 plain and sans-serif.
 
-* Add method to turn any of the Mathematical ones to plain
+* Add method to turn any of the Mathematical ones to plain.
+
+* Add support for small capitals (Latin 'X' is not defined; only a few Greek
+and one Cyrillic).
 
 * Perhaps add feature to turn markup into fonts -- such as
     <i> ITALIC
