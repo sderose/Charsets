@@ -26,7 +26,7 @@ __version__ = __metadata__["modified"]
 descr = """
 =Description=
 
-[Unfinished]
+[Superceded by `ord --findCategory`]
 
 Display all Unicode characters in a given numeric range (default U+0020 to U+FFFF),
 that are in a given Unicode character category or categories. For example:
@@ -44,15 +44,15 @@ mnemonics may be used to catch a broader category).
 
 =Output formats available=
 
-The resulting list is available in several forms via --format, though always in
+The resulting list is available in several forms via --oformat, though always in
 numeric code point order.
 
 Examples below show the first several items displayed
-for various values of --format and various categories in:
+for various values of --oformat and various categories in:
 
-    showUnicodeCharsInClass.py --format [F] [Category]
+    showUnicodeCharsInClass.py --oformat [F] [Category]
 
-== --format chart==
+== --oformat chart==
 
 Category ''Po'':
 
@@ -75,7 +75,7 @@ Category ''Po'':
     U+0040 '@' (Po) (0) COMMERCIAL AT
     ...
 
-== --format xsv==
+== --oformat xsv==
 
 Category ''Cf'':
 
@@ -84,21 +84,26 @@ Category ''Cf'':
     <Rec Hex='070f' Cat='Cf' Name='SYRIAC ABBREVIATION MARK' />
     <Rec Hex='200b' Cat='Cf' Name='ZERO WIDTH SPACE' />
 
-== --format bycode==
+== --oformat bycode==
 
     \\xad        : 'SOFT HYPHEN',
     \\u0600      : 'ARABIC NUMBER SIGN',
     \\u070f      : 'SYRIAC ABBREVIATION MARK',
     \\u200b      : 'ZERO WIDTH SPACE',
 
-== --format byname==
+== --oformat byname==
 
     "SOFT HYPHEN"                           : \\xad,
     "ARABIC NUMBER SIGN"                    : \\u0600,
     "SYRIAC ABBREVIATION MARK"              : \\u070f,
     "ZERO WIDTH SPACE"                      : \\u200b,
 
-== --format bracket==
+== --oformat string
+
+This just generates a list of the characters as a quoted string,
+escaping as needed.
+
+== --oformat bracket==
 
 This generates the list in a form that can be put into a regular expression as
 a [...] group:
@@ -117,14 +122,12 @@ using the smallest hex escape they can (probably should add a `--width` option).
 
 =Known bugs and Limitations=
 
-Should offer same display layouts as `ord`.
+Mostly superceded by `ord`.
 
-Should "-" or "^" be the first member of a category, I<--format bracket>
+Should "-" or "^" be the first member of a category, I<--oformat bracket>
 will get confused.
 
-Long lines with <--format bracket> are not wrapped.
-
-Should have a way to find all chars matching some regex (but see `ord`).
+Long lines with <--oformat bracket> and <--oformat string> are not wrapped.
 
 You cannot currently request category 'LC' (Letter, cased). I believe it is
 just shorthand for anything in Lu, Ll, or Lt, and no character is directly "in"
@@ -136,8 +139,8 @@ Options allow setting a wider or narrower range.
 
 =To do=
 
-* Output option to call CharDisplay.py. Or just integrate this whole thing as a search
-option there.
+* Output option to call `CharDisplay.py`. Or just integrate this thing
+as a search option there (it's already integrated into `ord`
 
 
 =History=
@@ -149,6 +152,9 @@ option there.
 * 2023-02-27: Lint, testing, various fixes esp. to options, controls, report
 characters for which name lookup fails, as unassigned chars.
 * 2023-07-25: Add option to scan for unassigned characters.
+* 2024-08-10: Start syncing --oformat options with `ord`. But then I cleaned up
+the --find options there, and added --findCategory and --showCategories, so that
+can do most everything except the bracket ranging.
 
 
 =Rights=
@@ -231,9 +237,10 @@ def processOptions():
         "--first", "--min", type=any_int, default=0x0020,
         help="First code point to check.")
 
-    oChoices = [ "chart", "xsv", "bycode", "byname", "bracket" ]
+    oChoices = [ "chart", "xsv", "bycode", "byname", "string", "bracket" ]
     parser.add_argument(
-        "--format", type=str, default="chart", choices=oChoices,
+        "--oformat", "--format", "--output-format", "--outputFormat",
+        type=str, default="chart", choices=oChoices,
         help="How to arrange the output. Choices: " + str(oChoices))
     parser.add_argument(
         "--last", "--max", type=any_int, default=0xFFFF,
@@ -352,10 +359,10 @@ cex = regex.compile(ex)  # (inherently UNICODE)
 if (args.verbose):
     warning("Scanning code points from U+%04x to U+%04x..." % (args.first, args.last))
 
-if (args.format == "chart"):
+if (args.oformat == "chart"):
     print("    codept lit cat  Unicode name")
 
-brack = "["
+collectedChars = ""
 nFound = 0
 lastOne = -99
 inARange = False
@@ -392,36 +399,48 @@ for codePoint in range(args.first, args.last+1):
 
     nFound += 1
 
-    if (args.format == "chart"):  # the default
+    # TODO: Sync with 'ord' oformats:
+    formatSamplesFromOrd = """
+    # console plain literal string perl pythonn pythonc pythons pythonu html
+    """
+    #
+    if (args.oformat == "chart"):  # the default
         try:
             print("    U+%04x '%s' (%-2s) %s" % (codePoint, c, theCat, nm))
         except UnicodeEncodeError:
             print("    U+%04x [???]] (%-2s) %s" % (codePoint, theCat, nm))
-    elif (args.format == "xsv"):
+    elif (args.oformat == "xsv"):
         print("<Rec Hex='%04x' Cat='%s' Name='%s' />" %
             (codePoint, theCat, nm))
-    elif (args.format == "bycode"):
+    elif (args.oformat == "bycode"):
         print("    %-12s: '%s'," % (makeEsc(codePoint), nm))
-    elif (args.format == "byname"):
+    elif (args.oformat == "byname"):
         print("    %-40s: %s," % ('"'+nm+'"', makeEsc(codePoint)))
-    elif (args.format == "bracket"):
+    elif (args.oformat == "string"):
+        collectedChars += makeEsc(codePoint, literals=False)
+    elif (args.oformat == "bracket"):
         if (not inARange):
             if (codePoint == lastOne+1):
                 inARange = True
-                brack += "-"
+                collectedChars += "-"
             else:
-                brack += makeEsc(codePoint, literals=False)
+                collectedChars += makeEsc(codePoint, literals=False)
         else:
             if (codePoint == lastOne+1):
                 pass
             else:
-                brack += makeEsc(lastOne,
+                collectedChars += makeEsc(lastOne,
                     literals=False) + makeEsc(codePoint, literals=False)
                 inARange = False
     else:
-        print("--format fail")
+        print("--oformat '%s' not known." % (args.oformat))
         sys.exit()
     lastOne = codePoint
+
+if (args.oformat == "string"):
+    print('"' + collectedChars + '"')
+elif (args.oformat == "bracket"):
+    print('[' + collectedChars + ']')
 
 if (not args.quiet):
     warning("\nDone. %d of %d characters [U+%04x:U+%04x] in categories:\n" %

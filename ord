@@ -24,7 +24,7 @@ our %metadata = (
     'type'         => "http://purl.org/dc/dcmitype/Software",
     'language'     => "Perl 5.18",
     'created'      => "2007-10",
-    'modified'     => "2024-06-25",
+    'modified'     => "2024-08-10",
     'publisher'    => "http://github.com/sderose",
     'license'      => "https://creativecommons.org/licenses/by-sa/3.0/"
 );
@@ -49,8 +49,8 @@ For example, the "BULLET" character can be specified in any of these ways:
     ord 0x2022       [the code point in hexadecimal]
     ord 8226         [the code point in decimal]
     ord 020042       [the code point in octal]
-    ord BULLET       [the Unicode name]
-    ord bull         [the HTML 4 entity name]
+    ord BULLET       [the Unicode name (case doesn't matter)]
+    ord bull         [the HTML 4 entity name (case does matter)]
     ord %e2%80%a2    [UTF-8 byte sequence as escaped for use in URIs]
 
 Any of these produces:
@@ -66,41 +66,39 @@ Any of these produces:
 
 Control characters can also be specified by "^" plus a letter, or by mnemonic.
 For example, LINE FEED may be specified as "^J" or "LF".
-Unix jargon names such as "splat" for "*" are recognized.
+Unix jargon names such as "splat" for "*" are also recognized.
 
 Full unicode names ignore case, but if there are spaces the name needs to be
 quoted, or to use "_" instead of actual space. For example:
+    ord "APL FUNCTIONAL SYMBOL LEFTWARDS VANE"
     ord APL_FUNCTIONAL_SYMBOL_LEFTWARDS_VANE
 
 You can find all characters whose Unicode name contains a given
 string or regex, like:
+    ord -f "APL FUNCTIONAL SYMBOL"
     ord --findRegex "LEFT.*QUO"
 
 A single decimal digit is taken as a request for information on that
 graphic character, not on the (C0 control) character (U+0000-0x0009).
 Since all decimal digits are also hex digits, you can
-describe characters U+0 through U+9 by prefixing them with "0x".
+describe characters U+0 through U+9 by prefixing "0x"
+(or ones from 0-7 by making them octal by prefixing just "0").
 
 ==Searching for characters==
 
 To search for all Unicode characters whose names contain a certain
-string or regex, that are in a given Unicode block, or that would be matched
+string or regex, that are in a given Unicode block or category,
+or whose names would be matched
 by a given regex (for example '\\sLATIN'), use the I<--findString>,
-I<--findRegex>, B<--findBlock>, or I<--findSet> option.
+I<--findRegex>, I<--findBlock>, I<--findCategory>, or I<--findSet> option.
 All I<--find...> matches ignore case.
+By default, they only search the first two Unicode
+planes (code points up to 0x1FFFF). Even that takes much of a minute.
+To search further or less far, use  I<--minU> and/or I<--maxU>.
 
-You can limit a search to a certain numeric range with I<--minU> and I<--maxU>.
-For example: I<--maxU 0xFFFF> to only search the Base Multilingual Plane.
-
-The list resulting from any of these I<--find...> options can be written out
-in many formats, including as a string of the literal characters, a detailed
-information display as shown above for single characters,
-sets of declarations usable in various programming
-languages (see B<--listFormat>), etc. By default, it uses a single line
-for each found character, like this:
-
-    U+02022  •  BULLET
-
+See also I<--oformat>, which controls the output format produced by all
+of the searches. The default is CONSOLE, which
+gives lots of detail; PLAIN and LITERAL are nice for brevity.
 See also my C<CharDisplay.py>, which provides a strftime-like way to
 specify custom output formats.
 
@@ -109,7 +107,7 @@ To gather up Unicode characters whose formal names include "star"
 (ignoring case), say:
     ord --findString star
 
-Such a search may not get all and only stars, much less all characters one might
+Such a search does not get all and only stars, much less all characters one might
 consider using for the purpose one has in mind -- for example:
 
     "*" (asterisk) does not have "star" in its name
@@ -124,7 +122,7 @@ consider using for the purpose one has in mind -- for example:
 I<--findRegex> searches via regex within the character's full name.
 
 I<--findBlock> searches for characters whose Unicode block name, such as
-"General Punctuation", matches the specified regex. Also prints a heading
+"General Punctuation", matches the specified regex. It also prints a heading
 at the start of each matching block.
 
 I<--findSet> searches for characters which, as literals, match the specified
@@ -134,15 +132,12 @@ regex '\\s' shorthand, use:
 
 I<--pairs> is a special "find" that searches for symmetric pairs of characters,
 such as brackets, quotes, etc, and writes them out as HTML similar
-to I<--listFormat HTML>.
+to I<--oformat HTML>.
 
-The parellel lists of tokens are in arrays named
+The parellel lists of tokens used in the search are in arrays named
 \@leftWords and \@rightWords, and include a variety of left/right, open/close,
 start/end, and similar pairings.
-
-The search is a bit slow (use -v to get progress
-reports as it runs). Also, it doesn't cover characters that contain multiple
-such keywords.
+It doesn't cover characters that contain multiple such keywords.
 
 If you specify more than one of the I<--findXXX> options, the result is
 not defined.
@@ -165,14 +160,20 @@ c0, g0, c1, g1, ASCII, Latin1, LatinxA (for Latin Extended A), LatinxB,
 IPA, Combining, Greek, Cyrillic, Armenian, Hebrew, Arabic, Syriac,
 ControlPics (symbols for control characters), or cp1252 (Windows Latin;
 implies --cp1252).
-Ask if you want others, or add an entry to '%namedRanges'.
+
+The chart is shown in the requested I<--oformat> (default: CONSOLE).
 
 The range can also be given as two (decimal or hex) integers,
-separated by non-word characters (such as  '-', ':', '...', ', ', etc.).
+separated by non-word characters (such as  "-", ":", "...", ", ", etc.).
 See also I<--c0>, I<--c1>, I<--g0>, I<--g1>, which are just synonyms
 for I<--chart> with the corresponding value.
 See also I<--table>, I<--digits>, and I<--math> for other kinds of charts.
 Charts are not affected by I<--minU> or I<maxU>.
+
+=item * B<--cheatsheet>
+
+Show a cheat-sheet with the code point, literal, HTML entity name, my entity name,
+and Unicode truename of the special characters this author thinks most useful.
 
 =item * B<--cp1252>
 
@@ -181,11 +182,11 @@ See also I<--macRoman>.
 
 =item * B<--c0>
 
-Same as I<--chart>, but only for C0 range (d0-d31).
+Same as I<--chart c0> (U+00 to U+1F).
 
 =item * B<--c1>
 
-Same as I<--chart>, but only for C1 range (d128-d159).
+Same as I<--chart c1> (U+80 to U+9F).
 
 =item * B<--decimal>
 
@@ -193,53 +194,51 @@ Display code points in decimal (default).
 
 =item * B<--digits>
 
-Show a chart of Unicode digits.
+Show the various sets of Unicode digits.
 Some of these are font/style variations, similar to the "MATHEMATICAL" alphabets
 listable using I<--math>; others are non-Arabic digits.
-See also I<--chart>.
 
 =item * B<--entities>
 
 Display HTML special-character entity names (if any), and the
 SGML/HTML/XML numeric character references (decimal and hexadecimal).
 
-=item * B<--findBlock>
+=item * B<--findBlock> [block]
 
-Like I<--findString> (q.v.), but treats the main/final argument as the name
-of a Unicode ''block'' (ignoring case), and returns all
-characters assigned to the block(s) that match
-(and are in the code point range from I<--min> and I<--max>).
+Search for characters in Unicode blocks whose block-names contain [block]
+(ignoring case).
 
-=item * B<--findRegex> or B<--regex>
+=item * B<--findRegex> [regex] or B<--regex> [regex]
 
-Like I<--findString> (q.v.), but treats the final
-argument as a (Perl-style) regex, and returns any
-characters whose names match it (ignoring case).
+Search for characters whose names match the (Perl-style) [regex] (ignoring case).
 
-=item * B<--findSet> searches for characters which, as literals,
-match the specified regex.
+=item * B<--findSet>  [string]
+
+Searches for characters which, as literals, match the specified regex.
 For example, to find what characters are included by (Perl's)
 regex '\\s' shorthand, use:
     ord --findSet "\\s"
 
-=item * B<--findString> or just I<-f>
+=item * B<--findString> [string] or just I<-f> [string]
 
-Return all Unicode character names that contain the main argument (this also
-happens if nothing is found another way). This is a little slow.
+Searches for characters whose names contain string.
+This search also happens for main arguments
+if nothing is found another way).
 
-B<Note>: By default this only searches the first two Unicode
-planes(code points up to 0x1FFFF).
-To search further or less far, use  I<--minU> and/or I<--maxU>.
-
-See also I<--listFormat>, I<--findRegex>, I<--findBlock>, and I<--maxU>.
+=item * B<--findToken> [string]
+Search for characters whose names contain all the space-separate items from
+[string], regardless of token order. Thanks for the idea to
+Joel Kalvesmaki, '''A New \\u: Extending XSLT
+Regular Expressions for Unicode.''' Balisage (2020).
+[https://www.balisage.net/Proceedings/vol25/html/Kalvesmaki01/BalisageVol25-Kalvesmaki01.html]
 
 =item * B<--g0>
 
-Same as I<--chart>, but only for G0 range (d32-d127).
+Same as I<--chart g0> (U+20 to U+7F).
 
 =item * B<--g1>
 
-Same as I<--chart>, but only for G1 range (d160-d255).
+Same as I<--chart g1> (U+A0 to U+FF).
 
 =item * B<--hex>
 
@@ -269,98 +268,93 @@ Don't know).
 
 Display applicable *nix jargon names (default).
 
-=item * B<--listFormat> I<f> OR B<--outFormat> OR B<--oFormat>
+=item * B<--oFormat> OR B<--listFormat> I<f> OR B<--outFormat>
 
-Choose the output layout for results from the several I<--find...> options:
+Choose the output layout for results from the several I<--find...> and
+I<--chart> options: CONSOLE, HTML, LITERAL, PERLDICT_NUM,
+PLAIN, PYDICT_NUM, PYDICT_CHAR, PYDICT_NUM, PYSTR, REGEX, STRING.
 
 =over
 
-=item * PLAIN (default): The hex code point and the name, tab-separated:
-
-    U+002a  ASTERISK
-    U+0359  COMBINING ASTERISK BELOW
-    U+204e  LOW ASTERISK
-
-=item * LITERAL: Like PLAIN, but also showing the actual graphic character.
-
-    U+002a  *   ASTERISK
-    U+0359  ͙   COMBINING ASTERISK BELOW
-    U+204e  ⁎   LOW ASTERISK
-
-=item * STRING: A string of just the selected literal characters.
-    u"* ͙,"
-
-=item * REGEX: A regular expression "[..]" construct, that matches just
-the selected literal characters.  At least as of now, non-ASCII
-characters, hyphen, caret, or rsqb, and C0 controls are expressed via
-backslashed hex codes. Runs of contiguous code points should be, but are not yet,
-coalesced into ranges.
-    u"[*.\u204e]"
-
-=item * PERL: Hash entries, from hex code point to name.
-
-    0x0002a => 'ASTERISK',
-    0x00359 => 'COMBINING ASTERISK BELOW',
-    0x0204e => 'LOW ASTERISK',
-
-=item * PYTHONN: Dict entries, from hex code point to name, like:
-
-    0x0002a: 'ASTERISK',
-    0x00359: 'COMBINING ASTERISK BELOW',
-    0x0204e: 'LOW ASTERISK',
-
-=item * PYTHONC: Dict entries, from unichr(hex code point) to name.
-
-    chr(0x0002a): 'ASTERISK',
-    chr(0x00359): 'COMBINING ASTERISK BELOW',
-    chr(0x0204e): 'LOW ASTERISK',
-
-=item * PYTHONS: A Python string constructed from the characters, each
-expressed like I<chr(0x0ffff)>:
-
-    chr(0x0002a) +  # 'ASTERISK'
-    chr(0x00359) +  # 'COMBINING ASTERISK BELOW'
-    chr(0x0204e) +  # 'LOW ASTERISK'
-
-=item * PYTHONU: A Python string constructed from the characters, each
-expressed like I<u'\uffff'>.
-
-    u'\u0002a' +  # 'ASTERISK'
-    u'\u00359' +  # 'COMBINING ASTERISK BELOW'
-    u'\u0204e' +  # 'LOW ASTERISK'
-
-=item * INFO: A display like the output for single characters.
+=item * CONSOLE (default): The full display like you get for characters
+specifically requested.
 
 =item * HTML: HTML table rows with columns for the actual character,
 the code point in hex, and the character name:
 
     <tr>
-        <td class='char'>&#x002a;</td>
-        <td class='hex'>U+002a</td>
-        <td class='name'>ASTERISK</td>
+        <td class="char">&#x002a;</td>
+        <td class="hex">U+002a</td>
+        <td class="name">ASTERISK</td>
     </tr>
 
-For the ''PYTHON'' variants, you can use ''--pyFunction'' to set what
+=item * LITERAL: Like PLAIN, but also showing the actual graphic character
+(this assumes your terminal or other output mechanism can handle them):
+
+    U+002a  *   ASTERISK
+    U+0359  ͙   COMBINING ASTERISK BELOW
+    U+204e  ⁎   LOW ASTERISK
+
+=item * PERLDICT_NUM: Hash entries, from hex code point to name.
+
+    0x0002a => "ASTERISK",
+    0x00359 => "COMBINING ASTERISK BELOW",
+    0x0204e => "LOW ASTERISK",
+
+=item * PLAIN: The hex code point in U+ form, the named or hex XML/HTML
+reference to get it, and the Unicode truename, tab-separated:
+
+    U+002a  ASTERISK
+    U+0359  COMBINING ASTERISK BELOW
+    U+204e  LOW ASTERISK
+
+=item * PYDICT_CHAR: Dict entries, from unichr(hex code point) to name.
+
+    chr(0x0002a): "ASTERISK",
+    chr(0x00359): "COMBINING ASTERISK BELOW",
+    chr(0x0204e): "LOW ASTERISK",
+
+=item * PYDICT_NUM: Dict entries, from hex code point to name, like:
+
+    0x0002a: "ASTERISK",
+    0x00359: "COMBINING ASTERISK BELOW",
+    0x0204e: "LOW ASTERISK",
+
+=item * PYSTR: A Python string constructed from the characters, each
+expressed like I<u"\uffff">.
+
+    u"\u0002a" +  # "ASTERISK"
+    u"\u00359" +  # "COMBINING ASTERISK BELOW"
+    u"\u0204e" +  # "LOW ASTERISK"
+
+=item * REGEX: A regular expression "[..]" construct, that matches just
+the selected literal characters.  At least as of now, non-ASCII
+characters, hyphen, caret, or rsqb, and C0 controls are expressed via
+backslashed hex codes. Runs of contiguous code points should be, but are not yet,
+coalesced into ranges (cf showUnicodeCharsInClass.py --bracket).
+    u"[*.\u204e]"
+
+=item * STRING: A string of just the selected literal characters.
+    u"* ͙,"
+
+For the PY... variants, you can use ''--pyFunction'' to set what
 function is used (for example, ''--pyfunction chr''.
 
 =back
 
-Of course, for other layouts you can choose the nearest of these and
-post-process as desired.
-
 =item * B<--literal>
 
-Include display of the literal character in output (default).
+Include display of the literal character in CONSOLE format (default).
 You may wish to turn this off (I<--no-literal>) if your output device
 can't handle UTF-8 (you may also wish to get a new output device).
 
 =item * B<--long>
 
-Show long names for characters (default).
+Show long names for characters in CONSOLE format (default).
 
 =item * B<--macRoman>
 
-Assume the input character set is Apple macRoman.
+Assume the input character set is Apple MacRoman.
 This is also known as  IANA character "macintosh"
 (with aliases "mac" and "csMacintosh"), and Microsoft code page 10000.
 Acc. [http://fileformats.archiveteam.org/wiki/MacRoman],
@@ -389,7 +383,7 @@ Numeric options such as I<--max> can be specified in base 8, 10, or 16.
 
 =item * B<--octal>
 
-Display code points in octal (default).
+Display code points in octal in CONSOLE format (default).
 
 =item * B<--pairs>
 
@@ -427,8 +421,8 @@ system-dependent).
 
 =item * B<--utf8>
 
-Show a variety of information about the UTF-8 encoding for the character(s).
-Default: on.
+Show a variety of information about the UTF-8 encoding for the character(s)
+in CONSOLE format. Default: on.
 B<Note>: To interpret hex input as UTF-8 instead of a codepoint, prefix
 each byte with "%" instead of "0x" (see above). You do not need to specify
 the I<--utf8> option for that.
@@ -451,7 +445,7 @@ You need to backslash and/or quote some characters to use them as arguments:
     \(  (x28,  d40,  o50)
     \)  (x29,  d41,  o51)
     \+  (x2b,  d43,  053)
-        (or, you can precede this with '--' (end-of-options)
+        (or, you can precede this with "--" (end-of-options)
     \;  (x3b,  d59,  o73)
     \<  (x3c,  d60,  o74)
     \>  (x3e,  d62,  o76)
@@ -459,8 +453,9 @@ You need to backslash and/or quote some characters to use them as arguments:
     \`  (x60,  d96, o140)
     \|  (x7c, d124, o174)
 
-Some may be difficult or impossible to escape in some shells, such as:
+Some may be difficult (or impossible?) to escape in some shells, such as:
 
+    \\0 (x00,  d00,  o00) NULL
     \\t (x09,  d09,  o11) HT
     \\n (x0a,  d10,  o12) LF (you can put the newline in double quotes)
     \\r (x0d,  d13,  o15) CR (you can put the return in double quotes)
@@ -478,7 +473,7 @@ keywords. But they aren't showing up yet.
 
 Reports look a little weird in the case of combining characters. Especially if
 you search for just the combining characters, and print them out as
-I<--listFormat STRING>.
+I<--oformat STRING>.
 
 Does not catch cases with multiple direction keywords, such as:
     U+0200e  ‎  LEFT-TO-RIGHT MARK
@@ -488,19 +483,18 @@ Does not catch cases with multiple direction keywords, such as:
     U+02966  ⥦  LEFTWARDS HARPOON WITH BARB UP ABOVE RIGHTWARDS HARPOON WITH BARB UP
     U+02968  ⥨  RIGHTWARDS HARPOON WITH BARB UP ABOVE LEFTWARDS HARPOON WITH BARB UP
 
-Does not implement vertical keywords (though has a list in the code).
+Does not consider vertical keywords (though has a list in the code).
 Does not consider clockwise/counterclockwise cases.
-
 Some additional cases should perhaps be discarded, such as BOX DRAWING characters.
 
 
 =head1 Related commands
 
-C<chr> -- Does the reverse.
+C<chr> -- Does the reverse. But this does that direction too.
 
 C<showNumberInBases> -- Converts a number to multiple bases.
 
-C<mathAlphanumerics.py> -- class to map Latin, Greek, digits to alternate
+C<mathAlphanumerics.py> -- Maps Latin, Greek, and/or digits to alternate
 forms such as Mathematical double-struck, etc.
 
 
@@ -508,15 +502,14 @@ forms such as Mathematical double-struck, etc.
 
 =over
 
-=item * Make regular reports respect --outputFormat, not just --findXXX results.
+=item * Pull in --oformat bracket feature as from showCharsInPYDICT_CHARlass.
+I.e., extend --oformat REGEX to coalesce contiguous ranges.
+
+=item * Make regular reports respect --oformat, not just --findXXX results.
 
 =item * Tweak --table to accept numeric range like --chart.
 
 =item * Port to Python, using my C<CharDisplay.py> package.
-
-=item * Make --listFormat apply to the main list, not just -f.
-
-=item * Extend --listformat REGEX to coalesce contiguous ranges.
 
 =item * Integrate remainder of C<chr> command functionality:
 Allow numbers on command line. Compare/sync report format.
@@ -525,17 +518,12 @@ Allow numbers on command line. Compare/sync report format.
 
 =item * Add I<--typing> show how to key on various systems?
 
-=item * Make I<find> on names match regardless of token order. Cf
-Joel Kalvesmaki, '''A New \\u: Extending XSLT
-Regular Expressions for Unicode.''' Balisage (2020).
-[https://www.balisage.net/Proceedings/vol25/html/Kalvesmaki01/BalisageVol25-Kalvesmaki01.html]
-
 =item * Use the Unicode database file, F<BidiMirroring.txt>, to implement --pairs,
-rather than the present keyword-search approachs (at least as an option).
+rather than the present keyword-search approach (at least as an option).
 So far I have not found a convenient interface to it from either Perl or
 Python.
 
-=item * Use Unicode DB NamesList.txt file '=' entries for alternative names
+=item * Use Unicode DB NamesList.txt file "=" entries for alternative names
 (~5500; not unique).
 
 =back
@@ -555,7 +543,7 @@ Add longNames for G0 and G1. Add C<--g0>, C<--g1>. C<perl -w>.
 
 =item * 2008-09-16 sjd: Better handling of Unicode input.
 
-=item * 2010-01-06 sjd: Use 'charnames' to know Unicode names. Add C<--binary>.
+=item * 2010-01-06 sjd: Use "charnames" to know Unicode names. Add C<--binary>.
 Make print utf-8 and actual Unicode character. Format binary better.
 
 =item * 2010-05-03 sjd: perldoc. Unify formatting. Add Unix Jargon names,
@@ -567,7 +555,7 @@ Start C<--cp1252>.
 =item * 2011-12-11 sjd: Add utf-8 output. Opt out of longNames (lists of
 char names -- now using viacode instead).
 
-=item * 2012-01-10 sjd: Cleanup. Lose internal 'longNames' lists.
+=item * 2012-01-10 sjd: Cleanup. Lose internal "longNames" lists.
 
 =item * 2012-08-15 sjd: sjdUtils, and use getUTF8().
 
@@ -576,8 +564,8 @@ Add showUnicodeInfo().
 
 =item * 2014-09-02: Clean up.
 
-=item * 2015-08-15ff: Add formats PYTHONS, PYTHONU; rename
-format PYTHON to PYTHONN. Finish C<--find>. Display control-char mnemonics.
+=item * 2015-08-15ff: Add formats PYTHONS, PYSTR; rename
+format PYTHON to PYDICT_NUM. Finish C<--find>. Display control-char mnemonics.
 
 =item * 2016-01-08: Add C<--math> and C<--digits>.
 
@@ -620,7 +608,14 @@ coalesce contiguous ranges.
 
 =item * 2024-05-22: Support utf-8 as %ffffff, not just %ff%ff%ff.
 
-=item * 2024-06-25: Add --chart cp1252.
+=item * 2024-06-25ff: Add --chart cp1252. Support --listFormat with --chart.
+
+=item * 2024-07-28ff: Add --cheatsheet.
+
+=item * 2024-08-10: Add --findCategory, --findTokens. Clean up --findXXX to
+not re-use $target, and to run independently of $targets, not
+just as fallback.  Add --showCategories. Better names for Python --oformats
+and rename listFormat to oformat.
 
 =back
 
@@ -646,17 +641,18 @@ my @G0names     = ();
 my @C1names     = ();
 my @G1names     = ();
 
-my $upper        = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-my $lower        = 'abcdefghijklmnopqrstuvwxyz';
-my $URIchars     = "!\$'()*+-._" . '0123456789' . $upper . $lower;
-my $URIspecials  = '/%&:;=?@';
+my $upper        = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+my $lower        = "abcdefghijklmnopqrstuvwxyz";
+my $URIchars     = "!\$'()*+-._" . "0123456789" . $upper . $lower;
+my $URIspecials  = "/%&:;=?@";
 
-# sprintf() formats for code point numbers. TODO: Make adjustable width
+# sprintf() formats for code point numbers.
+# TODO: Make adjustable width, maybe completely option-settable.
 #
 my $theHexFormat = "0x%05x";
 my $theUFormat   = "U+%05x";
 my $theEntFormat = "&#x%05x;";
-my $thePyFormat  = "u'\\u%05x'";
+my $thePyFormat  = "u\"\\u%05x\"";
 
 my %unixJargon   = ();
 
@@ -674,7 +670,7 @@ my %unicodeCategories = (
     "Cn" => "Other, Not Assigned",
     "Co" => "Other, Private Use",
     "Cs" => "Other, Surrogate",
-    "LC" => "Letter, Cased",
+    "LC" => "Letter, Cased",  # This seems to just be a cover term?
     "Ll" => "Letter, Lowercase",
     "Lm" => "Letter, Modifier",
     "Lo" => "Letter, Other",
@@ -713,14 +709,17 @@ setupMathAlphabets();
 #
 my $binary      = 0;
 my $chart       = "";
+my $cheatsheet  = 0;
 my $cp1252      = 0;
 my $decimal     = 1;
 my $digits      = 0;
 my $entities    = 1;
-my $findBlock   = 0;
-my $findRegex   = 0;
-my $findSet     = 0;
-my $findString  = 0;
+my $findBlock   = "";
+my $findCategory= "";
+my $findRegex   = "";
+my $findSet     = "";
+my $findString  = "";
+my $findTokens  = "";
 my $C0          = 0;
 my $C1          = 0;
 my $G0          = 0;
@@ -728,7 +727,7 @@ my $G1          = 0;
 my $hex         = 1;
 my $iconv       = 0;
 my $jargon      = 1;
-my $listFormat  = "LITERAL";
+my $oFormat  = "CONSOLE";
 my $literal     = 1;
 my $long        = 1;
 my $macRoman    = 0;
@@ -737,35 +736,41 @@ my $maxU        = 0x1FFFF;
 my $minU        = 1;
 my $octal       = 1;
 my $pairs       = 0;
-my $pyFunction  = 'chr';
+my $pyFunction  = "chr";
 my $quiet       = 0;
 my $short       = 0;
+my $showCategories = 0;
 my $typing      = 1;
 my $table       = "";
 my $utf8        = 1;
 my $verbose     = 0;
 
+my @theTokens = ();  # Parsed from --findTokens
+
 Getopt::Long::Configure ("ignore_case");
 my $result = GetOptions(
     "binary!"             => \$binary,
     "c|chart=s"           => \$chart,
+    "cheatsheet!"         => \$cheatsheet,
     "cp1252!"             => \$cp1252,
     "c0"                  => \$C0,
     "c1"                  => \$C1,
     "decimal!"            => \$decimal,
     "digits!"             => \$digits,
     "entities!"           => \$entities,
-    "findBlock!"          => \$findBlock,
-    "findRegex|regex!"    => \$findRegex,
-    "findSet!"            => \$findSet,
-    "f|findString!"       => \$findString,
+    "findBlock=s"         => \$findBlock,
+    "findCategory=s"      => \$findCategory,
+    "findRegex|regex=s"   => \$findRegex,
+    "findSet=s"           => \$findSet,
+    "f|findString=s"      => \$findString,
+    "findTokens=s"        => \$findTokens,
     "g0"                  => \$G0,
     "g1"                  => \$G1,
     "h|help|?"            => sub { system "perldoc $0"; },
     "hex!"                => \$hex,
     "iconv!"              => \$iconv,
     "jargon!"             => \$jargon,
-    "listFormat|oFormat|outputFormat|output-format=s" => \$listFormat,
+    "listFormat|oFormat|outputFormat|output-format=s" => \$oFormat,
     "literal!"            => \$literal,
     "long!"               => \$long,
     "macRoman!"           => \$macRoman,
@@ -777,6 +782,7 @@ my $result = GetOptions(
     "pyFunction=s"        => \$pyFunction,
     "q|quiet!"            => \$quiet,
     "short!"              => \$short,
+    "showCategories!"     => \$showCategories,
     "table=s"             => \$table,
     "typing!"             => \$typing,
     "utf8!"               => \$utf8,
@@ -788,38 +794,50 @@ my $result = GetOptions(
 );
 ($result) || die "Bad options.\n";
 
-if (!$quiet && $findString && $ARGV[0] =~ m/[^A-Za-z 0-9]/) {
-    # ()., also occur in my Charsets/Unicode/metaUnicode/NamesList.txt, but
-    # I think they're only from synonym / alt name entries?
-    warn "\nWARNING: --findString for '" . $ARGV[0] .
-        "' has characters not used in Unicode names. Use --findRegex?\n";
+if ($showCategories) {
+    print("Unicode character category list:\n");
+    for my $c (sort keys %unicodeCategories) {
+        printf("    %-3s %s\n", $c.":", $unicodeCategories{$c});
+    }
+    exit;
 }
 
 if ($chart eq "cp1252") { $cp1252 = 1; }
 
+if (!$quiet && $findString =~ m/[^A-Za-z 0-9]/) {
+    # ()., also occur in my Charsets/Unicode/metaUnicode/NamesList.txt, but
+    # I think they're only from synonym / alt name entries?
+    warn "\nWARNING: --findString for '" . $ARGV[0] .
+        "' has characters not used in Unicode names. Switching to --findRegex.\n";
+    $findRegex = $findString;
+    $findString = "";
+}
+
+if ($findCategory && !exists $unicodeCategories{$findCategory}) {
+    die "Unknown --findCategory target '$findCategory'.\n";
+}
 my $iconvConverter = undef;
 if ($iconv) {
     (sjdUtils::try_module("Text::Iconv")) || die
         "CPAN module TextIconv not found. Install it if you want --iconv.\n";
     $iconvConverter = Text::Iconv->new("utf8", "ascii//TRANSLIT");
 }
-$listFormat = uc($listFormat);
-my %listFormats = (
-    "HTML"      => 1,
-    "INFO"      => 1,
-    "LITERAL"   => 1,
-    "PERL"      => 1,
-    "PLAIN"     => 1,
-    "PYTHONN"   => 1,
-    "PYTHONS"   => 1,
-    "PYTHONU"   => 1,
-    "PYTHONC"   => 1,
-    "STRING"    => 1,
-    "REGEX"     => 1,
+$oFormat = uc($oFormat);
+my %oFormats = (
+    "CONSOLE"      => 1,  # The default for non-chart use
+    "HTML"         => 1,
+    "LITERAL"      => 1,
+    "PERLDICT_NUM" => 1,
+    "PLAIN"        => 1,
+    "PYDICT_CHAR"  => 1,
+    "PYDICT_NUM"   => 1,  # TODO: Better names for these --
+    "PYSTR"        => 1,
+    "REGEX"        => 1,
+    "STRING"       => 1,
     );
-(defined $listFormats{$listFormat}) || die
-    "Unknown --listFormat '$listFormat'. Known: "
-    . join(", ", sort keys %listFormats) . "\n";
+(defined $oFormats{$oFormat}) || die
+    "Unknown --oformat '$oFormat'. Known: "
+    . join(", ", sort keys %oFormats) . "\n";
 
 ($minU < $maxU) || die
     "--minU ($minU)must be less than --maxU ($maxU).\n";
@@ -854,7 +872,7 @@ sub showMathAlphabets {
         my $msg = my $extra = "";
         for (my $cp=$cpA; $cp<$cpA+26; $cp++) {
             if ($mathMissing{$cp}) {
-                $msg .= '  -';
+                $msg .= "  -";
                 $extra .= sprintf("%s is %s, ",
                     chr($mathMissing{$cp}), uDisp($mathMissing{$cp}));
             }
@@ -884,24 +902,24 @@ sub showMathAlphabets {
 #     intersection/union  all/exists, lt/gt,
 #
 my @leftWords = (
-    'LEFT', 'LEFTWARDS', 'LEFT-POINTING', 'LEFT-FACING',
-    'RIGHT-TO-LEFT', 'LEFT-HANDED', 'LEFT-SIDE',
-    'OPEN', 'BEGIN', 'START',
-    'LESS-THAN', 'PRECEDES', 'SUBSET', 'IMAGE', 'ELEMENT OF');
+    "LEFT", "LEFTWARDS", "LEFT-POINTING", "LEFT-FACING",
+    "RIGHT-TO-LEFT", "LEFT-HANDED", "LEFT-SIDE",
+    "OPEN", "BEGIN", "START",
+    "LESS-THAN", "PRECEDES", "SUBSET", "IMAGE", "ELEMENT OF");
 my @rightWords = (
-    'RIGHT', 'RIGHTWARDS', 'RIGHT-POINTING', 'RIGHT-FACING',
-    'LEFT-TO-RIGHT', 'RIGHT-HANDED', 'RIGHT-SIDE',
-    'CLOSE', 'END', 'END',
-    'GREATER-THAN', 'SUCCEEDS', 'SUPERSET', 'ORIGINAL', 'CONTAINS');
+    "RIGHT", "RIGHTWARDS", "RIGHT-POINTING", "RIGHT-FACING",
+    "LEFT-TO-RIGHT", "RIGHT-HANDED", "RIGHT-SIDE",
+    "CLOSE", "END", "END",
+    "GREATER-THAN", "SUCCEEDS", "SUPERSET", "ORIGINAL", "CONTAINS");
 (scalar @leftWords == scalar @rightWords) || die "leftWords/rightWords mismatch.\n";
 
 my @upWords = (
-    'UP', 'UPWARDS', 'UP-POINTING', 'UP-FACING',
-    'DOWN-TO-UP', 'RISING',
+    "UP", "UPWARDS", "UP-POINTING", "UP-FACING",
+    "DOWN-TO-UP", "RISING",
     );
 my @downWords = (
-    'DOWN', 'DOWNWARDS', 'DOWN-POINTING', 'DOWN-FACING',
-    'UP-TO-DOWN', 'FALLING',
+    "DOWN", "DOWNWARDS", "DOWN-POINTING", "DOWN-FACING",
+    "UP-TO-DOWN", "FALLING",
     );
 (scalar @upWords == scalar @downWords) || die "upWords/downWords mismatch.\n";
 
@@ -966,7 +984,7 @@ sub searchForSymmetricPairs {
 @);
     # Could do "-" special, but want to avoid "OPEN-HEADED ARROW", etc.
 
-    my $allExpr  = join("|", @leftWords) .'|' .  join("|", @rightWords);
+    my $allExpr  = join("|", @leftWords) ."|" .  join("|", @rightWords);
     my $leftExpr = join("|", @leftWords);
     my $rightExpr = join("|", @rightWords);
     ($verbose > 1) && warn sprintf(
@@ -1024,11 +1042,11 @@ sub searchForSymmetricPairs {
         }
         my $rNum = $candidateIndex{$rName};
         my $rec = "<tr>\n"
-        . sprintf("    <td class='char'>%s</td>\n", entDisp($lNum))
-        . sprintf("    <td class='char'>%s</td>\n", entDisp($rNum))
-        . sprintf("    <td class='hex'>%s</td>\n", uDisp($lNum))
-        . sprintf("    <td class='hex'>%s</td>\n", uDisp($rNum))
-        . sprintf("    <td class='names'>%s\n                 <br \>%s</td>\n",
+        . sprintf("    <td class=\"char\">%s</td>\n", entDisp($lNum))
+        . sprintf("    <td class=\"char\">%s</td>\n", entDisp($rNum))
+        . sprintf("    <td class=\"hex\">%s</td>\n", uDisp($lNum))
+        . sprintf("    <td class=\"hex\">%s</td>\n", uDisp($rNum))
+        . sprintf("    <td class=\"names\">%s\n                 <br \>%s</td>\n",
             $lName, $rName)
         . "</tr>\n";
         print $rec;
@@ -1339,17 +1357,424 @@ sub showRange2 {
             join(", ", keys(%namedRanges)) . ".\n";
         return;
     }
-    printf("Character mnemonics and names for chars in %s [U+%05x...U+%05x]:\n",
-        $sec, $min, $max);
+    printf("Characters in %s [U+%05x...U+%05x], as %s:\n", $sec, $min, $max, $oFormat);
     if ($max < $min) {
         print "    ******* Range is out of order *******\n";
         return;
     }
+    my $s = "";
     for (my $n=$min; $n<=$max; $n++) {
-        showOne($n);
+        if ($oFormat eq "CONSOLE") {
+            showOne($n);
+        }
+        else {
+            my $iname = charnames::viacode($n);
+            listOneCharacter($n, $iname, $oFormat, $s);
+        }
+    }
+    if ($s) { print "$s\n"; }
+}
+
+sub showCheatSheet {  # TODO: Move to separate entity-def file.
+    # Show hexent, literal, name
+
+    my @toShow = (
+        # Regular "i" for inverted, lrud for left right up down(ward)
+
+        # Quotes
+        [ "ldquo",      "LEFT DOUBLE QUOTATION MARK", 1 ],
+        [ "rdquo",      "RIGHT DOUBLE QUOTATION MARK", 1 ],
+        [ "lsquo",      "LEFT SINGLE QUOTATION MARK", 1 ],
+        [ "rsquo",      "RIGHT SINGLE QUOTATION MARK", 1 ],
+        [ "laquo",      "SINGLE LEFT-POINTING ANGLE QUOTATION MARK", 1 ],
+        [ "raquo",      "SINGLE RIGHT-POINTING ANGLE QUOTATION MARK", 1 ],
+        [ "ldaquo",     "LEFT-POINTING DOUBLE ANGLE QUOTATION MARK", 1 ],
+        [ "rdaquo",     "RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK", 1 ],
+        #0x0201A:  "SINGLE LOW-9 QUOTATION MARK",
+        #0x0201E:  "DOUBLE LOW-9 QUOTATION MARK",
+        #0x0201B:  "SINGLE HIGH-REVERSED-9 QUOTATION MARK",
+        #0x0201F:  "DOUBLE HIGH-REVERSED-9 QUOTATION MARK",
+
+        # Other typography
+        [ "bull",       "BULLET", 1 ],
+        [ "iquest",     "INVERTED QUESTION MARK" ],
+        [ "bang",       "EXCLAMATION MARK" ],
+        [ "ibang",      "INVERTED EXCLAMATION MARK" ],  # iexcl?
+        [ "intbang",    "INTERROBANG" ],
+        [ "iintbang",   "INVERTED INTERROBANG" ],
+        [ "hellip",     "HORIZONTAL ELLIPSIS" ],
+        [ "pilcrow",    "PILCROW SIGN" ],
+        [ "rpilcrow",   "REVERSED PILCROW SIGN" ],
+        [ "sect",       "SECTION SIGN", 1 ],
+        [ "dagger",     "DAGGER", 1 ],
+        [ "ddagger",    "DOUBLE DAGGER", 1 ],
+        [ "tdagger",    "TRIPLE DAGGER" ],
+        [ "ordf",       "FEMININE ORDINAL INDICATOR", 1 ],
+        [ "ordm",       "MASCULINE ORDINAL INDICATOR", 1 ],
+        [ "amp",        "AMPERSAND" ],
+        [ "iamp",       "TURNED AMPERSAND" ],  # TODO ???
+
+        [ "emsp",       "EM SPACE", 1 ],
+        [ "ensp",       "EN SPACE", 1 ],
+        [ "nbsp",       "NO-BREAK SPACE", 1 ],
+        [ "thinsp",     "THIN SPACE" ],
+        [ "figsp",      "FIGURE SPACE" ],
+        [ "puncsp",     "PUNCTUATION SPACE" ],
+        [ "hairsp",     "HAIR SPACE" ],
+        [ "zerosp",     "ZERO WIDTH SPACE" ],
+
+        [ "ndash",      "EN DASH" ],
+        [ "mdash",      "EM DASH" ],
+        [ "fdash",      "FIGURE DASH" ],
+        [ "nbhy",       "NON-BREAKING HYPHEN" ],
+        [ "shy",        "SOFT HYPHEN", 1 ],
+
+        [ "pointL",     "WHITE LEFT POINTING INDEX" ],
+        [ "pointR",     "WHITE RIGHT POINTING INDEX" ],
+        [ "pointU",     "WHITE UP POINTING INDEX" ],  # not in black?
+        [ "pointD",     "WHITE DOWN POINTING INDEX" ],  # not in black?
+
+        # white or black, 0 or medium or small, triangle or pointer, double
+        [ "ltriangle",  "BLACK MEDIUM LEFT-POINTING TRIANGLE" ],
+        [ "rtriangle",  "BLACK MEDIUM RIGHT-POINTING TRIANGLE" ],
+        [ "utriangle",  "BLACK MEDIUM UP-POINTING TRIANGLE" ],
+        [ "dtriangle",  "BLACK MEDIUM DOWN-POINTING TRIANGLE" ],
+
+        [ "uhead",      "UP ARROWHEAD" ],
+        [ "dhead",      "DOWN ARROWHEAD" ],
+        [ "carat",      "CIRCUMFLEX ACCENT" ],  # cf cflex
+
+        [ "larr",       "LEFTWARDS ARROW", 1 ],
+        [ "rarr",       "RIGHTWARDS ARROW", 1 ],
+        [ "uarr",       "UPWARDS ARROW", 1 ],
+        [ "darr",       "DOWNWARDS ARROW", 1 ],
+
+        [ "check",      "CHECK MARK" ],
+        [ "box",        "box" ],
+        [ "checkedbox", "BALLOT BOX WITH CHECK" ],
+        [ "xedbox",     "BALLOT BOX WITH X" ],
+
+        [ "sup0",       "SUPERSCRIPT ZERO" ],
+        [ "sup1",       "SUPERSCRIPT ONE", 1 ],
+        [ "sup2",       "SUPERSCRIPT TWO", 2 ],
+        [ "sup3",       "SUPERSCRIPT THREE", 3 ],
+        [ "sup4",       "SUPERSCRIPT FOUR" ],
+        [ "sup5",       "SUPERSCRIPT FIVE" ],
+        [ "sup6",       "SUPERSCRIPT SIX" ],
+        [ "sup7",       "SUPERSCRIPT SEVEN" ],
+        [ "sup8",       "SUPERSCRIPT EIGHT" ],
+        [ "sup9",       "SUPERSCRIPT NINE" ],
+
+        [ "sub0",       "SUBSCRIPT ZERO" ],
+        [ "sub1",       "SUBSCRIPT ONE", 1 ],
+        [ "sub2",       "SUBSCRIPT TWO", 2 ],
+        [ "sub3",       "SUBSCRIPT THREE", 3 ],
+        [ "sub4",       "SUBSCRIPT FOUR" ],
+        [ "sub5",       "SUBSCRIPT FIVE" ],
+        [ "sub6",       "SUBSCRIPT SIX" ],
+        [ "sub7",       "SUBSCRIPT SEVEN" ],
+        [ "sub8",       "SUBSCRIPT EIGHT" ],
+        [ "sub9",       "SUBSCRIPT NINE" ],
+
+        #[ "fr12",       "fr12" ],  # \d\d
+
+        # Orthography
+        [ "iotasub",    "iotasub" ],
+        [ "psili",      "GREEK PSILI" ],
+        [ "tonos",      "GREEK TONOS" ],
+        #[ "hacek",      "hacek" ],
+
+        [ "grave",      "COMBINING GRAVE ACCENT" ],
+        [ "acute",      "COMBINING ACUTE ACCENT" ],
+        [ "cflex",      "COMBINING CIRCUMFLEX ACCENT" ],
+        [ "dacute",     "COMBINING DOUBLE ACUTE ACCENT" ],
+        [ "dgrave",     "COMBINING DOUBLE GRAVE ACCENT" ],
+        [ "graveb",     "COMBINING GRAVE ACCENT BELOW" ],
+        [ "acuteb",     "COMBINING ACUTE ACCENT BELOW" ],
+        [ "cflexb",     "COMBINING CIRCUMFLEX ACCENT BELOW" ],
+        [ "dcflex",     "COMBINING DOUBLED CIRCUMFLEX ACCENT" ],
+        #[ "#x1DC0",     "COMBINING DOTTED GRAVE ACCENT" ],
+        #[ "#x1DC1",     "COMBINING DOTTED ACUTE ACCENT" ],
+        [ "tilde",      "COMBINING TILDE" ],
+        [ "dtilde",     "COMBINING DOUBLE TILDE" ],
+        [ "tildeb",     "COMBINING TILDE BELOW" ],
+        # cedilla
+
+        [ "aelig",      "aelig" ],
+        [ "fflig",      "LATIN SMALL LIGATURE FF" ],
+        [ "filig",      "LATIN SMALL LIGATURE FI" ],
+        [ "fllig",      "LATIN SMALL LIGATURE FL" ],
+        [ "ffilig",     "LATIN SMALL LIGATURE FFI" ],
+        [ "ffllig",     "LATIN SMALL LIGATURE FFL" ],
+        [ "OElig",      "LATIN CAPITAL LIGATURE OE" ],
+        [ "oelig",      "LATIN SMALL LIGATURE OE" ],
+        [ "longstlig",  "LATIN SMALL LIGATURE LONG S T" ],
+        [ "stlig",      "LATIN SMALL LIGATURE ST" ],
+
+        [ "ETH",        "LATIN CAPITAL LETTER ETH", 1 ],
+        [ "THORN",      "LATIN CAPITAL LETTER THORN", 1 ],
+        [ "eth",        "LATIN SMALL LETTER ETH", 1 ],
+        [ "thorn",      "LATIN SMALL LETTER THORN", 1 ],
+        [ "SCHWA",      "LATIN CAPITAL LETTER SCHWA" ],
+        #[ "#x241",      "LATIN CAPITAL LETTER GLOTTAL STOP" ],
+        #[ "#x242",      "LATIN SMALL LETTER GLOTTAL STOP" ],
+        [ "schwa",      "LATIN SMALL LETTER SCHWA" ],
+        [ "glottal",    "LATIN LETTER GLOTTAL STOP" ],
+
+        # Greek
+
+        # Hebrew
+        [ "alef",        "HEBREW LETTER ALEF" ],
+        [ "bet",         "HEBREW LETTER BET" ],
+        [ "gimel",       "HEBREW LETTER GIMEL" ],
+        [ "dalet",       "HEBREW LETTER DALET" ],
+        [ "he",          "HEBREW LETTER HE" ],
+        [ "vav",         "HEBREW LETTER VAV" ],
+        [ "zayin",       "HEBREW LETTER ZAYIN" ],
+        [ "het",         "HEBREW LETTER HET" ],
+        [ "tet",         "HEBREW LETTER TET" ],
+        [ "yod",         "HEBREW LETTER YOD" ],
+        [ "kaf",         "HEBREW LETTER KAF" ],
+        [ "lamed",       "HEBREW LETTER LAMED" ],
+        [ "mem",         "HEBREW LETTER MEM" ],
+        [ "nun",         "HEBREW LETTER NUN" ],
+        [ "samekh",      "HEBREW LETTER SAMEKH" ],
+        [ "ayin",        "HEBREW LETTER AYIN" ],
+        [ "pe",          "HEBREW LETTER PE" ],
+        [ "tsadi",       "HEBREW LETTER TSADI" ],
+        [ "qof",         "HEBREW LETTER QOF" ],
+        [ "resh",        "HEBREW LETTER RESH" ],
+        [ "shin",        "HEBREW LETTER SHIN" ],
+        [ "tav",         "HEBREW LETTER TAV" ],
+        [ "fkaf",        "HEBREW LETTER FINAL KAF" ],
+        [ "fmem",        "HEBREW LETTER FINAL MEM" ],
+        [ "fnun",        "HEBREW LETTER FINAL NUN" ],
+        [ "fpe",         "HEBREW LETTER FINAL PE" ],
+        [ "ftsadi",      "HEBREW LETTER FINAL TSADI" ],
+
+        # Cyrillic (has a lot of single latin letters.
+        [ "A",           "CYRILLIC CAPITAL LETTER A" ],
+        [ "a",           "CYRILLIC SMALL LETTER A" ],
+        [ "Be",          "CYRILLIC CAPITAL LETTER BE" ],
+        [ "be",          "CYRILLIC SMALL LETTER BE" ],
+        [ "Ve",          "CYRILLIC CAPITAL LETTER VE" ],
+        [ "ve",          "CYRILLIC SMALL LETTER VE" ],
+        [ "Ghe",         "CYRILLIC CAPITAL LETTER GHE" ],
+        [ "ghe",         "CYRILLIC SMALL LETTER GHE" ],
+        [ "De",          "CYRILLIC CAPITAL LETTER DE" ],
+        [ "de",          "CYRILLIC SMALL LETTER DE" ],
+        [ "Ie",          "CYRILLIC CAPITAL LETTER IE" ],
+        [ "ie",          "CYRILLIC SMALL LETTER IE" ],
+        [ "Zhe",         "CYRILLIC CAPITAL LETTER ZHE" ],
+        [ "zhe",         "CYRILLIC SMALL LETTER ZHE" ],
+        [ "Ze",          "CYRILLIC CAPITAL LETTER ZE" ],
+        [ "ze",          "CYRILLIC SMALL LETTER ZE" ],
+        [ "I",           "CYRILLIC CAPITAL LETTER I" ],
+        [ "i",           "CYRILLIC SMALL LETTER I" ],
+        [ "ShortI",      "CYRILLIC CAPITAL LETTER SHORT I" ],
+        [ "shorti",      "CYRILLIC SMALL LETTER SHORT I" ],
+        [ "Ka",          "CYRILLIC CAPITAL LETTER KA" ],
+        [ "ka",          "CYRILLIC SMALL LETTER KA" ],
+        [ "El",          "CYRILLIC CAPITAL LETTER EL" ],
+        [ "el",          "CYRILLIC SMALL LETTER EL" ],
+        [ "Em",          "CYRILLIC CAPITAL LETTER EM" ],
+        [ "em",          "CYRILLIC SMALL LETTER EM" ],
+        [ "En",          "CYRILLIC CAPITAL LETTER EN" ],
+        [ "en",          "CYRILLIC SMALL LETTER EN" ],
+        [ "O",           "CYRILLIC CAPITAL LETTER O" ],
+        [ "o",           "CYRILLIC SMALL LETTER O" ],
+        [ "Pe",          "CYRILLIC CAPITAL LETTER PE" ],
+        [ "pe",          "CYRILLIC SMALL LETTER PE" ],
+        [ "Er",          "CYRILLIC CAPITAL LETTER ER" ],
+        [ "er",          "CYRILLIC SMALL LETTER ER" ],
+        [ "Es",          "CYRILLIC CAPITAL LETTER ES" ],
+        [ "es",          "CYRILLIC SMALL LETTER ES" ],
+        [ "Te",          "CYRILLIC CAPITAL LETTER TE" ],
+        [ "te",          "CYRILLIC SMALL LETTER TE" ],
+        [ "U",           "CYRILLIC CAPITAL LETTER U" ],
+        [ "u",           "CYRILLIC SMALL LETTER U" ],
+        [ "Ef",          "CYRILLIC CAPITAL LETTER EF" ],
+        [ "ef",          "CYRILLIC SMALL LETTER EF" ],
+        [ "Ha",          "CYRILLIC CAPITAL LETTER HA" ],
+        [ "ha",          "CYRILLIC SMALL LETTER HA" ],
+        [ "Tse",         "CYRILLIC CAPITAL LETTER TSE" ],
+        [ "tse",         "CYRILLIC SMALL LETTER TSE" ],
+        [ "Che",         "CYRILLIC CAPITAL LETTER CHE" ],
+        [ "che",         "CYRILLIC SMALL LETTER CHE" ],
+        [ "Sha",         "CYRILLIC CAPITAL LETTER SHA" ],
+        [ "sha",         "CYRILLIC SMALL LETTER SHA" ],
+        [ "Shcha",       "CYRILLIC CAPITAL LETTER SHCHA" ],
+        [ "shcha",       "CYRILLIC SMALL LETTER SHCHA" ],
+        [ "HardSign",    "CYRILLIC CAPITAL LETTER HARD SIGN" ],
+        [ "hardsign",    "CYRILLIC SMALL LETTER HARD SIGN" ],
+        [ "Yeru",        "CYRILLIC CAPITAL LETTER YERU" ],
+        [ "yeru",        "CYRILLIC SMALL LETTER YERU" ],
+        [ "SoftSign",    "CYRILLIC CAPITAL LETTER SOFT SIGN" ],
+        [ "softsign",    "CYRILLIC SMALL LETTER SOFT SIGN" ],
+        [ "E",           "CYRILLIC CAPITAL LETTER E" ],
+        [ "e",           "CYRILLIC SMALL LETTER E" ],
+        [ "Yu",          "CYRILLIC CAPITAL LETTER YU" ],
+        [ "yu",          "CYRILLIC SMALL LETTER YU" ],
+        [ "Ya",          "CYRILLIC CAPITAL LETTER YA" ],
+        [ "ya",          "CYRILLIC SMALL LETTER YA" ],
+
+        # Math sci philo (check vs. AMSTex, 8879, jargon)
+        [ "micro",      "MICRO SIGN", 1 ],
+        [ "euler",      "EULER CONSTANT" ],
+        [ "planck",     "PLANCK CONSTANT" ],
+        [ "int",        "INTEGRAL", 1 ],
+        [ "radic",      "SQUARE ROOT", 1 ],
+        [ "radic3",     "CUBE ROOT" ],
+        [ "radic4",     "FOURTH ROOT" ],
+        [ "ang",        "ANGLE", 1 ],
+        [ "mangle",     "MEASURED ANGLE" ],
+        [ "sangle",     "SPHERICAL ANGLE" ],
+        [ "logand",     "LOGICAL AND" ],
+        [ "logor",      "LOGICAL OR" ],
+        [ "plusmn",     "PLUS-MINUS SIGN", 1 ],
+        # TODO: real and rational numbers angstrom
+
+        [ "deg",        "DEGREE SIGN", 1 ],
+        [ "pct",        "PERCENT SIGN" ],
+        [ "pmil",       "PER MILLE SIGN" ],
+        [ "p10mil",     "PER TEN THOUSAND SIGN" ],
+
+        [ "exist",      "THERE EXISTS", 1 ],
+        [ "notexist",   "THERE DOES NOT EXIST", 1 ],
+        [ "forall",     "FOR ALL" ],
+        [ "there4",     "THEREFORE", 1],
+        [ "ithere4",    "BECAUSE" ],
+        [ "del",        "NABLA" ],  # TODO Also define 'del'?
+
+        [ "product",    "VECTOR OR CROSS PRODUCT" ],
+        [ "div",        "DIVISION SIGN" ],
+        [ "divslash",   "DIVISION SLASH" ],
+        [ "eq",         "EQUALS SIGN" ],
+        [ "neq",        "NOT EQUAL TO" ],
+        [ "le",         "LESS-THAN OR EQUAL TO, 1" ],
+        [ "ge",         "GREATER-THAN OR EQUAL TO", 1 ],
+        [ "ggt",        "MUCH GREATER-THAN" ],
+        [ "gggt",       "VERY MUCH GREATER-THAN" ],
+        [ "llt",        "MUCH LESS-THAN" ],
+        [ "lllt",       "VERY MUCH LESS-THAN" ],
+        [ "eqdef",      "EQUAL TO BY DEFINITION" ],
+        [ "eqapx",      "APPROXIMATELY EQUAL TO" ],
+        [ "parallel",   "PARALLEL TO" ],
+
+        [ "cup",        "UNION" ],         # ???
+        [ "cap",        "INTERSECTION" ],  # ???
+        [ "member",     "ELEMENT OF" ],
+        [ "subset",     "SUBSET OF" ],
+        [ "nullset",    "SYMBOL FOR NULL" ],
+        [ "infin",      "INFINITY" ],
+
+        # Currency
+        [ "bhat",       "THAI CURRENCY SYMBOL BAHT" ],
+        [ "cent",       "CENT SIGN" ],
+        [ "dollar",     "DOLLAR SIGN" ],
+        [ "drachma",    "DRACHMA SIGN" ],
+        [ "euro",       "EURO SIGN" ],
+        [ "frank",      "FRENCH FRANC SIGN" ],
+        [ "lira",       "LIRA SIGN" ],
+        [ "penny",      "GERMAN PENNY SIGN" ],
+        [ "peseta",     "PESETA SIGN" ],
+        [ "peso",       "PESO SIGN" ],
+        [ "pound",      "POUND SIGN" ],
+        [ "rupee",      "RUPEE SIGN" ],
+        [ "ruble",      "RUBLE SIGN" ],
+        [ "sheqel",     "NEW SHEQEL SIGN" ],
+        [ "won",        "WON SIGN" ],
+        [ "yen",        "YEN SIGN" ],
+
+        # Misc
+        [ "copy",       "COPYRIGHT SIGN", 1 ],
+        [ "trade",      "TRADE MARK SIGN", 1 ],
+        [ "reg",        "REGISTERED SIGN", 1 ],
+        [ "service",    "SERVICE MARK" ],
+        [ "command",    "PLACE OF INTEREST SIGN" ],
+        [ "control",    "UP ARROWHEAD" ],  # ??? TODO
+        [ "option",     "OPTION KEY" ],
+        [ "alt",        "ALTERNATIVE KEY SYMBOL" ],
+        [ "win",        "BLACK DIAMOND WITH A WHITE FOUR POINTED STAR" ],  # ??? TODO
+    );
+
+    my @moreCurrency = ( qw/
+        AUSTRAL SIGN
+        BENGALI RUPEE MARK
+        BITCOIN SIGN
+        CEDI SIGN
+        COLON SIGN
+        CRUZEIRO SIGN
+        CURRENCY SIGN
+        DOLLAR SIGN
+        DONG SIGN
+        EURO-CURRENCY SIGN
+        FRENCH FRANC SIGN
+        FULLWIDTH CENT SIGN
+        FULLWIDTH DOLLAR SIGN
+        FULLWIDTH POUND SIGN
+        FULLWIDTH YEN SIGN
+        GUARANI SIGN
+        GUJARATI RUPEE SIGN
+        HRYVNIA SIGN
+        INDIAN RUPEE SIGN
+        KIP SIGN
+        LARI SIGN
+        LIVRE TOURNOIS SIGN
+        MANAT SIGN
+        MILL SIGN
+        NAIRA SIGN
+        NORDIC MARK SIGN
+        NORTH INDIC RUPEE MARK
+        RIAL SIGN
+        RUBLE SIGN
+        SMALL DOLLAR SIGN
+        SPESMILO SIGN
+        TAMIL RUPEE SIGN
+        TENGE SIGN
+        TUGRIK SIGN
+        TURKISH LIRA SIGN
+    / );
+
+    my $n = 0;
+    foreach (my $i=0; $i<scalar @toShow; $i++) {
+        my $info = $toShow[$i];
+
+        # Try to identify by both ent name and full name.
+        my $ent = $info->[0];
+        my $entref = "&$ent;";
+        my $entc = HTML::Entities::decode($entref);
+        if ($entc eq $entref) { $entc = ""; }
+        my $entn = ($entc) ? ord($entc) : 0;
+
+        my $full = $info->[1];
+        my $fulln = charnames::vianame($full);
+        if (!defined $fulln) { $fulln = 0; }
+        ($verbose) && warn "ent $ent, entc $entc, entn $entn, full $full, fulln $fulln.\n";
+
+        if ($entn) {
+            my $fullFromEnt = charinfo($entn)->{name};
+            $full = $fullFromEnt;
+            report($ent, $entn, $full, $fulln);
+        }
+        elsif ($fulln) {
+            report($ent, $entn, $full, $fulln);
+        }
+        else {
+            print("*** BOTH FAIL: ent $ent, full $full.\n");
+        }
     }
 }
 
+sub report {
+    my ($ent, $entn, $full, $fulln) = @_;
+    if ($fulln != 0 && $entn != $fulln) {
+        warn ("*** Mismatch for $ent:\n");
+    }
+    my $fullEnt = ($fulln > 0) ? sprintf("&#x04;", $fulln) : "---";
+    printf("U+%04x '%1s' [%-12s] \"%s\" \n",
+        $entn, ($entn>0) ? chr($entn) : " ", $ent, $full);
+}
 
 ###############################################################################
 # Display info for all the characters in a given range in a grid.
@@ -1397,16 +1822,14 @@ sub getBinary {
 
 
 ###############################################################################
-# Find all Unicode characters, per --findString, --findRegex, or --findBlock.
-# Generate a list of all we found, in a specified --listFormat.
+# Find characters per --findString, --findRegex, --findBlock, --findCategory.
+# Generate a list of all we found, in a specified --oformat.
 # This is slow.
 #
 sub findMatchingCharacters {
-    my ($target) = @_;  # Target argument
-    #warn sprintf("Searching for '%s'.\n", $target);
     my $lastBlockFound = '';
     my $nfound = 0;
-    my $s = '';
+    my $s = '';  # For formats that accumulate to a single string....
     for (my $i=$minU; $i<=$maxU; $i++) {
         if (!$quiet && ($i % 0x10000)==0) {
             warn sprintf("...starting Unicode plane at %s...\n", hexDisp($i));
@@ -1415,83 +1838,52 @@ sub findMatchingCharacters {
         if (!$iname) { next; }  # Undefined (probably?)
 
         if ($findRegex) {
-            if ($iname !~ m/$target/i) { next; }
+            if ($iname !~ m/$findRegex/i) { next; }
         }
         elsif ($findBlock) {
             my $cblock = charblock($i);
             #warn(sprintf("Block of %s is '%s'\n", uDisp($i), charblock($i)));
             # TODO: Check UCD's prop_value_aliases() function, too.
-            if ($cblock !~ /$target/i) { next; }
+            if ($cblock !~ /$findBlock/i) { next; }
             if ($cblock ne $lastBlockFound) {
                 print("\n******* New matching block: '$cblock':\n");
                 $lastBlockFound = $cblock;
             }
         }
         elsif ($findString) {
-            if (index($iname, uc($target)) < 0) { next; }
+            if (index($iname, uc($findString)) < 0) { next; }
         }
         elsif ($findSet) {
-            if (chr($i) !~ /$target/) { next; }
+            if (chr($i) !~ /$findSet/) { next; }
+        }
+        elsif ($findTokens) {
+            my $failed = 0;
+            foreach my $tok (@theTokens) {
+                if (index($iname, uc($tok)) < 0) { $failed += 1; }
+            }
+            if ($failed) { next; }
+        }
+        elsif ($findCategory) {
+            my $cat = charinfo($i)->{category} || "";
+            if (length($findCategory) == 1) {
+                (substr($cat,0,1) eq $findCategory) || next;
+            }
+            else {
+                ($cat eq $findCategory) || next;
+            }
         }
         else {
             die "Not sure what we're trying to --find...\n";
         }
         $nfound++;
-
-        # Generate the right --listFormat.
-        # This is really annoying for COMBINING characters.
-        #
-        if ($listFormat eq "PLAIN") {
-            printf("%s\t%s\n", uDisp($i), $iname);
-        }
-        elsif ($listFormat eq "LITERAL") {             # DEFAULT
-            printf("%s  %s  %s\n", uDisp($i), chr($i), $iname);
-        }
-        elsif ($listFormat eq "STRING") {              # Printed below
-            $s .= ($i == 0x27) ? "\\'" : chr($i);
-        }
-        elsif ($listFormat eq "REGEX") {               # Printed below
-            # TODO: Add code to coalesce ranges
-            my $noEsc = ($i > 31 && $i < 128 && index("-^]", chr($i)) == -1);
-            $s .= ($noEsc) ? chr($i) : getPyForm($i, 128);
-        }
-        elsif ($listFormat eq "PERL") {
-            printf("    %s => '%s',\n", hexDisp($i), $iname);
-        }
-        elsif ($listFormat eq "PYTHONN") {
-            printf("    %s: '%s',\n", hexDisp($i), $iname);
-        }
-        elsif ($listFormat eq "PYTHONS") {
-            printf("    %s(%s) +  # '%s'\n", $pyFunction, hexDisp($i), $iname);
-        }
-        elsif ($listFormat eq "PYTHONU") {
-            printf("    %s +   # '%s'\n", pyDisp($i), $iname);
-        }
-        elsif ($listFormat eq "PYTHONC") {
-            printf("    %s(%s): '%s',\n", $pyFunction, hexDisp($i), $iname);
-        }
-        elsif ($listFormat eq "INFO") {
-            print "\n";
-            showOne($i);
-        }
-        elsif ($listFormat eq "HTML") {
-            my $rec = "<tr>\n"
-                . sprintf("    <td class='char'>%s</td>\n", entDisp($i))
-                . sprintf("    <td class='hex'>%s</td>\n", uDisp($i))
-                . sprintf("    <td class='name'>%s</td>\n", $iname)
-                . "</tr>\n";
-            print $rec;
-        }
-        else {
-            die "Unknown --listFormat '$listFormat'. \n";
-        }
+        $s .= listOneCharacter($i, $iname, $oFormat, $s);
     }
 
-    # For ones that accumulate without printing, print them now.
-    if ($listFormat eq "STRING") {
+    # For formats that accumulated without printing, print them now.
+    if ($oFormat eq "STRING") {
         print("    '" . $s . "'\n");
     }
-    elsif ($listFormat eq "REGEX") {
+    elsif ($oFormat eq "REGEX") {
         print("    [" . $s . "]\n");
     }
 
@@ -1505,10 +1897,59 @@ sub findMatchingCharacters {
     return;
 } # findMatchingCharacters
 
+# Show info for one character in the selected --oformat.
+# This is really annoying for COMBINING characters.
+#
+sub listOneCharacter {
+    my ($i, $iname, $oFormat, $s) = @_;
+    if ($oFormat eq "CONSOLE") {
+            showOne($i);
+    }
+    elsif ($oFormat eq "PLAIN") {
+        my $entName = HTML::Entities::encode(chr($i));
+        printf("%s\t%-8s\t%s\n", uDisp($i), $entName, $iname);
+    }
+    elsif ($oFormat eq "LITERAL") {             # DEFAULT
+        printf("%s  %s  %s\n", uDisp($i), chr($i), $iname);
+    }
+    elsif ($oFormat eq "STRING") {              # Printed below
+        $s .= ($i == 0x27) ? "\\'" : chr($i);
+    }
+    elsif ($oFormat eq "REGEX") {               # Printed below
+        # TODO: Add code to coalesce ranges
+        my $noEsc = ($i > 31 && $i < 128 && index("-^]", chr($i)) == -1);
+        $s .= ($noEsc) ? chr($i) : getPyForm($i, 128);
+    }
+    elsif ($oFormat eq "PERLDICT_NUM") {
+        printf("    %s => \"%s\",\n", hexDisp($i), $iname);
+    }
+    elsif ($oFormat eq "PYDICT_NUM") {
+        printf("    %s: \"%s\",\n", hexDisp($i), $iname);
+    }
+    elsif ($oFormat eq "PYSTR") {
+        printf("    %s +   # \"%s\"\n", pyDisp($i), $iname);
+    }
+    elsif ($oFormat eq "PYDICT_CHAR") {
+        printf("    %s(%s): \"%s\",\n", $pyFunction, hexDisp($i), $iname);
+    }
+    elsif ($oFormat eq "HTML") {
+        my $rec = "<tr>\n"
+            . sprintf("    <td class=\"char\">%s</td>\n", entDisp($i))
+            . sprintf("    <td class=\"hex\">%s</td>\n", uDisp($i))
+            . sprintf("    <td class=\"name\">%s</td>\n", $iname)
+            . "</tr>\n";
+        print $rec;
+    }
+    else {
+        die "Unknown --oformat '$oFormat'. \n";
+    }
+    return $s;
+}
+
 
 ###############################################################################
-# Display just one character, with unified output formatting.
-#
+# Display just one character, formatted for console reading.
+# TODO: Integrate these formats with the --oformat choices?
 # Note: The widths aren't right for big unicode stuff.
 #
 sub showOne {
@@ -1567,7 +2008,7 @@ sub showOne {
         if ($okURI) { $uriForm = "ok as literal"; }
         elsif ($spURI) { $uriForm = "special"; }
         pline("Unicode:", sprintf(
-            "%s, utf8 %s, URI (%s), Python %s",
+            "%s, utf8 %s, URI %s, Python %s",
             uDisp($n), $utfForm, $uriForm, getPyForm($n)));
     }
 
@@ -1904,11 +2345,11 @@ sub setupUnixJargon {
 # Also add:
 my $foo = [
     # aeox schwa hklmnpst; i=1d62, r=1d63, u=1d64, v=1d65, j=2c7c
-    [ 'subscript latin upper (...209c)',    0x02090 ],
+    [ "subscript latin upper (...209c)",    0x02090 ],
     # superscripts: i=2071
-    # [ 'subscript latin lower',                 ],
-    [ 'fullwidth latin upper',              0x0ff21 ],
-    [ 'fullwidth latin lower',              0x0ff41 ],
+    # [ "subscript latin lower",                 ],
+    [ "fullwidth latin upper",              0x0ff21 ],
+    [ "fullwidth latin lower",              0x0ff41 ],
 ];
 
 # See mathAlphanumerics.py for more details.
@@ -1947,42 +2388,42 @@ sub setupMathAlphabets {  # Not really all *math*....
     );
 
     $mathAlphabets = [
-         [ 'parenthesized LOWER',               'LOWER', 0x0249c ],
-         [ 'circled UPPER',                     'UPPER', 0x024b6 ],
-         [ 'circled LOWER',                     'LOWER', 0x024d0 ],
-         [ 'parenthesized UPPER',               'UPPER', 0x1f110 ],
-         [ 'squared upper',                     'UPPER', 0x1f130 ],
-         [ 'negative circled UPPER',            'UPPER', 0x1f150 ],
-         [ 'negative squared UPPER',            'UPPER', 0x1f170 ],
-         [ 'regional indicator symbol UPPER',   'UPPER', 0x1f1e6 ],
+         [ "parenthesized LOWER",               "LOWER", 0x0249c ],
+         [ "circled UPPER",                     "UPPER", 0x024b6 ],
+         [ "circled LOWER",                     "LOWER", 0x024d0 ],
+         [ "parenthesized UPPER",               "UPPER", 0x1f110 ],
+         [ "squared upper",                     "UPPER", 0x1f130 ],
+         [ "negative circled UPPER",            "UPPER", 0x1f150 ],
+         [ "negative squared UPPER",            "UPPER", 0x1f170 ],
+         [ "regional indicator symbol UPPER",   "UPPER", 0x1f1e6 ],
 
-         # 'mathematical...',
-         [ 'M. bold UPPER',                     'UPPER', 0x1d400 ],
-         [ 'M. bold LOWER',                     'LOWER', 0x1d41A ],
-         [ 'M. italic UPPER',                   'UPPER', 0x1d434 ],
-         [ 'M. italic LOWER',                   'LOWER', 0x1d44e ],  # h
-         [ 'M. bold italic UPPER',              'UPPER', 0x1d468 ],
-         [ 'M. bold italic LOWER',              'LOWER', 0x1d482 ],
-         [ 'M. script UPPER',                   'UPPER', 0x1d49C ],  # BEFHILMPR
-         [ 'M. script LOWER',                   'LOWER', 0x1d4B6 ],  # eglo
-         [ 'M. bold script UPPER',              'UPPER', 0x1d4D0 ],
-         [ 'M. bold script LOWER',              'LOWER', 0x1d4EA ],
-         [ 'M. fraktur UPPER',                  'UPPER', 0x1d504 ],  # CHIJRZ
-         [ 'M. fraktur LOWER',                  'LOWER', 0x1d51E ],
-         [ 'M. double-struck UPPER',            'UPPER', 0x1d538 ],  # CHNPQRZ
-         [ 'M. double-struck LOWER',            'LOWER', 0x1d552 ],
-         [ 'M. bold fraktur UPPER',             'UPPER', 0x1d56C ],
-         [ 'M. bold fraktur LOWER',             'LOWER', 0x1d586 ],
-         [ 'M. sans-serif UPPER',               'UPPER', 0x1d5A0 ],
-         [ 'M. sans-serif LOWER',               'LOWER', 0x1d5ba ],
-         [ 'M. sans-serif bold UPPER',          'UPPER', 0x1d5D4 ],
-         [ 'M. sans-serif bold LOWER',          'LOWER', 0x1d5EE ],
-         [ 'M. sans-serif italic UPPER',        'UPPER', 0x1d608 ],
-         [ 'M. sans-serif italic LOWER',        'LOWER', 0x1d622 ],
-         [ 'M. sans-serif bold italic UPPER',   'UPPER', 0x1d63C ],
-         [ 'M. sans-serif bold italic LOWER',   'LOWER', 0x1d656 ],
-         [ 'M. monospace UPPER',                'UPPER', 0x1d670 ],
-         [ 'M. monospace LOWER',                'LOWER', 0x1d68a ],
+         # "mathematical...",
+         [ "M. bold UPPER",                     "UPPER", 0x1d400 ],
+         [ "M. bold LOWER",                     "LOWER", 0x1d41A ],
+         [ "M. italic UPPER",                   "UPPER", 0x1d434 ],
+         [ "M. italic LOWER",                   "LOWER", 0x1d44e ],  # h
+         [ "M. bold italic UPPER",              "UPPER", 0x1d468 ],
+         [ "M. bold italic LOWER",              "LOWER", 0x1d482 ],
+         [ "M. script UPPER",                   "UPPER", 0x1d49C ],  # BEFHILMPR
+         [ "M. script LOWER",                   "LOWER", 0x1d4B6 ],  # eglo
+         [ "M. bold script UPPER",              "UPPER", 0x1d4D0 ],
+         [ "M. bold script LOWER",              "LOWER", 0x1d4EA ],
+         [ "M. fraktur UPPER",                  "UPPER", 0x1d504 ],  # CHIJRZ
+         [ "M. fraktur LOWER",                  "LOWER", 0x1d51E ],
+         [ "M. double-struck UPPER",            "UPPER", 0x1d538 ],  # CHNPQRZ
+         [ "M. double-struck LOWER",            "LOWER", 0x1d552 ],
+         [ "M. bold fraktur UPPER",             "UPPER", 0x1d56C ],
+         [ "M. bold fraktur LOWER",             "LOWER", 0x1d586 ],
+         [ "M. sans-serif UPPER",               "UPPER", 0x1d5A0 ],
+         [ "M. sans-serif LOWER",               "LOWER", 0x1d5ba ],
+         [ "M. sans-serif bold UPPER",          "UPPER", 0x1d5D4 ],
+         [ "M. sans-serif bold LOWER",          "LOWER", 0x1d5EE ],
+         [ "M. sans-serif italic UPPER",        "UPPER", 0x1d608 ],
+         [ "M. sans-serif italic LOWER",        "LOWER", 0x1d622 ],
+         [ "M. sans-serif bold italic UPPER",   "UPPER", 0x1d63C ],
+         [ "M. sans-serif bold italic LOWER",   "LOWER", 0x1d656 ],
+         [ "M. monospace UPPER",                "UPPER", 0x1d670 ],
+         [ "M. monospace LOWER",                "LOWER", 0x1d68a ],
          # black-letter capital chirz: 0x210c...0x212d = fraktur
          # subscripts: iruv, grk bgrfx 0x1d62...0x1d6a
          #
@@ -1990,90 +2431,90 @@ sub setupMathAlphabets {  # Not really all *math*....
     # (couple extras at 1d6a4, dotless i, j)
     # greek upper+lower:
     $mathGreeks = [
-        [ 'bold UPPER',                         'UPPER', 0x1d6a8 ],
-        [ 'bold LOWER',                         'LOWER', 0x1d6c2 ],
-        [ 'italic UPPER',                       'UPPER', 0x1d6e2 ],
-        [ 'italic LOWER',                       'LOWER', 0x1d6fc ],
-        [ 'bold italic UPPER',                  'UPPER', 0x1d71c ],
-        [ 'bold italic LOWER',                  'LOWER', 0x1d736 ],
-        [ 'sans serif bold UPPER',              'UPPER', 0x1d756 ],
-        [ 'sans serif bold LOWER',              'LOWER', 0x1d770 ],
-        [ 'sans serif bold italic UPPER',       'UPPER', 0x1d790 ],
-        [ 'sans serif bold italic LOWER',       'LOWER', 0x1d7AA ],
+        [ "bold UPPER",                         "UPPER", 0x1d6a8 ],
+        [ "bold LOWER",                         "LOWER", 0x1d6c2 ],
+        [ "italic UPPER",                       "UPPER", 0x1d6e2 ],
+        [ "italic LOWER",                       "LOWER", 0x1d6fc ],
+        [ "bold italic UPPER",                  "UPPER", 0x1d71c ],
+        [ "bold italic LOWER",                  "LOWER", 0x1d736 ],
+        [ "sans serif bold UPPER",              "UPPER", 0x1d756 ],
+        [ "sans serif bold LOWER",              "LOWER", 0x1d770 ],
+        [ "sans serif bold italic UPPER",       "UPPER", 0x1d790 ],
+        [ "sans serif bold italic LOWER",       "LOWER", 0x1d7AA ],
     ];
     $digitSets = [
         # Following go from 0...9 or as indicated
-        [ 'bold DIGITS',                        'DIGITS', 0x1d7Ce, 0, 9 ],
-        [ 'double struck DIGITS',               'DIGITS', 0x1d7d8, 0, 9 ],
-        [ 'sans serif DIGITS',                  'DIGITS', 0x1d7e2, 0, 9 ],
-        [ 'sans serif bold DIGITS',             'DIGITS', 0x1d7ec, 0, 9 ],
-        [ 'monospace DIGITS',                   'DIGITS', 0x1d7f6, 0, 9 ],
-        [ 'subscript latin digits',             'DIGITS', 0x02080, 0, 9 ],
-        [ 'fullwidth latin digits',             'DIGITS', 0x0ff11, 0, 9 ],
-        [ 'superscript latin digits',           'DIGITS', 0x02070, 0, 0 ],
-        [ 'superscript latin digits',           'DIGITS', 0x000b9, 1, 1 ],
-        [ 'superscript latin digits',           'DIGITS', 0x000b2, 2, 3 ],
-        [ 'superscript latin digits',           'DIGITS', 0x02074, 4, 9 ],
+        [ "bold DIGITS",                        "DIGITS", 0x1d7Ce, 0, 9 ],
+        [ "double struck DIGITS",               "DIGITS", 0x1d7d8, 0, 9 ],
+        [ "sans serif DIGITS",                  "DIGITS", 0x1d7e2, 0, 9 ],
+        [ "sans serif bold DIGITS",             "DIGITS", 0x1d7ec, 0, 9 ],
+        [ "monospace DIGITS",                   "DIGITS", 0x1d7f6, 0, 9 ],
+        [ "subscript latin digits",             "DIGITS", 0x02080, 0, 9 ],
+        [ "fullwidth latin digits",             "DIGITS", 0x0ff11, 0, 9 ],
+        [ "superscript latin digits",           "DIGITS", 0x02070, 0, 0 ],
+        [ "superscript latin digits",           "DIGITS", 0x000b9, 1, 1 ],
+        [ "superscript latin digits",           "DIGITS", 0x000b2, 2, 3 ],
+        [ "superscript latin digits",           "DIGITS", 0x02074, 4, 9 ],
 
-        [ 'circled DIGITS',                     'DIGITS', 0x024ea, 0,  0 ],
-        [ 'circled DIGITS',                     'DIGITS', 0x02460, 1, 20 ],
-        [ 'parenthesized DIGITS',               'DIGITS', 0x02474, 1, 20 ],
-        [ 'full stopped DIGITS',                'DIGITS', 0x1f100, 0,  0 ],
-        [ 'full stopped DIGITS',                'DIGITS', 0x02488, 1, 20 ],
-        [ 'double circled DIGITS',              'DIGITS', 0x024f5, 1, 10 ],
-        [ 'dingbat circled sans-serif DIGITS',  'DIGITS', 0x02780, 1, 10 ],
-        [ 'dingbat negative circled sans-serif DIGITS','DIGITS',0x0278a,1,10],
-        [ 'negative circled DIGITS',            'DIGITS', 0x024ff, 0,  0 ],
-        [ 'dingbat negative circled DIGITS',    'DIGITS', 0x02776, 1, 10 ],
-        [ 'negative circled DIGITS',            'DIGITS', 0x024eb, 11, 20 ],
-        [ 'FULLWIDTH DIGITS',                   'DIGITS', 0x0ff10, 0, 9 ],
+        [ "circled DIGITS",                     "DIGITS", 0x024ea, 0,  0 ],
+        [ "circled DIGITS",                     "DIGITS", 0x02460, 1, 20 ],
+        [ "parenthesized DIGITS",               "DIGITS", 0x02474, 1, 20 ],
+        [ "full stopped DIGITS",                "DIGITS", 0x1f100, 0,  0 ],
+        [ "full stopped DIGITS",                "DIGITS", 0x02488, 1, 20 ],
+        [ "double circled DIGITS",              "DIGITS", 0x024f5, 1, 10 ],
+        [ "dingbat circled sans-serif DIGITS",  "DIGITS", 0x02780, 1, 10 ],
+        [ "dingbat negative circled sans-serif DIGITS","DIGITS",0x0278a,1,10],
+        [ "negative circled DIGITS",            "DIGITS", 0x024ff, 0,  0 ],
+        [ "dingbat negative circled DIGITS",    "DIGITS", 0x02776, 1, 10 ],
+        [ "negative circled DIGITS",            "DIGITS", 0x024eb, 11, 20 ],
+        [ "FULLWIDTH DIGITS",                   "DIGITS", 0x0ff10, 0, 9 ],
 
-        [ 'arabic-indic DIGITS',                'DIGITS', 0x00660, 0, 9 ],
-        [ 'extended arabic-indic DIGITS',       'DIGITS', 0x006F0, 0, 9 ],
-        [ 'nko DIGITS',                         'DIGITS', 0x007c0, 0, 9 ],
-        [ 'devanagari DIGITS',                  'DIGITS', 0x00966, 0, 9 ],
-        [ 'bengali DIGITS',                     'DIGITS', 0x009e6, 0, 9 ],
-        [ 'gurmukhi DIGITS',                    'DIGITS', 0x00a66, 0, 9 ],
-        [ 'gujarati DIGITS',                    'DIGITS', 0x00aE6, 0, 9 ],
-        [ 'oriya DIGITS',                       'DIGITS', 0x00b66, 0, 9 ],
-        [ 'tamil DIGITS',                       'DIGITS', 0x00bE6, 0, 9 ],
-        [ 'telugu DIGITS',                      'DIGITS', 0x00c66, 0, 9 ],
-        [ 'kannada DIGITS',                     'DIGITS', 0x00cE6, 0, 9 ],
-        [ 'malayalam DIGITS',                   'DIGITS', 0x00d66, 0, 9 ],
-        [ 'sinhala lith DIGITS',                'DIGITS', 0x00dE6, 0, 9 ],
-        [ 'thai DIGITS',                        'DIGITS', 0x00E50, 0, 9 ],
-        [ 'lao DIGITS',                         'DIGITS', 0x00Ed0, 0, 9 ],
-        [ 'tibetan DIGITS',                     'DIGITS', 0x00f20, 0, 9 ],
-        [ 'MYANMAR DIGITS',                     'DIGITS', 0x01040, 0, 9 ],
-        [ 'MYANMAR SHAN DIGITS',                'DIGITS', 0x01090, 0, 9 ],
-        [ 'KHMER DIGITS',                       'DIGITS', 0x017e0, 0, 9 ],
-        [ 'MONGOLIAN DIGITS',                   'DIGITS', 0x01810, 0, 9 ],
-        [ 'LIMBU DIGITS',                       'DIGITS', 0x01946, 0, 9 ],
-        [ 'NEW TAI LUE DIGITS',                 'DIGITS', 0x019d0, 0, 9 ],
-        [ 'TAI THAM HORA DIGITS',               'DIGITS', 0x01a80, 0, 9 ],
-        [ 'TAI THAM THAM DIGITS',               'DIGITS', 0x01a90, 0, 9 ],
-        [ 'BALINESE DIGITS',                    'DIGITS', 0x01b50, 0, 9 ],
-        [ 'SUNDANESE DIGITS',                   'DIGITS', 0x01bb0, 0, 9 ],
-        [ 'LEPCHA DIGITS',                      'DIGITS', 0x01c40, 0, 9 ],
-        [ 'OL CHIKI DIGITS',                    'DIGITS', 0x01c50, 0, 9 ],
-        [ 'IDEOGRAPHIC NUMBER',                 'DIGITS', 0x03007, 0, 9 ],
-        [ 'VAI DIGITS',                         'DIGITS', 0x0a620, 0, 9 ],
-        [ 'SAURASHTRA DIGITS',                  'DIGITS', 0x0a8d0, 0, 9 ],
-        [ 'COMBINING DEVANAGARI DIGITS',        'DIGITS', 0x0a8e0, 0, 9 ],
-        [ 'KAYAH LI DIGITS',                    'DIGITS', 0x0a900, 0, 9 ],
-        [ 'JAVANESE DIGITS',                    'DIGITS', 0x0a9d0, 0, 9 ],
-        [ 'CHAM DIGITS',                        'DIGITS', 0x0aa50, 0, 9 ],
-        [ 'MEETEI MAYEK DIGITS',                'DIGITS', 0x0abf0, 0, 9 ],
+        [ "arabic-indic DIGITS",                "DIGITS", 0x00660, 0, 9 ],
+        [ "extended arabic-indic DIGITS",       "DIGITS", 0x006F0, 0, 9 ],
+        [ "nko DIGITS",                         "DIGITS", 0x007c0, 0, 9 ],
+        [ "devanagari DIGITS",                  "DIGITS", 0x00966, 0, 9 ],
+        [ "bengali DIGITS",                     "DIGITS", 0x009e6, 0, 9 ],
+        [ "gurmukhi DIGITS",                    "DIGITS", 0x00a66, 0, 9 ],
+        [ "gujarati DIGITS",                    "DIGITS", 0x00aE6, 0, 9 ],
+        [ "oriya DIGITS",                       "DIGITS", 0x00b66, 0, 9 ],
+        [ "tamil DIGITS",                       "DIGITS", 0x00bE6, 0, 9 ],
+        [ "telugu DIGITS",                      "DIGITS", 0x00c66, 0, 9 ],
+        [ "kannada DIGITS",                     "DIGITS", 0x00cE6, 0, 9 ],
+        [ "malayalam DIGITS",                   "DIGITS", 0x00d66, 0, 9 ],
+        [ "sinhala lith DIGITS",                "DIGITS", 0x00dE6, 0, 9 ],
+        [ "thai DIGITS",                        "DIGITS", 0x00E50, 0, 9 ],
+        [ "lao DIGITS",                         "DIGITS", 0x00Ed0, 0, 9 ],
+        [ "tibetan DIGITS",                     "DIGITS", 0x00f20, 0, 9 ],
+        [ "MYANMAR DIGITS",                     "DIGITS", 0x01040, 0, 9 ],
+        [ "MYANMAR SHAN DIGITS",                "DIGITS", 0x01090, 0, 9 ],
+        [ "KHMER DIGITS",                       "DIGITS", 0x017e0, 0, 9 ],
+        [ "MONGOLIAN DIGITS",                   "DIGITS", 0x01810, 0, 9 ],
+        [ "LIMBU DIGITS",                       "DIGITS", 0x01946, 0, 9 ],
+        [ "NEW TAI LUE DIGITS",                 "DIGITS", 0x019d0, 0, 9 ],
+        [ "TAI THAM HORA DIGITS",               "DIGITS", 0x01a80, 0, 9 ],
+        [ "TAI THAM THAM DIGITS",               "DIGITS", 0x01a90, 0, 9 ],
+        [ "BALINESE DIGITS",                    "DIGITS", 0x01b50, 0, 9 ],
+        [ "SUNDANESE DIGITS",                   "DIGITS", 0x01bb0, 0, 9 ],
+        [ "LEPCHA DIGITS",                      "DIGITS", 0x01c40, 0, 9 ],
+        [ "OL CHIKI DIGITS",                    "DIGITS", 0x01c50, 0, 9 ],
+        [ "IDEOGRAPHIC NUMBER",                 "DIGITS", 0x03007, 0, 9 ],
+        [ "VAI DIGITS",                         "DIGITS", 0x0a620, 0, 9 ],
+        [ "SAURASHTRA DIGITS",                  "DIGITS", 0x0a8d0, 0, 9 ],
+        [ "COMBINING DEVANAGARI DIGITS",        "DIGITS", 0x0a8e0, 0, 9 ],
+        [ "KAYAH LI DIGITS",                    "DIGITS", 0x0a900, 0, 9 ],
+        [ "JAVANESE DIGITS",                    "DIGITS", 0x0a9d0, 0, 9 ],
+        [ "CHAM DIGITS",                        "DIGITS", 0x0aa50, 0, 9 ],
+        [ "MEETEI MAYEK DIGITS",                "DIGITS", 0x0abf0, 0, 9 ],
 
-        [ 'roman numerals',                     'DIGITS', 0x02160, 1, 12 ],
-        [ 'small roman numerals',               'DIGITS', 0x02170, 1, 12 ],
-        [ 'playing cards, spades',              'DIGITS', 0x1f0a1, 1, 10 ],
-        [ 'playing cards, hearts',              'DIGITS', 0x1f0b1, 1, 10 ],
-        [ 'playing cards, diamonds',            'DIGITS', 0x1f0c1, 1, 10 ],
-        [ 'playing cards, clubs',               'DIGITS', 0x1f0d1, 1, 10 ],
-        [ 'mahjong tiles, characters',          'DIGITS', 0x1f007, 1,  9 ],
-        [ 'mahjong tiles, bamboos',             'DIGITS', 0x1f010, 1,  9 ],
-        [ 'mahjong tiles, circles',             'DIGITS', 0x1f019, 1,  9 ],
+        [ "roman numerals",                     "DIGITS", 0x02160, 1, 12 ],
+        [ "small roman numerals",               "DIGITS", 0x02170, 1, 12 ],
+        [ "playing cards, spades",              "DIGITS", 0x1f0a1, 1, 10 ],
+        [ "playing cards, hearts",              "DIGITS", 0x1f0b1, 1, 10 ],
+        [ "playing cards, diamonds",            "DIGITS", 0x1f0c1, 1, 10 ],
+        [ "playing cards, clubs",               "DIGITS", 0x1f0d1, 1, 10 ],
+        [ "mahjong tiles, characters",          "DIGITS", 0x1f007, 1,  9 ],
+        [ "mahjong tiles, bamboos",             "DIGITS", 0x1f010, 1,  9 ],
+        [ "mahjong tiles, circles",             "DIGITS", 0x1f019, 1,  9 ],
     ];
 }
 
@@ -2089,6 +2530,10 @@ if ($ENV{"LANG"} !~ m/UTF-?8/i) {
 
 if ($chart) {
     showRange2($chart);
+    exit;
+}
+if ($cheatsheet) {
+    showCheatSheet();
     exit;
 }
 if ($C0) { showRange2("c0"); exit; }
@@ -2115,7 +2560,23 @@ if ($pairs) {
     searchForSymmetricPairs();
 }
 
-(scalar(@ARGV)) ||
+if ($findBlock || $findString || $findRegex
+    || $findSet || $findTokens || $findCategory) {
+    ($findBlock)  && warn "    Searching for block '$findBlock'...\n";
+    ($findRegex)  && warn "    Searching for regex /$findRegex/...\n";
+    ($findSet)    && warn "    Searching for regex set '$findSet'...\n" .
+        "    [[ --findSet is still experimental ]]\n";
+    ($findString) && warn "    Searching for name substring '$findString'...\n";
+    ($findCategory) && warn "    Searching for Unicode category '$findCategory'...\n";
+    if ($findTokens) {
+        warn "    Searching for tokens of [$findRegex]...\n";
+        @theTokens = split /\s+/, $findTokens;
+    }
+    findMatchingCharacters();
+    exit;
+}
+
+(scalar(@ARGV)) || ($findCategory) ||
     die "No character or mnemonic found (see -h for"
         . " information on hard-to-type characters).\n";
 
@@ -2164,7 +2625,7 @@ while (my $origName = shift) {
         }
         if (!$n) {                                  # %e2%80%9c
             if ($name =~ m/^(%[0-9a-f]{2,2})+$/i) {
-                my $txt = Encode::decode('utf8', uri_unescape($name));
+                my $txt = Encode::decode("utf8", uri_unescape($name));
                 $n = ord(substr($txt,0,1));
             }
         }
@@ -2173,21 +2634,18 @@ while (my $origName = shift) {
                 $name = substr($name, 1);
                 $name =~ s/([0-9a-f]{2,2})/%$1/gi;
                 warn "Expanded to '$name'.\n";
-                my $txt = Encode::decode('utf8', uri_unescape($name));
+                my $txt = Encode::decode("utf8", uri_unescape($name));
                 $n = ord(substr($txt,0,1));
             }
         }
 
 
-        if (!$n || $findBlock || $findString || $findRegex || $findSet) {
+        if (!$n) {
             warn "Character mnemonic '$origName' (length "
-                . length($name) . ") not found.\n";
-            ($findBlock)  && warn "    Searching for block '$name'...\n";
-            ($findRegex)  && warn "    Searching for regex '$name'...\n";
-            ($findSet)    && warn "    Searching for regex set '$origName'...\n" .
-                "    [[ --findSet is still experimental ]]\n";
-            ($findString) && warn "    Searching for string '$name'...\n";
-            findMatchingCharacters($origName);
+                . length($name) . ") not found. Trying various searches...\n";
+            $findBlock = $findString = $findRegex = $origName;
+            findMatchingCharacters();
+            $findBlock = $findString = $findRegex = "";
             next;
         }
     }

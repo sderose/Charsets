@@ -279,6 +279,8 @@ and "font". Exceptions are integrated, and omissions are omitted.
 
 My `ord --math` displays a list of these character variations, with samples.
 
+My `bitmapSpell.py` maps ASCII text to 5x7 ASCII art letters.
+
 
 =Known bugs and Limitations=
 
@@ -1150,8 +1152,6 @@ class mathAlphanumerics:
 
     @staticmethod
     def getTranslateTable(script: str = "Latin", font: str = "BOLD"):
-        #if (PY3):
-        #    raise NotImplementedError("No maketrans in Python 3.")
         if (script == "Latin"):
             tbl = mathAlphanumerics.LatinFontDict
             uSrcStart = ord("A"); uSrcEnd = ord("Z")

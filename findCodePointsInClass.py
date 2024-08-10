@@ -10,7 +10,7 @@ import unicodedata
 #lg = logging.getLogger("findUnassignedCodePoints.py")
 
 __metadata__ = {
-    "title"        : "findUnassignedCodePoints",
+    "title"        : "findCodePointsInClass",
     "description"  : "Display all Unicode chars in (any or no) category.",
     "rightsHolder" : "Steven J. DeRose",
     "creator"      : "http://viaf.org/viaf/50334488",
@@ -25,7 +25,7 @@ __version__ = __metadata__["modified"]
 
 descr = """
 =Name=
-    """ +__metadata__["title"] + ": " + __metadata__["description"] + """
+findCodePointsInClass: Display all Unicode chars in (any or no) category.
 
 
 =Description=

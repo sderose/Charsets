@@ -8,19 +8,14 @@ import codecs
 import re
 from collections import defaultdict
 from unicodedata import normalize
-from PowerWalk import PowerWalk, PWType
 
-PY3 = sys.version_info[0] == 3
-if (PY3):
-    #from io import StringIO
-    def unicode(s, encoding="utf-8", errors="strict"): str(s, encoding, errors)
-    if (sys.version_info[1] < 7):
-        def isascii(s):
-            if (re.match(r"^[\x01-\x7F]+$", s)): return True
-            return False
-    else:
-        def isascii(s):
-            return s.isascii()
+if (sys.version_info[0] == 3 and sys.version_info[1] < 7):
+    def isascii(s):
+        if (re.match(r"^[\x01-\x7F]+$", s)): return True
+        return False
+else:
+    def isascii(s):
+        return s.isascii()
 
 # See if this Python build can handle Unicode > 0xFFFF.
 #
@@ -286,11 +281,8 @@ if __name__ == "__main__":
             "--version", action="version", version=__version__,
             help="Display version information, then exit.")
 
-        PowerWalk.addOptionsToArgparse(parser)
-
         parser.add_argument(
-            "files", type=str,
-            nargs=argparse.REMAINDER,
+            "files", type=str, nargs=argparse.REMAINDER,
             help="Path(s) to input file(s)")
 
         args0 = parser.parse_args()
@@ -306,11 +298,9 @@ if __name__ == "__main__":
         nBad0, charCounts0 = doOneFile("")
         sys.exit()
 
-    pw = PowerWalk(args.files, open=False, close=False,
-        encoding=args.iencoding, recursive=args.recursive)
-    pw.applyOptionsFromArgparse(args)
-    for path0, fh0, what0 in pw.traverse():
-        if (what0 != PWType.LEAF): continue
+    nFiles = 0
+    for path0 in args.files:
+        nFiles += 1
         nBad0, charCounts0 = doOneFile(path0)
         if (nBad0):
             warning("Found %d bad chars in file '%s'." % (nBad0, path0))
@@ -319,4 +309,4 @@ if __name__ == "__main__":
 
     if (not args.quiet):
         warning("%d files checked, %d chars in %d files not in '%s'.\n" %
-            (pw.getStat("regular"), nBadChars, nBadFiles, args.charset))
+            (nFiles, nBadChars, nBadFiles, args.charset))

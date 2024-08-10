@@ -15,9 +15,7 @@ from collections import defaultdict
 from typing import Dict, List  # , Union, IO,
 import logging
 
-from PowerWalk import PowerWalk, PWType
-
-lg = logging.getLogger("charNameConvert.py")
+lg = logging.getLogger("charNameConvert")
 
 def fatal(msg:str) -> None:
     lg.critical(msg); sys.exit()
@@ -38,7 +36,8 @@ __version__ = __metadata__["modified"]
 
 descr = """
 =Name=
-    """ +__metadata__["title"] + ": " + __metadata__["description"] + """
+
+charNameConvert: Interface Rahtz's huge table of tex/xml/afii/etc char names.
 
 
 =Description=
@@ -881,8 +880,6 @@ if __name__ == "__main__":
             "--version", action="version", version=__version__,
             help="Display version information, then exit.")
 
-        PowerWalk.addOptionsToArgparse(parser)
-
         parser.add_argument(
             "files", type=str, nargs=argparse.REMAINDER,
             help="Path(s) to input file(s)")
@@ -918,11 +915,7 @@ if __name__ == "__main__":
         lg.info("charNameConvert.py: No files specified....")
         doOneFile(None)
     else:
-        pw = PowerWalk(args.files, open=False, close=False,
-            encoding=args.iencoding)
-        pw.applyOptionsFromArgparse(args)
-        for path0, fh0, what0 in pw.traverse():
-            if (what0 != PWType.LEAF): continue
+        for path0 in args.files:
             doOneFile(path0)
         if (not args.quiet):
             lg.info("charNameConvert.py: Done, %d files.\n", pw.getStat("regular"))

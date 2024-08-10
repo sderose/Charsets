@@ -28,30 +28,43 @@ __version__ = __metadata__["modified"]
 
 descr = """
 =Name=
-    """ +__metadata__["title"] + ": " + __metadata__["description"] + """
+findBadChars: Scan for non-Unicode or suspicious characters.
 
 
 =Description=
 
-Reports the number of "bad" Unicode characters in the input. Namely:
+Reports the number and optional positions of "bad" Unicode characters
+in the input. Specifically:
 
 * C0 and C1 control characters other than CR, LF, TAB, and space
 * Private Use characters
 * Unassigned characters
 
-You can also specify one or more of --latin, --greek, --hebrew,
-and --typography, to consider all characters bad except those for
-the orthographies you do set, and ASCII (mainly to allow for \t\r\n).
+Options --latin, --greek, and --hebrew
+cause the script to consider all characters bad except those for
+the orthographies whose options are set. However, ASCII is always considered
+ok, mainly to allow for markup and for \\t\\r\\n.
 
---typography refers to Punctuation and Space categories, and is meant
+--typography allows the Punctuation and Space categories, and is meant
 to facilitate checking Latinate texts that use nice quotes, dashes,
-spaces, etc. However, it allows all spaces and punctuation, so is
+spaces, etc. However, it allows all spaces and punctuation, so it is
 probably more forgiving than it ought to be.
+
+--bit is shorthand to set all 4 of these options, because I use them a lot.
 
 For each input line that contains bad characters, the line number,
 number of bad characters found, and the line itself are shown.
 With --details, each individual bad character is also shown, with
 the column, hex code point, and literal character.
+
+The --normal [type] option (still experimental)
+lets you check for characters not in a
+particular Unicode normal form (see below). However, --details does not
+apply to these cases; they are merely reported by line, and not counted.
+Also, false positives may occur with form NFKC because it may not be strictly
+idempotent (the check here is done by normalizing each line and then comparing
+to the original).
+
 
 ==Usage==
 
@@ -61,10 +74,10 @@ the column, hex code point, and literal character.
 =See also=
 
 My ''countChars'' -- give total counts for all characters, and total
-by Unicode plane, block, and catagory. Can also be set to recognize
+by Unicode plane, block, and category. Can also be set to recognize
 character escapes using conventions Python, XML, URLs, etc.
 
-`badMappings.py` -- tries to help analyze character set corruption.
+My `badMappings.py` -- tries to help analyze character set corruption.
 
 
 =Known bugs and Limitations=
@@ -75,21 +88,30 @@ For that use my `countChars`.
 
 =To do=
 
-Option to do Unicode normalization?
+Option to check if characters for specific languages are in the right
+markup constructs (xml:lang="XX" or similar).
 
-Option to check if characters for specific languages, are in the right
-markup constructs.
+Option to rule out all but certain quote types? Perhaps better separately.
 
-Consider some others categories to allow with --typography?
+Colorize the bad chars?
+
+Consider some others categories to allow with --typography or other option?
 * Dingbats
 * Combining characters
 * fractions, copyright, trademark, pilcrow, pound
-* Common math like therefore, multiply, degree
+* medial s
+* Common math like therefore, multiply, degree, inf, plusmn, deg
+* superscripts/subscripts
+* Narrower typgography set? nbsp, lsquo rsquo ldquo rdquo mdash shy deg ndash
+dag ddag bull hellip copy reg trade.
+* ES? iexcl iquest ntilde [aeiou]acute uuml ordm ordf
+* LAtin1?
+
 
 =History=
 
 * 2023-07-25: Written by Steven J. DeRose.
-* 2024-06-24: Add --latin, etc.
+* 2024-06-24ff: Add --latin, --normal, etc.
 
 
 =Rights=
@@ -124,17 +146,28 @@ def doOneFile(path:str) -> int:
     recnum = 0
     for rec in fh.readlines():
         recnum += 1
+        isNormalForm = isInNF(rec)
         theBaddies = getBadCharList(rec)
-        if (not theBaddies): continue
+        if (not theBaddies and isNormalForm): continue
         print("Record #%5d (%2d bad): %s" %
             (recnum, len(theBaddies), rec), end="")
-        if (args.details):
+        if (args.details and theBaddies):
             for tb in theBaddies:
                 print("    Offset %3d: U+%05x ('%s') %s" %
                     (tb[0], ord(tb[1]), tb[1],
                     unicodedata.name(tb[1], "Unknown") if args.details else ""))
     if  (fh != sys.stdin): fh.close()
     return recnum
+
+def isInNF(s:str) -> bool:
+    """If --normal is set, check that the record is in the chosen Unicode
+    normal form, and return True if not.
+    This assumes all the normalizers are idempotent, which may not be
+    quite true for form NFKC.
+    """
+    if (not args.normal): return True
+    nfString = unicodedata.normalize(args.normal, s)
+    return nfString == s
 
 def getBadCharList(s:str) -> List:
     """Scan a str for bad characters as defined by the options in use,
@@ -170,7 +203,7 @@ def isUnassigned(n:int) -> bool:
     except ValueError:
         return True
 
-def isForLanguage(n) -> bool:
+def isForLanguage(n:int) -> bool:
     """Unlike the prior methods, this checks for good characters (that is,
     ones in the language(s) chosen, or ascii which is always allowed; and
     any leftovers are considered bad.
@@ -178,8 +211,8 @@ def isForLanguage(n) -> bool:
     c = chr(n)
     if (c.isascii()): return True
     found = False
-    category = unicodedata.category(chr(n))
-    uname = unicodedata.name(chr(n), "Unknown")
+    category = unicodedata.category(c)
+    uname = unicodedata.name(c, "Unknown")
     if (args.latin and "LATIN" in uname): found = True
     elif (args.greek and "GREEK" in uname): found = True
     elif (args.hebrew and "HEBREW" in uname): found = True
@@ -203,6 +236,10 @@ if __name__ == "__main__":
         except ImportError:
             parser = argparse.ArgumentParser(description=descr)
 
+
+        parser.add_argument(
+            "--bib", action="store_true",
+            help="Shorthand for --latin --greek --hebrew --typography.")
         parser.add_argument(
             "--color",  # Don't default. See below.
             help="Colorize the output.")
@@ -224,6 +261,10 @@ if __name__ == "__main__":
         parser.add_argument(
             "--names", action="store_true",
             help="With --details, also show full character names.")
+        parser.add_argument(
+            "--normal", type=str, metavar="S",
+            choices=[ "NFKC", "NFKD", "NFC", "NFD" ],
+            help="Report lines with characters not in the specified Unicode NF.")
         parser.add_argument(
             "--quiet", "-q", action="store_true",
             help="Suppress most messages.")
@@ -253,11 +294,12 @@ if __name__ == "__main__":
 
         if (args0.color is None):
             args0.color = ("CLI_COLOR" in os.environ and sys.stderr.isatty())
-        #lg.setColors(args0.color)
+
+        if (args0.bib):
+            args0.latin = args0.greek = args0.hebrew = args0.typography = True
+
         return(args0)
 
-    ###########################################################################
-    #
     args = processOptions()
 
     if (len(args.files) == 0):

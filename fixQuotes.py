@@ -7,8 +7,7 @@ import sys
 import os
 import codecs
 import re
-
-from PowerWalk import PowerWalk, PWType
+from typing import List
 
 __metadata__ = {
     "title"        : "fixQuotes",
@@ -23,46 +22,59 @@ __metadata__ = {
 }
 __version__ = __metadata__['modified']
 
-
 descr = """
 =Description=
 
-Convert quotations between various forms. By default, turn them all
-into ASCII apostrophe or double-quote.
+Convert quotations between various Unicode forms or XML/HTML markup.
+By default, turn them all into ASCII apostrophe or double-quote. or markup.
+
+To covert to markup, use the `--toTag [tagname]` option.
+
+
+   These “quotes” are ‘very’ 'important', `aren't` `they'?
+
+to
+    These "quotes" are 'very' 'important', `aren't` `they'?
+
+Back-quotes (aka GRAVE ACCENT, U+0060) are not affected unless you
+specifically set `--backQuotes`. This is because of the alternative
+conventions for them, as shown in the example above.
+
+Does not change lone apostrophes or quotes; there must be a left quote
+(single or double, of any active type), and a right. To skip over
+escaped right quotes, specify --escapeChar [char]. However, this does
+not yet handle that char itself being escaped.
+
+Does not handle nested quotes of a single type. such as:
+    Amy said "Bill said "Chris is here.""
 
 If an input file's extension is htm, html, xml, or svg, then the file
 is parsed and only the text nodes are affected (that is, quotes in markup
-are not touched).
+such as those around attribute values are not touched).
+
+==Usage==
 
 For example, to use from a command line:
 
-    fixQuotes myFile.txt
+    fixQuotes --toTag "q" myFile.txt
 
-or, to use from Python code:
+or
+
+    fixQuotes --singleSet "sangle" --doubleSet "dangle" myFile.txt
+
+You can see a list of the named quoting character pairs with `--showNames`.
+
+To use from Python code:
 
     from fixQuotes import FixQuotes
     qf = FixQuotes()
     myString = qf.fix(myString)
 
-Either way would accomplish the default change, which takes all
-open and close double quotes (angle, curly, 9, etc) to '"',
-and all singles to "'":
-
-    These Ã¢ÂÂquotesÃ¢ÂÂ are Ã¢ÂÂveryÃ¢ÂÂ 'important', `aren't` `they'?
-
-to
-    These 'quotes' are "very" 'important', `aren't` `they'?
-
-Note that back-quotes (aka grave accent) are not affected unless you
-specifically set `--backQuotes`. This is because of the alternative
-conventions for them, as shown in the example above.
-
 
 =Methods=
 
 You can set similarly-named keyword options when constructing
-a `fixQuotes` instance,
-as you can set on the command line (q.v.):
+a `fixQuotes` instance, as you can set on the command line (q.v.):
 
 * backQuotes:bool=False
 
@@ -93,8 +105,8 @@ set mappings.
 
 =Known bugs and Limitations=
 
-Weird things can happend with console and pipe i/o for non-ASCII. The
-iencoding and oencoding options, and the defaults in Python 3 (though not 2)
+Weird things can happen with console and pipe i/o for non-ASCII. The
+--iencoding and --oencoding options, and the defaults in Python 3
 ''should'' handle it fine, but I'm not completely certain.
 
 Does not protect quotes inside markup, such as around attributes, unless
@@ -107,20 +119,26 @@ Cannot yet translate ''<q>'' etc. to literal quotes (etc.).
 Does not do anything for characters represented
 via backslash codes, named or numeric entities, etc.
 
+--escapeChar support doesn't consider the escapechar being escaped.
+
 `--normalizeSpaces` does not affect hard space (`&nbsp;` or `U+000A0`).
+
+--singleSet can only take singles, and --doubleSet doubles. You can do other
+combinations by setting --leftSingle etc. separately (--showNames also shows
+the hex code points and literals for all the named sets).
 
 
 =To do
 
 * Better option naming and organization.
-* Separate 'educate' option to got from plain to curly or other pairs.
-
+* Separate 'educate' option to get from plain to curly or other pairs.
+* Perhaps should have something for MarkDown-ish '''xyz'''.
 
 =History=
 
 * 2020-10-14: Written by Steven J. DeRose.
-* 2020-10-19: Hook up PowerWalk options.
-Start making into a class.
+* 2020-10-19: Hook up PowerWalk options. Start making into a class.
+( 02024-07-05: Add --show. Take PowerWalk back out, too many options.
 
 
 =To do=
@@ -145,8 +163,9 @@ For the most recent version, see [http://www.derose.net/steve/utilities]
 or [https://github.com/sderose].
 
 
-=Options=
+=Options=s
 """
+
 class FixQuotes:
     singlePairs = {
         # 'back':   [ 0x0060, 0x0060 ],  # GRAVE ACCENT
@@ -184,7 +203,8 @@ class FixQuotes:
         ignoreQuote:list=None,
         iencoding:str="utf-8",
         normalizeSpaces:bool=False,
-        toTag:str=''
+        toTag:str="",
+        escapeChar:str=""
         ):
         self.backQuotes         = backQuotes
         self.leftSingle         = leftSingle
@@ -195,6 +215,7 @@ class FixQuotes:
         self.iencoding          = iencoding
         self.normalizeSpaces    = normalizeSpaces
         self.toTag              = toTag
+        self.escapeChar         = escapeChar
 
         sp = self.singlePairs.copy()
         dp = self.doublePairs.copy()
@@ -211,10 +232,10 @@ class FixQuotes:
             self.leftSingle, self.rightSingle,
             self.leftDouble, self.rightDouble)
 
-        self.quoteExpr = self.makeQuoteExpr()
+        self.quoteExpr = self.makeQuoteExpr(self.escapeChar)
 
-    def makeXtab(self, sp, dp,
-        leftSingle, rightSingle, leftDouble, rightDouble):
+    def makeXtab(self, sp:List, dp:List,
+        leftSingle:str, rightSingle:str, leftDouble:str, rightDouble:str):
         src = tgt = ""
         for l, r in sp.values():
             src += chr(l) + chr(r)
@@ -227,34 +248,38 @@ class FixQuotes:
         return str.maketrans(src, tgt)
 
     @staticmethod
-    def makeQuoteExpr():
+    def makeQuoteExpr(escapeChar:str="") -> str:
         """Create regex to match entire quotes.
         Does not yet handle nested cases!
         """
+        # Lookbehind for backslash or whatever
+        if (escapeChar): escExpr = r"(?<!\\%s)" % (escapeChar)
+        else: escExpr = ""
+
         expr = ""
         for l, r in FixQuotes.singlePairs.values():
-            expr += chr(l) + r'.*?' + chr(r) + '|'
+            expr += chr(l) + r'.*?' + escExpr + chr(r) + '|'
         for l, r in FixQuotes.doublePairs.values():
-            expr += chr(l) + r'.*?' + chr(r) + '|'
+            expr += chr(l) + r'.*?' + escExpr + chr(r) + '|'
         expr = expr[0:-1]
         warning("Making regex:\n    #%s#" % (expr))
         return re.compile(expr)
 
-    def fix(self, s:str):
+    def fix(self, s:str) -> str:
         if (self.toTag):
             return self.fixToTag(s, self.quoteExpr, self.toTag)
         else:
             return s.translate(self.xtab)
 
     @staticmethod
-    def fixToTag(s, theRegex, tagName):
+    def fixToTag(s:str, theRegex:str, tagName:str) -> str:
         """Does not yet handle nested cases!
         """
         tgt = "<%s>\\1</%s>" % (tagName, tagName)
         return re.sub(theRegex, tgt, s)
 
     @staticmethod
-    def normalizeSpace(s, compress=False):
+    def normalizeSpace(s:str, compress:bool=False) -> str:
         """\\s doesn't include hard space.
         """
         if (compress):
@@ -267,10 +292,10 @@ class FixQuotes:
 dirCount = 0
 fileCount = 0
 
-def warning(msg):
+def warning(msg:str) -> None:
     sys.stderr.write(msg + "\n")
 
-def doOneFile(path, fixer):
+def doOneFile(path:str, fixer):
     """Read and deal with one individual file.
     """
     if (not path):
@@ -325,21 +350,31 @@ if __name__ == "__main__":
 
         parser.add_argument(
             "--backQuotes", action='store_true',
-            help='Also map backquote U+0060 to apostrophe.')
+            help='Also map backquote (U+0060) to apostrophe.')
         parser.add_argument(
-            "--leftSingle", type=str, metavar='E', default="'")
+            "--leftSingle", type=str, metavar='E', default="'",
+            help="What to change left single quotes to. Default: \"'\".")
         parser.add_argument(
-            "--rightSingle", type=str, metavar='E', default="'")
+            "--rightSingle", type=str, metavar='E', default="'",
+            help="What to change right single quotes to. Default: \"'\".")
         parser.add_argument(
-            "--leftDouble", type=str, metavar='E', default="\"")
+            "--leftDouble", type=str, metavar='E', default="\"",
+            help="What to change left double quotes to. Default: '\"'.")
         parser.add_argument(
-            "--rightDouble", type=str, metavar='E', default="\"")
+            "--rightDouble", type=str, metavar='E', default="\"",
+            help="What to change right double quotes to. Default: '\"'.")
 
         qNames = list(FixQuotes.singlePairs.keys())
         qNames.extend(FixQuotes.doublePairs.keys())
         parser.add_argument(
             "--ignoreQuote", type=str, action='append', choices=qNames,
-            help='Drop the named quote type from the list to recognize.')
+            help='Drop the named quote type from the list to recognize. Repeatable.')
+        parser.add_argument(
+            "--singleSet", type=str, metavar='T', choices=qNames,
+            help='Convert to this named pair of single-quote characters.')
+        parser.add_argument(
+            "--doubleSet", type=str, metavar='T', choices=qNames,
+            help='Convert to this named pair of doubkle-quote characters')
 
         parser.add_argument(
             "--iencoding", type=str, metavar='E', default="utf-8",
@@ -353,6 +388,9 @@ if __name__ == "__main__":
         parser.add_argument(
             "--quiet", "-q", action='store_true',
             help='Suppress most messages.')
+        parser.add_argument(
+            "--showNames", "--list", action='store_true',
+            help='Display the named quote types, and exit.')
         parser.add_argument(
             "--test", action='store_true',
             help='Run a small self test.')
@@ -369,8 +407,6 @@ if __name__ == "__main__":
             "--version", action='version', version=__version__,
             help='Display version information, then exit.')
 
-        PowerWalk.addOptionsToArgparse(parser)
-
         parser.add_argument(
             'files', type=str, nargs=argparse.REMAINDER,
             help='Path(s) to input file(s)')
@@ -379,7 +415,7 @@ if __name__ == "__main__":
         return(args0)
 
     def runTest(fixer):
-        sample = ("""<q class="foo">The 'quick' "brown" Ã¢ÂÂfoxÃ¢ÂÂ Ã¢ÂÂjumpedÃ¢ÂÂ """ +
+        sample = ("""<q class="foo">The 'quick' "brown" """ +
             """`over` the dog's cat's.</q>""")
         print(sample)
         result = fixer.fix(sample)
@@ -390,6 +426,18 @@ if __name__ == "__main__":
     #
     fileCount = 0
     args = processOptions()
+
+    if (args.showNames):
+        print("Named quote types:")
+        print("Singles:")
+        for k, pair in FixQuotes.singlePairs.items():
+            print("    %-12s [ U+%05x, U+%05x ] = [ '%s', '%s' ]" %
+                (k, pair[0], pair[0], chr(pair[0]), chr(pair[0])))
+        print("Doubles:")
+        for k, pair in FixQuotes.doublePairs.items():
+            print("    %-12s [ U+%05x, U+%05x ] = [ '%s', '%s' ]" %
+                (k, pair[0], pair[0], chr(pair[0]), chr(pair[0])))
+        sys.exit()
 
     fixerObj = FixQuotes(
         backQuotes      = args.backQuotes,
@@ -403,12 +451,16 @@ if __name__ == "__main__":
         toTag           = args.toTag
     )
 
+    if (args.singleSet):
+        fixerObj.leftSingle  = FixQuotes.singlePairs[args.singleSet][0]
+        fixerObj.rightSingle = FixQuotes.singlePairs[args.singleSet][1]
+
+    if (args.doubleSet):
+        fixerObj.leftDouble  = FixQuotes.doublePairs[args.doubleSet][0]
+        fixerObj.rightDouble = FixQuotes.doublePairs[args.doubleSet][1]
+
     if (args.oencoding):
         sys.stdout.reconfigure(encoding='utf-8')
-
-    pw = PowerWalk(args.files, open=True, close=True,
-        encoding=args.iencoding, recursive=args.recursive)
-    pw.applyOptionsFromArgparse(args)
 
     if (args.test):
         runTest(fixerObj)
@@ -416,8 +468,7 @@ if __name__ == "__main__":
         #if (sys.stdin.isatty): warning("fixQuotes: No files specified....")
         doOneFile(None, fixerObj)
     else:
-        for path0, fh0, what0 in pw.traverse():
-            if (what0 != PWType.LEAF): continue
+        for path0 in args.files:
             fileCount += 1
             ext = os.path.splitext(path0)
             if (ext in [ ".htm", ".html", ".xml", ".svg" ]):
