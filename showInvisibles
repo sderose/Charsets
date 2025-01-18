@@ -6,6 +6,7 @@
 use strict;
 use Getopt::Long;
 use HTML::Entities;
+use charnames ':full';
 
 use sjdUtils;
 use alogging;
@@ -29,16 +30,16 @@ our $VERSION_DATE = $metadata{'modified'};
 
 =head1 Usage
 
-showinvisible [options]
+showinvisibles [options]
 
-Make various characters visible,  such as control characters, whitespace,
+Make various characters visible, such as control characters, whitespace,
 non-ASCII, etc. Replace them by backslash codes, Unicode control pictures, etc.
 By default:
 
 =over
 
 =item * control characters are converted to the Unicode "control pictures"
-(miniature mnemonics). Suppress this with --no-controls.
+(miniature mnemonics). Suppress this with I<--no-controls>.
 
 =item * Non-ASCII characters are converted according to
 I<--oformat>, which default to "PY2" (2-hex-digit Python escapes like \\xFF,
@@ -51,7 +52,7 @@ are coded as \xNN.
 
 By default, ASCII characters SPACE, LF, and TAB I<are not> replaced.
 But see I<-s> to replace all of them, or I<--spaceAs>, I<--lfAs>, and I<tabAs>
-to do just those in a variety of ways).
+to do just those in a variety of ways.
 
 
 =head1 Options
@@ -93,6 +94,7 @@ Taking BULLET (U+2022) as an example, the formats and their results are:
   DENT:  &#8226;
   XENT:  &#x2022;
   NENT:  &bull;  (per HTML 4. If no name, uses XENT)
+  NAME:  {BULLET}
   PY2:   \\u2022  (would be '\\xFF' for values under 255; expands as needed)
   PY4:   \\u2022
   PY8:   \\U00002022
@@ -191,6 +193,7 @@ Optimize color-escaping instead of doing on/off for every char.
   2022-07-25: Fix buffering that made it a no-op. Add --tabAs and --lfAs.
 Fix --oformat choices. Support -s/--allSpaces.
   2024-03-24: Add --controls. Fix binmode args.
+  2024-10-25: Add --oformat NAME.
 
 
 =head1 To do
@@ -217,6 +220,7 @@ L<https://github.com/sderose>.
 my %formats = (
     "UPLUS" => 1, "UTF" => 1, "URI" => 1, "DENT" => 1, "XENT" => 1,
     "NENT" => 1,  "PY2" => 1, "PY4" => 1, "PY8" => 1,  "PYBR" => 1,
+    "NAME" => 1,
 );
 
 
@@ -391,6 +395,11 @@ sub makeDisplayable {
     elsif ($fmt eq "PYBR") {               # \x{2022}
         return sprintf("\\x{%2x}", $n);
     }
+    elsif ($fmt eq "PYBR") {               # {BULLET=U+2022}
+        my $iname = charnames::viacode($n);
+        if (!$iname) { $iname = "???";}
+        return sprintf("{%s=U+%04x}", $iname, $n);
+    }
     else {
         die "Unknown --oformat '$fmt'.\n";
     }
@@ -414,7 +423,7 @@ sub getUTF8local {  # From "ord" script
 if (!$ARGV[0]) {
     push @ARGV, "-";
     if (-t STDIN && !$quiet) {
-        vMsg(0, "Waiting for STDIN...");
+        vMsg(0, "Waiting on STDIN...");
     }
 }
 

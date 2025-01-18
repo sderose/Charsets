@@ -408,7 +408,7 @@ entitySetMap = {
     "mmlalias":         "=",  # freq 548
     "mmlextra":         "=",  # freq 107
     #
-    "predefined":       "=",  # freq 5    # XML predefined set, useful w/ --fallback.
+    "predefined":       "=",  # freq 5    # XML predefined, useful w/ --fallback.
     #
     "STIX":             "=",  # freq 688
 }
@@ -455,8 +455,8 @@ class CharStdInfo:
     def addStd(self, whichStd:str, value:str):
         try:
             if (whichStd in self.names):
-                if (not args.quiet):
-                    lg.info("Duplicate prop %s for U+%05x.", whichStd, self.codePoint)
+                if (not args.quiet): lg.info(
+                    "Duplicate prop %s for U+%05x.", whichStd, self.codePoint)
                 return False
             self.names[whichStd] = value
         except IndexError as e:
@@ -485,7 +485,8 @@ class CharStdInfo:
                 buf += "    %-12s: %s\n" % (stdName, curName)
 
         if (compact):
-            buf = "<code n=\"0x%05x\" desc=\"%s\"\n    %s />" % (self.codePoint, desc, buf)
+            buf = "<code n=\"0x%05x\" desc=\"%s\"\n    %s />" % (
+                self.codePoint, desc, buf)
         else:
             buf = "U+%05x: \n%s" % (self.codePoint, buf)
         return buf
@@ -502,8 +503,8 @@ class CharStdInfo:
         #print("getXML for cp %05x, html name is: %s" % (codePoint, x if x else "[none]"))
         if (x is not None): return "&%s;" % (x)
         if (args.fallback == "unchanged"): return "unchanged"
-        if (args.fallback == "xml10"):   return "&#%04d;" % (codePoint)
-        if (args.fallback == "xml16"):   return "&#%04x;" % (codePoint)
+        if (args.fallback == "xml10"): return "&#%04d;" % (codePoint)
+        if (args.fallback == "xml16"): return "&#%04x;" % (codePoint)
         if (args.fallback == "literal"): return chr(codePoint)  # not checking gt lt etc.
         if (args.fallback == "slashu"):  return self.getSlash(codePoint, args.short)
         assert False, "Bad --fallback value '%s'." % (args.fallback)
@@ -634,7 +635,8 @@ class charNameConvert():
                         assert int(pos) >= 0 and int(pos) < 0x1FFFF
                     except (AssertionError, ValueError):
                         # One known error in data, 'hlcry' -> pos '40)'.
-                        lg.warning("font: @pos '%s' bad for name '%s':\n%s",
+                        lg.info(
+                            "Warning: font: @pos '%s' bad for name '%s':\n%s",
                             pos, nam, self.maybeXml(charEl))
                         continue
                     val = nam + " " + pos
@@ -728,7 +730,10 @@ class charNameConvert():
 
 ###############################################################################
 #
-def doChart(frCode:str, toCode:str, oformat:str="texdefs", incl:List=None) -> None:
+def doChart(frCode:str, toCode:str,
+    oformat:str="texdefs",  # TODO Sync with `ord`
+    incl:List=None          # Which standard to include in report
+    ) -> None:
     """Is this better sorted by codePoint or fromString?
     """
     lg.info("Starting chart, '%s' to '%s'.", frCode, toCode)
@@ -759,7 +764,8 @@ def doChart(frCode:str, toCode:str, oformat:str="texdefs", incl:List=None) -> No
             print(cnc.charDict[codePoint].tostring())
         elif (oformat == "texdefs"):  # toCode better be TeX-like
             texPart = "\\def{%s}{^^^^^%05x} " % (toString, codePoint)
-            cmtPart = "'%s' = %s" % (fromString, cnc.charDict[codePoint].names["description"])
+            cmtPart = "'%s' = %s" % (
+                fromString, cnc.charDict[codePoint].names["description"])
             print("%-40s %% %s" % (texPart, cmtPart))
         else:
             assert False, "Unknown oformat '%s'." % (oformat)
@@ -783,7 +789,7 @@ def doOneFile(path:str) -> int:
     notFound = defaultdict(int)
 
     if (not path):
-        if (sys.stdin.isatty()): print("Waiting on STDIN...")
+        if (sys.stdin.isatty() and not args.quiet): print("Waiting on STDIN...")
         fh = sys.stdin
     else:
         try:
@@ -834,6 +840,9 @@ if __name__ == "__main__":
             "--chart", action="store_true",
             help="Output a chart in TEX, of the --frCode/--toCode equivalents.")
         parser.add_argument(
+            "--codepoint", "-c", type=int, action="append",
+            help="A specific code point to display (repeatable).")
+        parser.add_argument(
             "--compact", action="store_true",
             help="With --chart, use a one-line per codepoint format.")
         parser.add_argument(
@@ -842,7 +851,7 @@ if __name__ == "__main__":
         parser.add_argument(
             "--fallback", type=str, default="xml16",
             choices=[ "literal", "xml10", "xml16", "unchanged", "slashu" ],
-            help="With --toCode xml, if no xml named entity if available, use this form.")
+            help="With --toCode xml, if no named entity is available, use this form.")
         parser.add_argument(
             "--findConflicts", action="store_true",
             help="Search for any name defined to multiple Unicode codepoints.")
@@ -903,6 +912,12 @@ if __name__ == "__main__":
         # sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
         sys.stdout.reconfigure(encoding="utf-8")
 
+    if (args.codepoint):
+        cnc = charNameConvert(os.environ["sjdUtilsDir"] + "/CharSets/unicode.xml")
+        for cp in args.codepoint:
+            print(cnc.charDict[cp].tostring())
+        sys.exit()
+
     if (args.chart):
         doChart(args.frCode, args.toCode, oformat=args.oformat, incl=args.includeCode)
         sys.exit()
@@ -917,5 +932,3 @@ if __name__ == "__main__":
     else:
         for path0 in args.files:
             doOneFile(path0)
-        if (not args.quiet):
-            lg.info("charNameConvert.py: Done, %d files.\n", pw.getStat("regular"))

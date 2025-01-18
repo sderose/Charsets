@@ -22,9 +22,9 @@ from CharDisplay import getCharInfo
 from CharDisplay import myCodepoint2script, myCodepoint2block, unicodeCategories, unixJargon
 import CharDisplay
 
-#import DomExtensions
-from alogging import ALogger
-lg = ALogger(1)
+#from domextensions import DomExtensions
+import logging
+lg = logging.getLogger("strfchr")
 
 __metadata__ = {
     "title"        : "strfchr",
@@ -1107,7 +1107,8 @@ def mapperFunc(mat, theCodepoint:int) -> str:
     try:
         val = codePointToDatum(theCodepoint, what=fmtCode)
     except KeyError as e:
-        lg.fatal("KeyError for code point 0x%04x: %s" % (theCodepoint, e))
+        lg.critical("KeyError for code point 0x%04x: %s" % (theCodepoint, e))
+        sys.exit()
     return val
 
 

@@ -1146,7 +1146,7 @@ class mathAlphanumerics:
         """
         if (decompose):
             ss = unicodedata.normalize("NFD", ss)
-            warning("Decomposed: %s" % (ss))
+            #warning("Decomposed: %s" % (ss))
         xtab = mathAlphanumerics.getTranslateTable(script, font)
         return ss.translate(xtab)
 
@@ -1171,7 +1171,8 @@ class mathAlphanumerics:
             "Unknown script '%s', must be Latin|Greek|Digits." %
                 (script))
 
-        font = font.upper()
+        font = font.strip().upper()
+        if font.startswith("MATHEMATICAL"): font = font[12:].strip()
         src = tgt = ""
         if (font in mathAlphanumerics.specialDict):
             for s, t in mathAlphanumerics.specialDict[font].items():
@@ -1183,30 +1184,30 @@ class mathAlphanumerics:
                 src += s
                 tgt.append(s+combiningChar)
         elif (font not in tbl):
-            raise ValueError("Unknown font '%s' for script '%s'." %
-                (font, script))
+            raise ValueError("Unknown font '%s' for script '%s'. Known: %s." %
+                (font, script, tbl.keys()))
         else:
             uTgtStart, lTgtStart, dTgtStart, _ = tbl[font]
             if (uTgtStart):
                 srcPart,  tgtPart = mathAlphanumerics.makePartialXtab(
                     uSrcStart, uSrcEnd, uTgtStart)
                 src += srcPart; tgt += tgtPart
-            warning("uppercase table for %s:\n    %s\n    %s" %
-                (font, src, tgt))
+            #warning("uppercase table for %s:\n    %s\n    %s" %
+            #    (font, src, tgt))
 
             if (lTgtStart):
                 srcPart,  tgtPart = mathAlphanumerics.makePartialXtab(
                     lSrcStart, lSrcEnd, lTgtStart)
                 src += srcPart; tgt += tgtPart
-            warning("both-case table for %s:\n    %s\n    %s" %
-                (font, src, tgt))
+            #warning("both-case table for %s:\n    %s\n    %s" %
+            #    (font, src, tgt))
 
             if (dTgtStart):
                 srcPart,  tgtPart = mathAlphanumerics.makePartialXtab(
                     dSrcStart, dSrcEnd, dTgtStart)
                 src += srcPart; tgt += tgtPart
 
-        warning("full table for %s:\n    %s\n    %s" % (font, src, tgt))
+        #warning("full table for %s:\n    %s\n    %s" % (font, src, tgt))
         xtab = str.maketrans(src, tgt)
         return xtab
 
@@ -1611,7 +1612,7 @@ provide Mathematical and similar variants for most of them.""")
             "\n    Converted: " + rec2)
 
     else:  # translate stdin
-        if (sys.stdin.isatty()):
+        if (sys.stdin.isatty() and not args.quiet):
             print("Waiting on stdin...")
         xt = mathAlphanumerics.getTranslateTable(scr, args.font)
         import io

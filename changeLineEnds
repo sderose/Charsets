@@ -13,7 +13,7 @@ our %metadata = (
     'type'         => "http://purl.org/dc/dcmitype/Software",
     'language'     => "Perl 5.18",
     'created'      => "2006-11-29",
-    'modified'     => "2020-02-28",
+    'modified'     => "2024-08-31",
     'publisher'    => "http://github.com/sderose",
     'license'      => "https://creativecommons.org/licenses/by-sa/3.0/"
 );
@@ -25,20 +25,38 @@ our $VERSION_DATE = $metadata{'modified'};
 
 changeLineEnds [options] [files]
 
-Identifies and/or changes line-end conventions in a file(s).
+Changes line-end conventions in a file(s). Files are changed in place, but the
+original forms are moved to files with ".bak" added to the names.
+
+By default, line-ends are changed to *NIX form (LF).
+Use I--olineends [type]> to get other forms (DOS or MAC).
+
+To just identify line-end type without changing anything, use I<--identify>.
+
 
 
 =head1 Options
 
 =over
 
+=item * B<--bakExtension> I<ext>
+
+Use a different extension for backups (do not include the ".").
+
+=item * B<--backup>
+
+Move the original form into files
+with ".bak" added to the names. Default. Use I<--no-backup> to skip.
+
 =item * B<--color>
 
-Use color (mainly useful with I<--identify>).
+Color code by line-end type with I<--identify>.
+Defaults to on if environment variable CLI_COLOR is set and stderr is
+going to a terminal.
 
 =item * B<--identify>
 
-Just say whether *NIX, DOS, MAC, NOTFOUND, UNKNOWN.
+Just say whether *NIX, DOS, MAC, or ??? (unknown).
 
 =item * B<--olineends> I<t>
 
@@ -59,10 +77,14 @@ Display version info and exit.
 
 =head1 Known bugs and limitations
 
-This can fix, but will not identify, files with mixed line-end types.
+This does not handle files with mixed line-end types. It will identify the
+first one found, but only change that type going forward.
+
+This does not work on STDIN, just files, because it wants to read to the
+first of any kind of line-ending, then rewind to do the copying.
 
 
-=Related commands=
+=head1 Related commands
 
 Dave Ragget's C<tab2space> can expand tabs and fix line endings.
 See HTML Tidy Project Page at [http://tidy.sourceforge.net].
@@ -86,10 +108,13 @@ See HTML Tidy Project Page at [http://tidy.sourceforge.net].
 
 =item * 2020-02-28: Update layout and metadata.
 
+=item * 2024-08-31ff: Fix various reading bugs. Add --backup, --encoding,
+--bakExtension.
+
 =back
 
 
-=Rights=
+=head1 Rights
 
 Copyright 2006 by Steven J. DeRose. This work is licensed under a Creative Commons
 Attribution-Share Alike 3.0 Unported License. For further information on
@@ -103,8 +128,11 @@ For the most recent version, see [http://www.derose.net/steve/utilities] or
 
 ###############################################################################
 #
+my $bakExtension = "bak";
+my $backup       = 1;
 my $colorOption  = ($ENV{CLI_COLOR} && -t STDERR) ? 1:0;
-my $justidentify = 0;
+my $encoding     = "";
+my $identify     = 0;
 my $olineends    = "U";
 my $quiet        = 0;
 my $verbose      = 0;
@@ -113,9 +141,12 @@ my $verbose      = 0;
 #
 Getopt::Long::Configure ("ignore_case");
 my $result = GetOptions(
+    "bakExtension=s"   => \$bakExtension,
+    "backup!"          => \$backup,
     "color!"           => \$colorOption,
     "h|help|?"         => sub { system "perldoc $0"; exit; },
-    "identify"         => \$justidentify,
+    "identify"         => \$identify,
+    "encoding|iencoding=s" => \$encoding,
     "olineends=s"      => \$olineends,
     "quiet!"           => \$quiet,
     "v|verbose+"       => \$verbose,
@@ -145,68 +176,114 @@ if ($colorOption) {
     $clear  = `colorstring default`;
 }
 
+# Read by characters until we hit \n or \r\n or \r or EOF.
+# Return the platform-type mnemonic.
+# This moves the file pointer, so fseek back afterward if needed.
+#
+sub readToAny {
+    my ($fh) = @_;
+    while (my $c = getc $fh) {
+       # warn sprintf("Got %02x (%s)\n", ord($c), $c);
+        if ($c eq "\n") { return "*NIX"; }
+        if ($c eq "\r") {
+            my $c2 = getc $fh;
+            if ($c2 eq "\n") { return "DOS"; }
+            return "MAC";
+        }
+    }
+    return "???";
+}
+
+# $/ doesn't seem to have a nice way to say "any of the above".
+#
+sub getType {
+    my ($rec) = @_;
+    if ($rec =~ m/\r\n$/) { return "DOS"; }
+    elsif ($rec =~ m/\r$/) { return "MAC"; }
+    elsif ($rec =~ m/\r$/) { return "*NIX"; }
+    else {
+        warn "Unrecognized line-end.\n";
+    }
+    return "???";
+}
+
+sub report {
+    my ($type, $path) = @_;
+    my $msg = sprintf("%-6s %s", $type, $path);
+    if (!$colorOption) { warn "$msg\n"; }
+    elsif ($type eq "*NIX") { warn "$green$msg$clear\n"; }
+    elsif ($type eq "MAC") { warn "$yellow$msg$clear\n"; }
+    else { warn "$red$msg$clear\n"; }
+}
+
 
 ###############################################################################
 # Main
 #
 if (scalar(@ARGV)==0) {
-    push @ARGV, "-";
-    (-t STDIN && !$quiet) && warn "Waiting for STDIN...\n";
+    warn "No fiiles specified.\n";
+    exit 99;
 }
 
+my %choices = ( "MAC" => "\r", "DOC" => "\r\n", "*NIX" => "\n" );
+
 my $nFiles = 0;
-foreach my $f (@ARGV) {
-    if (-d $f) {
-        ($verbose) && warn "Skipping directory '$f'.\n";
+
+foreach my $origpath (@ARGV) {
+    if (-d $origpath) {
+        ($quiet) || warn "Skipping directory: $origpath.\n";
         next;
     }
-    if (!(-f $f)) {
-        warn "$f\tNOTFOUND\n";
+    if ($origpath =~ m/\.$bakExtension$/) {
+        ($quiet) || warn "Skipping $bakExtension file: $origpath.\n";
         next;
     }
+    if (! -e $origpath) {
+        warn "File not found: $origpath\n";
+        next;
+    }
+
     $nFiles++;
 
-    # First, scan to a line-end and identify the type
-    my $leader = "";
-    my $c;
-    my $type = "???";
-    open(IN, "<$f") || warn
-        "Unable to open file '$f'\n";
-    while (read(IN,$c,1) && $type eq "???") {
-        if ($c eq "\n")     { $type = "*NIX"; }
-        if ($c eq "\r") {
-            read(IN,$c,1);
-            if ($c eq "\n") { $type = "DOS"; }
-            else            { $type = "MAC"; }
-        }
-        $leader .= $c;
+    if ($identify) {
+        open(my $SRC, "<$origpath");
+        my $type = readToAny($SRC);
+        my $offset = tell $SRC;
+        #warn "type $type, at byte $offset.\n";
+        close($SRC);
+        report($type, $origpath);
     }
 
-    my $msg = sprintf("%-6ss %s",$type, $f);
-    if ($colorOption) {
-        if ($type eq "*NIX") {
-            warn "$green$msg$clear\n";
-        }
-        elsif ($type eq "MAC") {
-            warn "$yellow$msg$clear\n";
-        }
-        else {
-            warn "$red$msg$clear\n";
-        }
-    }
     else {
-        warn "$msg\n";
-    }
-
-    if (!$justidentify) {
-        print "$leader\n";
-        while (my $rec = <IN>) {
-            $rec =~ s/(\r\n?|\n)$//;
-            print "$rec$nl";
+        my $bakpath = $origpath;
+        $bakpath =~ s/\.\w+$//;
+        $bakpath .= ".$bakExtension";
+        ($verbose) && warn "Working on $origpath -> $bakpath\n";
+        rename $origpath, $bakpath;
+        if ($?) { warn "Rename failed.\n"; next; }
+        open(my $SRC, "<$bakpath");
+        open(my $TGT, ">$origpath");
+        if ($encoding) {
+            binmode($SRC, $encoding);
+            binmode($TGT, $encoding);
         }
+        my $type = readToAny($SRC);
+        ($verbose) && warn "Type identified as $type. Copying.\n";
+        seek($SRC, 0, 0);
+
+        $/ = $choices{$type};
+
+        my $recnum = 0;
+        while (my $rec = <$SRC>) {
+            $recnum++;
+            chomp $rec;
+            print $TGT "$rec$nl";
+        }
+        close($SRC);
+        close($TGT);
+        #if (!$backup) { rm $bakpath; }
     }
-    close IN;
-} # foreach
+}
 
 ($quiet) || warn "Done, $nFiles files.\n";
 

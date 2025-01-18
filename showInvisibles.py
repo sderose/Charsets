@@ -9,7 +9,7 @@ import codecs
 import argparse
 
 from sjdUtils import sjdUtils
-import strfchr
+#import strfchr  -- whassup with this???
 
 __metadata__ = {
     "title"        : "showInvisibles",

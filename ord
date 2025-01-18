@@ -14,6 +14,10 @@ use Encode;
 use URI::Escape;
 use POSIX;
 
+use feature 'unicode_strings';
+use Encode qw(decode_utf8);
+use utf8;
+
 #use Char::Unicode::Bidi;  # ???
 
 our %metadata = (
@@ -41,19 +45,21 @@ ord [options] [chars|mnemonics]
 
 Displays Unicode character code point numbers and other information
 about a character(s), or searches the Unicode character database for
-particular characters are provides the list of matches in useful formats.
+particular characters and provides the list of matches in various formats.
 
-For example, the "BULLET" character can be specified in any of these ways:
+For example, information about the "BULLET" character can be requested
+in any of these ways:
 
     ord •            [the literal character]
     ord 0x2022       [the code point in hexadecimal]
     ord 8226         [the code point in decimal]
     ord 020042       [the code point in octal]
     ord BULLET       [the Unicode name (case doesn't matter)]
-    ord bull         [the HTML 4 entity name (case does matter)]
+    ord bull         [the HTML 4 entity name (case I<does> matter)]
     ord %e2%80%a2    [UTF-8 byte sequence as escaped for use in URIs]
 
 Any of these produces:
+
     Unicode Name:      BULLET
     Unicode Category:  Po (Punctuation, Other)
     Unicode Script:    Common
@@ -64,47 +70,42 @@ Any of these produces:
     Unicode:           U+02022, utf8 \xe2\x80\xa2, URI (%e2%80%a2), Python \u2022
     Entities:          &#8226; &#x2022; &bull;
 
+A single decimal digit is taken as a request for information on that
+graphic character, not on the (C0 control) character (U+0001 to+0009).
+Since all decimal digits are also hex digits, you can
+describe characters U+1 through U+9 by prefixing "0x"
+(or ones from 1-7 by making them octal by prefixing just "0").
+NULL is not available because it's a pain.
+
 Control characters can also be specified by "^" plus a letter, or by mnemonic.
 For example, LINE FEED may be specified as "^J" or "LF".
 Unix jargon names such as "splat" for "*" are also recognized.
 
 Full unicode names ignore case, but if there are spaces the name needs to be
-quoted, or to use "_" instead of actual space. For example:
+quoted or to use "_" instead of actual space. For example:
+
     ord "APL FUNCTIONAL SYMBOL LEFTWARDS VANE"
     ord APL_FUNCTIONAL_SYMBOL_LEFTWARDS_VANE
 
-You can find all characters whose Unicode name contains a given
-string or regex, like:
+You can also search for all Unicode characters (or those in a given numeric
+range) that have various properties.
+For example, whose Unicode name contains a given string or regex, like:
     ord -f "APL FUNCTIONAL SYMBOL"
     ord --findRegex "LEFT.*QUO"
 
-A single decimal digit is taken as a request for information on that
-graphic character, not on the (C0 control) character (U+0000-0x0009).
-Since all decimal digits are also hex digits, you can
-describe characters U+0 through U+9 by prefixing "0x"
-(or ones from 0-7 by making them octal by prefixing just "0").
-
 ==Searching for characters==
 
-To search for all Unicode characters whose names contain a certain
-string or regex, that are in a given Unicode block or category,
-or whose names would be matched
-by a given regex (for example '\\sLATIN'), use the I<--findString>,
-I<--findRegex>, I<--findBlock>, I<--findCategory>, or I<--findSet> option.
-All I<--find...> matches ignore case.
+The search options are I<--findString>,
+I<--findRegex>, I<--findBlock>, I<--findCategory>, and I<--findSet>.
+All I<--find...> variations ignore case.
 By default, they only search the first two Unicode
 planes (code points up to 0x1FFFF). Even that takes much of a minute.
 To search further or less far, use  I<--minU> and/or I<--maxU>.
 
-See also I<--oformat>, which controls the output format produced by all
-of the searches. The default is CONSOLE, which
-gives lots of detail; PLAIN and LITERAL are nice for brevity.
-See also my C<CharDisplay.py>, which provides a strftime-like way to
-specify custom output formats.
-
 I<--findString> searches for a literal match within the character's full name.
 To gather up Unicode characters whose formal names include "star"
 (ignoring case), say:
+
     ord --findString star
 
 Such a search does not get all and only stars, much less all characters one might
@@ -113,6 +114,7 @@ consider using for the purpose one has in mind -- for example:
     "*" (asterisk) does not have "star" in its name
     Nor do many snowflakes, florettes, and sparkles.
     Some characters have "star" in their name but may not be wanted:
+
         U+00001     START OF HEADING
         U+00f0c ༌   TIBETAN MARK DELIMITER TSHEG BSTAR
         U+029e6 ⧦   GLEICH STARK
@@ -128,19 +130,32 @@ at the start of each matching block.
 I<--findSet> searches for characters which, as literals, match the specified
 regex. For example, to find what characters are included by (Perl's)
 regex '\\s' shorthand, use:
+
     ord --findSet "\\s"
 
 I<--pairs> is a special "find" that searches for symmetric pairs of characters,
 such as brackets, quotes, etc, and writes them out as HTML similar
 to I<--oformat HTML>.
 
-The parellel lists of tokens used in the search are in arrays named
+The parallel lists of tokens used in the search are in arrays named
 \@leftWords and \@rightWords, and include a variety of left/right, open/close,
 start/end, and similar pairings.
 It doesn't cover characters that contain multiple such keywords.
 
 If you specify more than one of the I<--findXXX> options, the result is
 not defined.
+
+
+==Report formats==
+
+Each identified character generates a report.
+I<--oformat> controls the output format produced for those reports.
+The default is CONSOLE, which
+gives lots of detail (the same as for specific characters requested
+on the command line). PLAIN and LITERAL are nice for brevity, and various
+others are handy for making strings, regexes, lists, or dicts in programs.
+See also my C<CharDisplay.py>, which provides a strftime-like way to
+specify custom output formats.
 
 
 =head1 Options
@@ -153,7 +168,7 @@ not defined.
 
 Show code points in binary.
 
-=item * B<--chart> I<name>
+=item * B<--chart> I<nameOrRange>
 
 Show info for all the characters in a named range chosen from:
 c0, g0, c1, g1, ASCII, Latin1, LatinxA (for Latin Extended A), LatinxB,
@@ -163,17 +178,21 @@ implies --cp1252).
 
 The chart is shown in the requested I<--oformat> (default: CONSOLE).
 
-The range can also be given as two (decimal or hex) integers,
+The range can instead be given as two (decimal or hex) integers,
 separated by non-word characters (such as  "-", ":", "...", ", ", etc.).
-See also I<--c0>, I<--c1>, I<--g0>, I<--g1>, which are just synonyms
-for I<--chart> with the corresponding value.
+I<--c0>, I<--c1>, I<--g0>, I<--g1>, which are just synonyms
+for I<--chart> with the corresponding ranges.
 See also I<--table>, I<--digits>, and I<--math> for other kinds of charts.
 Charts are not affected by I<--minU> or I<maxU>.
 
 =item * B<--cheatsheet>
 
-Show a cheat-sheet with the code point, literal, HTML entity name, my entity name,
-and Unicode truename of the special characters this author thinks most useful.
+Show a cheat-sheet of special characters this author thinks most useful.
+Each entry display  the code point, literal, HTML entity name, a proposed
+entity name for cases where HTML lacks any, and the Unicode truename.
+[unfinished] -- at the moment, this option produces codepoint 0 and unsupported
+entity names for many of the characters. See my C<makeHugeEntitySet.py>
+for a proposal for a much more diverse set of entity names.
 
 =item * B<--cp1252>
 
@@ -357,7 +376,7 @@ Show long names for characters in CONSOLE format (default).
 Assume the input character set is Apple MacRoman.
 This is also known as  IANA character "macintosh"
 (with aliases "mac" and "csMacintosh"), and Microsoft code page 10000.
-Acc. [http://fileformats.archiveteam.org/wiki/MacRoman],
+According to [http://fileformats.archiveteam.org/wiki/MacRoman]
 C<iconv> recognizes "CP10000", "MAC", "MACINTOSH", "MACROMAN", and "CSMACINTOSH".
 See also I<--cp1252>.
 
@@ -367,19 +386,24 @@ Show a display with all the mathematical variants of the Latin
 and Greek alphabets. See also the I<--chart> option and the
 C<mathAlphanumerics> package.
 
-=item * B<--maxU> I<n>
+=item * B<--maxU> I<n> or B<--maxChar> I<n>
 
 Only search Unicode characters up through code point I<n> when using
 any of the several I<--find...> options,
 or trying to resolve an unrecognized name. Default: 65535 (0xoFFFF).
 Numeric options such as I<--max> can be specified in base 8, 10, or 16.
 
-=item * B<--minU> I<n>
+B<Note>: Last I checked, the highest "real" Unicode character (that is,
+not counting TAGs, VARIATION SELECTORs, and PRIVATE USE), was:
+
+    2FA1D;CJK COMPATIBILITY IDEOGRAPH-2FA1D
+
+=item * B<--minU> I<n> or B<--minChar> I<n>
 
 Only search Unicode characters starting from code point I<n> when using
-the several I<--find...> options,
-or trying to resolve an unrecognized name. Default: 65535 (0xoFFFF).
-Numeric options such as I<--max> can be specified in base 8, 10, or 16.
+the several I<--find...> options
+or trying to resolve an unrecognized name. Default: 65535 (0x0FFFF).
+Numeric options such as I<--maxU> can be specified in base 8, 10, or 16.
 
 =item * B<--octal>
 
@@ -396,7 +420,7 @@ but I have not found a convenient interface to it from either Perl or
 Python (see "To Do").
 
 Does not do "vertical" pairs, such as U+02191 UPWARDS ARROW vs.
-U+02193 DOWNWARDS ARROW.
+U+02193 DOWNWARDS ARROW, or quads like those plus leftwards and rightwards arrows.
 
 =item * B<--regex>
 
@@ -414,10 +438,13 @@ See also I<--c0>, I<--c1>, I<--g0>, I<--g1>, I<--table>, I<--digits>,
 and I<--math> for other kinds of displays.
 See also I<--chart> for a different layout.
 
-=item * B<--typing>
+=item * B<--typing> (not yet supported)
 
-For non-ASCII characters, show how to key it (not yet supported, and of course
-system-dependent).
+For non-ASCII characters, show how to key it. On windows the general idea
+is to hold ALT while typing the decimal code point value.
+However, it matters whether you give a leading
+zero or not (maybe one is CP1252 and the other is Unicode? Not sure).
+I think you can only use the numeric keypad digits.
 
 =item * B<--utf8>
 
@@ -476,6 +503,7 @@ you search for just the combining characters, and print them out as
 I<--oformat STRING>.
 
 Does not catch cases with multiple direction keywords, such as:
+
     U+0200e  ‎  LEFT-TO-RIGHT MARK
     U+0200f  ‏  RIGHT-TO-LEFT MARK
     U+021c4  ⇄  RIGHTWARDS ARROW OVER LEFTWARDS ARROW
@@ -497,10 +525,19 @@ C<showNumberInBases> -- Converts a number to multiple bases.
 C<mathAlphanumerics.py> -- Maps Latin, Greek, and/or digits to alternate
 forms such as Mathematical double-struck, etc.
 
+C<charNameConvert.py> -- An unfinished package based on
+my old friend Sebastian Rahtz's work developing a database of how various
+characters are named in various standards.
+
 
 =head1 To do
 
 =over
+
+=item * Hook up C<charNameConvert.py>.
+
+=item * Integrate with Sebastian Rahtz's extraordinary database
+of character names in various standards (cf <charNameConvert.py>).
 
 =item * Pull in --oformat bracket feature as from showCharsInPYDICT_CHARlass.
 I.e., extend --oformat REGEX to coalesce contiguous ranges.
@@ -525,6 +562,15 @@ Python.
 
 =item * Use Unicode DB NamesList.txt file "=" entries for alternative names
 (~5500; not unique).
+
+=item * Option to search in reverse order
+
+=item * Option to find specifically unassigned code points.
+
+=item * Option to show XML-related information (such as if prohibited,
+if allowed as NMCHAR or NMSTARTCHAR).
+
+=item * Hook up https://www.unicode.org/Public/security/8.0.0/confusables.txt.
 
 =back
 
@@ -616,6 +662,8 @@ coalesce contiguous ranges.
 not re-use $target, and to run independently of $targets, not
 just as fallback.  Add --showCategories. Better names for Python --oformats
 and rename listFormat to oformat.
+
+=item * 2024-10-23: Support strings of literal (not all ASCII) chars.
 
 =back
 
@@ -775,8 +823,8 @@ my $result = GetOptions(
     "long!"               => \$long,
     "macRoman!"           => \$macRoman,
     "math!"               => \$math,
-    "maxU=o"              => \$maxU,
-    "minU=o"              => \$minU,
+    "maxU|maxChar=o"      => \$maxU,
+    "minU|minChar=o"      => \$minU,
     "octal!"              => \$octal,
     "pairs!"              => \$pairs,
     "pyFunction=s"        => \$pyFunction,
@@ -1769,9 +1817,9 @@ sub showCheatSheet {  # TODO: Move to separate entity-def file.
 sub report {
     my ($ent, $entn, $full, $fulln) = @_;
     if ($fulln != 0 && $entn != $fulln) {
-        warn ("*** Mismatch for $ent:\n");
+        ($verbose) && warn ("*** Mismatch for $ent:\n");
     }
-    my $fullEnt = ($fulln > 0) ? sprintf("&#x04;", $fulln) : "---";
+    my $fullEnt = ($fulln > 0) ? sprintf("&#%x04;", $fulln) : "---";
     printf("U+%04x '%1s' [%-12s] \"%s\" \n",
         $entn, ($entn>0) ? chr($entn) : " ", $ent, $full);
 }
@@ -2580,11 +2628,21 @@ if ($findBlock || $findString || $findRegex
     die "No character or mnemonic found (see -h for"
         . " information on hard-to-type characters).\n";
 
+binmode(STDOUT, ":encoding(utf8)");
+binmode(STDERR, ":encoding(utf8)");
 while (my $origName = shift) {
-    my $name = $origName;
+    # Chars seem to come in as UTF-8.
+    my $name = decode_utf8($origName);
+    ($verbose) && warn sprintf(
+        "Arg is '$name', len %d, ord %d\n", length($name), ord($name));
+
     my $n = 0;
-    if (length($name) == 1) {
-        $n = ord($name);
+    if (length($name) == 1 || $name !~ m/^[\x00-\x7F]+$/) {
+        for (my $i=0; $i < length($name); $i++) {
+            my $c = substr($name, $i, 1);
+            $n = ord($c);
+            showOne($n);
+        }
     }
     else { # Search for the name
         my $entRef = '&'.$name.';';
@@ -2639,7 +2697,6 @@ while (my $origName = shift) {
             }
         }
 
-
         if (!$n) {
             warn "Character mnemonic '$origName' (length "
                 . length($name) . ") not found. Trying various searches...\n";
@@ -2648,8 +2705,8 @@ while (my $origName = shift) {
             $findBlock = $findString = $findRegex = "";
             next;
         }
+        showOne($n);
     }
-    showOne($n);
 } # while
 
 exit;

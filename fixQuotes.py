@@ -14,34 +14,35 @@ __metadata__ = {
     "rightsHolder" : "Steven J. DeRose",
     "creator"      : "http://viaf.org/viaf/50334488",
     "type"         : "http://purl.org/dc/dcmitype/Software",
-    "language"     : "Python 3.7",
+    "language"     : "Python 3.11",
     "created"      : "2020-10-14",
-    "modified"     : "2020-11-19",
+    "modified"     : "2024-07-05",
     "publisher"    : "http://github.com/sderose",
     "license"      : "https://creativecommons.org/licenses/by-sa/3.0/"
 }
 __version__ = __metadata__['modified']
 
 descr = """
-=Description=
+==Description==
 
 Convert quotations between various Unicode forms or XML/HTML markup.
 By default, turn them all into ASCII apostrophe or double-quote. or markup.
-
-To covert to markup, use the `--toTag [tagname]` option.
-
+For example:
 
    These “quotes” are ‘very’ 'important', `aren't` `they'?
 
 to
+
     These "quotes" are 'very' 'important', `aren't` `they'?
+
+To covert to markup, use the `--toTag [tagname]` option.
 
 Back-quotes (aka GRAVE ACCENT, U+0060) are not affected unless you
 specifically set `--backQuotes`. This is because of the alternative
 conventions for them, as shown in the example above.
 
 Does not change lone apostrophes or quotes; there must be a left quote
-(single or double, of any active type), and a right. To skip over
+(single or double, of any active type) and a right. To skip over
 escaped right quotes, specify --escapeChar [char]. However, this does
 not yet handle that char itself being escaped.
 
@@ -71,7 +72,7 @@ To use from Python code:
     myString = qf.fix(myString)
 
 
-=Methods=
+==Methods==
 
 You can set similarly-named keyword options when constructing
 a `fixQuotes` instance, as you can set on the command line (q.v.):
@@ -95,7 +96,7 @@ a `fixQuotes` instance, as you can set on the command line (q.v.):
 * toTag:str=''
 
 
-=Related Commands=
+==Related Commands==
 
 My `showKeyCodes`, which will take keystrokes and tell you what got sent.
 
@@ -103,7 +104,7 @@ My `normalizeUnicode.py` (and .pl), which do a variety of other character
 set mappings.
 
 
-=Known bugs and Limitations=
+==Known bugs and Limitations==
 
 Weird things can happen with console and pipe i/o for non-ASCII. The
 --iencoding and --oencoding options, and the defaults in Python 3
@@ -119,7 +120,7 @@ Cannot yet translate ''<q>'' etc. to literal quotes (etc.).
 Does not do anything for characters represented
 via backslash codes, named or numeric entities, etc.
 
---escapeChar support doesn't consider the escapechar being escaped.
+`--escapeChar` support doesn't consider the escapechar being escaped.
 
 `--normalizeSpaces` does not affect hard space (`&nbsp;` or `U+000A0`).
 
@@ -128,20 +129,21 @@ combinations by setting --leftSingle etc. separately (--showNames also shows
 the hex code points and literals for all the named sets).
 
 
-=To do
+==To do==
 
 * Better option naming and organization.
 * Separate 'educate' option to get from plain to curly or other pairs.
 * Perhaps should have something for MarkDown-ish '''xyz'''.
 
-=History=
+
+==History==
 
 * 2020-10-14: Written by Steven J. DeRose.
 * 2020-10-19: Hook up PowerWalk options. Start making into a class.
-( 02024-07-05: Add --show. Take PowerWalk back out, too many options.
+* 2024-07-05: Add --show. Take PowerWalk back out, too many options.
 
 
-=To do=
+==To do==
 
 * Re-run various tests, having introduced FixQuotes class.
 * Add `...' case.
@@ -153,7 +155,7 @@ the hex code points and literals for all the named sets).
     &#39; &#x27; &apos;
 
 
-=Rights=
+==Rights==
 
 Copyright 2020-10-14 by Steven J. DeRose. This work is licensed under a
 Creative Commons Attribution-Share-alike 3.0 unported license.
@@ -163,7 +165,7 @@ For the most recent version, see [http://www.derose.net/steve/utilities]
 or [https://github.com/sderose].
 
 
-=Options=s
+==Options==
 """
 
 class FixQuotes:
@@ -174,7 +176,7 @@ class FixQuotes:
         "sangle":   [ 0x2039, 0x203A ],  # "SINGLE LEFT-POINTING ANGLE QUOTATION MARK",
         "slow9":    [ 0x201A, 0x201B ],  # "SINGLE LOW-9 QUOTATION MARK",
         "sprime":   [ 0x2032, 0x2035 ],  # "PRIME", "REVERSED PRIME",
-        "scommaO":  [ 0x275B, 0x275C ],  # Heavy Single Turned Comma QM Ornament
+        "scommaO":  [ 0x275B, 0x275C ],  # HEAVY SINGLE TURNED COMMA QM ORNAMENT
     }
 
     doublePairs = {
@@ -188,10 +190,10 @@ class FixQuotes:
         "rdprime":  [ 0x2057, 0x301D ],  # "REVERSED DOUBLE PRIME QUOTATION MARK",
             # = "QUADRUPLE PRIME"
 
-        "fullwidth":[ 0xFF02, 0xFF02 ],  # Fullwidth Quotation Mark
+        "fullwidth":[ 0xFF02, 0xFF02 ],  # FULLWIDTH QUOTATION MARK
         "dcommaO":  [ 0x275D, 0x275E ],  # Heavy Double Turned Comma QM Ornament
         "hangleO":  [ 0x276E, 0x276F ],  # Heavy Left-pointing Angle QM Ornament
-        "sshdcommonO":  [ 0x1F677, 0x1F678 ],  # Sans-serif Heavy Double Comma QM Ornament
+        "sshdcommonO": [ 0x1F677, 0x1F678 ],  # Sans-serif Heavy Double Comma QM Ornament
     }
 
     def __init__(self,
@@ -219,13 +221,13 @@ class FixQuotes:
 
         sp = self.singlePairs.copy()
         dp = self.doublePairs.copy()
-        if (args.ignoreQuote):
-            for q0 in args.ignoreQuote:
+        if (ignoreQuote):
+            for q0 in ignoreQuote:
                 if (q0 in sp): del sp[q0]
                 elif (q0 in dp): del dp[q0]
                 else: raise ValueError(
                     "Unknown quote type to ignore: '%s'." % (q0))
-        if (args.backQuotes):
+        if (backQuotes):
             sp['back'] = [ 0x0060, 0x0060 ]
 
         self.xtab = self.makeXtab(sp, dp,
@@ -291,15 +293,16 @@ class FixQuotes:
 #
 dirCount = 0
 fileCount = 0
+verbose = 0
 
 def warning(msg:str) -> None:
-    sys.stderr.write(msg + "\n")
+    if verbose: sys.stderr.write(msg + "\n")
 
 def doOneFile(path:str, fixer):
     """Read and deal with one individual file.
     """
     if (not path):
-        if (sys.stdin.isatty()): print("Waiting on STDIN...")
+        if (sys.stdin.isatty() and not args.quiet): print("Waiting on STDIN...")
         fh = sys.stdin
     else:
         try:
@@ -320,7 +323,7 @@ def doOneXmlFile(path, fixer):
     """Parse and load
     """
     from xml.dom import minidom
-    from DomExtensions import DomExtensions
+    from domextensions import DomExtensions
     DomExtensions.patchDom(minidom.Node)
     xdoc = minidom.parse(path)
     docEl = xdoc.documentElement
@@ -426,6 +429,9 @@ if __name__ == "__main__":
     #
     fileCount = 0
     args = processOptions()
+
+    if (args.verbose):
+        verbose = args.verbose
 
     if (args.showNames):
         print("Named quote types:")

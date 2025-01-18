@@ -145,7 +145,7 @@ for st, en in xmlCharRanges:
     if (st==en): xmlChars += UEscape(st)
     else: xmlChars += UEscape(st) + "-" + UEscape(en)
 xmlChars += r"^[%s]+$" % (xmlChars)
-xmlCharsExpr = re.compile(xmlChars, re.UNICODE)
+xmlCharsExpr = re.compile(xmlChars, flags=re.UNICODE)
 
 
 ###############################################################################
@@ -154,7 +154,7 @@ def doOneFile(path):
     """Read and deal with one individual file.
     """
     if (not path):
-        if (sys.stdin.isatty()): print("Waiting on STDIN...")
+        if (sys.stdin.isatty() and not args.quiet): print("Waiting on STDIN...")
         fh = sys.stdin
     else:
         try:
